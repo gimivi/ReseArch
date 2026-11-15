@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "Se usi ReseArch nella tua ricerca, citalo così. / If you use ReseArch in your research, please cite it as below."
+type: software
+title: "ReseArch"
+abstract: >-
+  Piattaforma web per visualizzare, elaborare e mettere in relazione modelli digitali eterogenei
+  (3D, immagini gigapixel, mappe, PDF, tabelle, grafici, ontologie, linee del tempo, BIM) in una
+  dashboard a finestre configurabile. Ideata e sviluppata nell'ambito del progetto di ricerca
+  SCAENAE – Teatro barocco italiano. Paradigmi della scena e della memoria culturale
+  (PRIN 2022, prot. 20223835NX, CUP B53C24007890006), finanziato dal Ministero dell'Università
+  e della Ricerca.
+authors:
+  - family-names: "Valenti"
+    given-names: "Graziano Mario"
+    orcid: "https://orcid.org/0000-0002-8737-5862"
+    affiliation: "Sapienza Università di Roma"
+license: EUPL-1.2
+repository-code: "https://github.com/gimivi/ReseArch"
+keywords:
+  - cultural heritage
+  - digital humanities
+  - knowledge model
+  - 3D
+  - web platform
+  - PRIN 2022
+  - SCAENAE

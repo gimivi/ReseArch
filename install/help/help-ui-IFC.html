@@ -1,0 +1,194 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida dell'INTERFACCIA dell'App IFC: solo ciò che l'utente vede e usa nel pannello (barra, menu, mouse e tastiera,
+  riquadri). La spec del modello è in help-app-IFC.html, i nodi dei flow nella guida dei nodi.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Modelli BIM, il pannello" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-…
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-building" aria-hidden="true"></i> Modelli BIM (IFC): usare il pannello</h2>
+  <p class="rh-lead">
+    Come si esplora un modello di edificio BIM (file IFC o FRAG). La spec del modello ha una guida a parte:
+    la trovi in fondo, in <a href="#rh-sec-guides">Guide rapide</a>.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-move"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi nel modello</a></li>
+      <li><a href="#rh-sec-bar"><i class="bi bi-tools" aria-hidden="true"></i>La barra</a></li>
+      <li><a href="#rh-sec-win"><i class="bi bi-layout-sidebar-reverse" aria-hidden="true"></i>Le finestre</a></li>
+      <li><a href="#rh-sec-load"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Tempi di caricamento</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-move" aria-labelledby="rh-sec-move-t">
+    <h3 id="rh-sec-move-t"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi nel modello</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi del visore BIM</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Trascina con il tasto sinistro</td><td>Ruota intorno al modello</td></tr>
+          <tr><td>Trascina con il tasto destro</td><td>Sposta la vista</td></tr>
+          <tr><td>Rotella · touch con due dita</td><td>Avvicina e allontana</td></tr>
+          <tr><td>Clic su un elemento</td><td>Lo seleziona (giallo) e ne mostra le proprietà; clic nel vuoto toglie la selezione</td></tr>
+          <tr><td>Doppio clic su un elemento</td><td>La vista ruota attorno a quel punto (con Sezione o Misura attive, serve a quello strumento)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Più modelli dell'oggetto (architettonico, strutturale, impianti…) si caricano insieme nella stessa scena;
+       il footer conta quelli caricati.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-bar" aria-labelledby="rh-sec-bar-t">
+    <h3 id="rh-sec-bar-t"><i class="bi bi-tools" aria-hidden="true"></i>La barra</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Pulsanti della barra del pannello BIM</caption>
+        <thead><tr><th scope="col">Pulsante</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i> Inquadra tutto</td><td>Rimette in vista tutti i modelli</td></tr>
+          <tr><td><i class="bi bi-info-square" aria-hidden="true"></i> <i class="bi bi-diagram-3" aria-hidden="true"></i> <i class="bi bi-funnel" aria-hidden="true"></i> <i class="bi bi-layers" aria-hidden="true"></i> <i class="bi bi-search" aria-hidden="true"></i></td><td>Aprono e chiudono le finestre a destra: Proprietà, Albero, Categorie, Piante, Cerca</td></tr>
+          <tr><td><i class="bi bi-palette2" aria-hidden="true"></i> <i class="bi bi-bookmark-star" aria-hidden="true"></i></td><td>Aprono le finestre Colora per valore e Viste</td></tr>
+          <tr><td><i class="bi bi-pencil" aria-hidden="true"></i> Contorni · <i class="bi bi-box" aria-hidden="true"></i> Ortogonale</td><td>Disegna i contorni degli elementi · passa la vista 3D alla proiezione ortogonale, senza prospettiva (le piante lo sono già)</td></tr>
+          <tr><td><i class="bi bi-transparency" aria-hidden="true"></i> Raggi X</td><td>Rende trasparente tutto tranne la selezione e gli elementi colorati (da Cerca, Colora per valore o dal flow)</td></tr>
+          <tr><td><i class="bi bi-bullseye" aria-hidden="true"></i> Isola · <i class="bi bi-eye" aria-hidden="true"></i> Mostra tutto</td><td>Lascia visibile solo l'elemento selezionato (un piano: tutto il suo contenuto) · rende visibile tutto</td></tr>
+          <tr><td><i class="bi bi-scissors" aria-hidden="true"></i> Sezione · <i class="bi bi-x-square" aria-hidden="true"></i></td><td>Con Sezione attiva, doppio clic su una faccia crea un piano; si sposta trascinando le frecce · toglie tutti i piani</td></tr>
+          <tr><td><i class="bi bi-rulers" aria-hidden="true"></i> Misure ▾</td><td>Menu degli strumenti di misura:
+            <strong>Lunghezza</strong> (doppio clic sul primo e sul secondo punto), <strong>Area di una faccia</strong> (doppio clic sulla faccia),
+            <strong>Angolo</strong> (doppio clic su inizio, vertice e fine), <strong>Volume di elementi</strong> (doppio clic sugli elementi da sommare, poi doppio clic nel vuoto o <kbd>Invio</kbd>),
+            <strong>Togli tutte le misure</strong>. Lo strumento acceso è segnato nel menu e il pulsante ne prende l'icona; sceglierlo di nuovo lo spegne.
+            <kbd>Esc</kbd> annulla la misura in corso, <kbd>Canc</kbd> col mouse sopra una misura la toglie</td></tr>
+          <tr><td><i class="bi bi-cloud-upload" aria-hidden="true"></i> Salva nel modello ▾</td><td>Menu dei salvataggi (serve il diritto di modificare il modello):
+            <strong>Salva come .frag</strong> (accanto all'<code>.ifc</code> la versione già convertita: le aperture successive sono molto più veloci),
+            <strong>Salva le misure</strong> e <strong>Salva le sezioni</strong> (ricompaiono a ogni apertura; se non ce ne sono, tolgono quelle salvate)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">Sezioni e misure spariscono chiudendo il pannello, se non le salvi nel modello. Un pulsante attivo si spegne premendolo di nuovo.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-win" aria-labelledby="rh-sec-win-t">
+    <h3 id="rh-sec-win-t"><i class="bi bi-layout-sidebar-reverse" aria-hidden="true"></i>Le finestre</h3>
+    <ul>
+      <li><strong>Proprietà</strong>: classe IFC, GlobalId, attributi, Pset e quantità, piano e materiali dell'elemento selezionato.</li>
+      <li><strong>Albero</strong>: progetto → edificio → piani → elementi. Clic sul nome seleziona, l'occhio nasconde o mostra il ramo.</li>
+      <li><strong>Categorie</strong>: una casella per classe (muri, solai, travi…) con il numero di elementi.</li>
+      <li><strong>Piante</strong>: una vista dall'alto per piano, tagliata poco sopra il pavimento; <span class="rh-ui">Vista 3D</span> torna al modello.</li>
+      <li><strong>Colora per valore</strong>: classe e attributo o <code>Pset.Proprietà</code> (con un elemento selezionato il campo suggerisce le sue proprietà); un colore per valore e una legenda con quanti elementi ha ciascuno. Clic su una voce: isola quel gruppo; di nuovo: mostra tutto. <span class="rh-ui">Ripristina</span> toglie i colori.</li>
+      <li><strong>Viste</strong>: scrivi un nome e premi <span class="rh-ui">Aggiungi</span> per ricordare l'inquadratura attuale (anche dentro una pianta); clic sul nome per tornarci. Chi può modificare il modello le salva con <span class="rh-ui">Salva nel modello</span>; per gli altri restano fino alla chiusura del pannello.</li>
+      <li><strong>Cerca</strong>: classe, attributo o <code>Pset.Proprietà</code> e valore. I risultati si isolano, si inquadrano o si colorano tutti insieme; clic su una riga seleziona quell'elemento.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-load" aria-labelledby="rh-sec-load-t">
+    <h3 id="rh-sec-load-t"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Tempi di caricamento</h3>
+    <p>I file <code>.frag</code> sono già pronti e si aprono in fretta; i file <code>.ifc</code> vengono convertiti al momento nel browser
+       e su modelli grandi possono servire decine di secondi. Il footer mostra l'avanzamento.
+       Dopo <span class="rh-ui"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Salva nel modello ▾ → Salva come .frag</span> il pannello apre da solo la versione salvata,
+       finché l'<code>.ifc</code> non viene sostituito con uno più recente.</p>
+    <p class="rh-where">Il menu a sinistra e il menu <span class="rh-ui">☰</span> a destra mostrano i comandi aggiunti dal flow dell'oggetto.
+       Intestazione e footer comuni a tutti i pannelli sono spiegati nella guida del pannello.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Il caricamento è lunghissimo</strong>: il file è un <code>.ifc</code> grande; chi può caricare file nel WP lo salva una volta con <span class="rh-ui">Salva nel modello ▾ → Salva come .frag</span>.</li>
+      <li><strong>Il modello è sparito dalla vista</strong>: <span class="rh-ui"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i> Inquadra tutto</span>; se è nascosto, <span class="rh-ui"><i class="bi bi-eye" aria-hidden="true"></i> Mostra tutto</span>.</li>
+      <li><strong>«Nessun file .ifc o .frag»</strong>: i modelli dell'oggetto non hanno questi formati.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-IFC">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes" data-help="help-nodes-IFC">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> I nodi dei flow
+      </button>
+    </div>
+  </section>
+</div>

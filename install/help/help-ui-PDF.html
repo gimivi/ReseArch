@@ -1,0 +1,185 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida dell'INTERFACCIA dell'App PDF: solo ciò che l'utente vede e usa nel pannello (barra, menu, mouse e tastiera,
+  riquadri). La spec del modello è in help-app-PDF.html, i nodi dei flow nella guida dei nodi.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: PDF, il pannello" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-…
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Documenti PDF: usare il pannello</h2>
+  <p class="rh-lead">
+    Come si legge un PDF nel pannello: pagine, zoom, rotazione, selezione del testo, evidenziazioni e viste salvate.
+    La spec del modello e i nodi dei flow hanno guide a parte: le trovi in fondo, in <a href="#rh-sec-guides">Guide rapide</a>.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-pages"><i class="bi bi-file-earmark" aria-hidden="true"></i>Pagine</a></li>
+      <li><a href="#rh-sec-zoom"><i class="bi bi-zoom-in" aria-hidden="true"></i>Zoom e vista</a></li>
+      <li><a href="#rh-sec-text"><i class="bi bi-file-text" aria-hidden="true"></i>Testo</a></li>
+      <li><a href="#rh-sec-notes"><i class="bi bi-bookmarks" aria-hidden="true"></i>Annotazioni</a></li>
+      <li><a href="#rh-sec-docs"><i class="bi bi-files" aria-hidden="true"></i>Più documenti</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-pages" aria-labelledby="rh-sec-pages-t">
+    <h3 id="rh-sec-pages-t"><i class="bi bi-file-earmark" aria-hidden="true"></i>Muoversi tra le pagine</h3>
+    <ul>
+      <li>Scorri con la rotella o la barra di scorrimento: le pagine stanno una sotto l'altra.</li>
+      <li>In fondo al pannello: <span class="rh-ui"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
+          <span class="rh-ui"><i class="bi bi-chevron-right" aria-hidden="true"></i></span> pagina precedente e successiva;
+          nel numero di pagina puoi scrivere la pagina a cui andare e premere <kbd>Invio</kbd>.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-zoom" aria-labelledby="rh-sec-zoom-t">
+    <h3 id="rh-sec-zoom-t"><i class="bi bi-zoom-in" aria-hidden="true"></i>Zoom e vista</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Pulsanti di zoom e vista</caption>
+        <thead><tr><th scope="col">Pulsante</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rh-ui"><i class="bi bi-dash-lg" aria-hidden="true"></i></span> <span class="rh-ui">100%</span> <span class="rh-ui"><i class="bi bi-plus-lg" aria-hidden="true"></i></span></td>
+              <td>Riduci, livello di zoom (menu con i valori pronti), ingrandisci. Anche <kbd>Ctrl</kbd> + rotella.</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-fullscreen" aria-hidden="true"></i></span> · <span class="rh-ui"><i class="bi bi-arrow-left-right" aria-hidden="true"></i></span></td>
+              <td>Adatta la pagina intera al pannello · adatta la larghezza.</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></span> · <span class="rh-ui"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></span></td>
+              <td>Ruota di 90° a sinistra · a destra (per le tavole in orizzontale).</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-layout-split" aria-hidden="true"></i></span></td>
+              <td>Pagine affiancate, a due a due come in un libro; di nuovo per tornare a una pagina.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-text" aria-labelledby="rh-sec-text-t">
+    <h3 id="rh-sec-text-t"><i class="bi bi-file-text" aria-hidden="true"></i>Selezionare il testo</h3>
+    <p>Il pulsante <span class="rh-ui"><i class="bi bi-file-text" aria-hidden="true"></i></span> abilita la selezione del testo:
+       poi si può trascinare sul testo per copiarlo o per evidenziarlo.</p>
+    <p class="rh-where">Un PDF scansionato (una foto delle pagine) non ha testo da selezionare.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-notes" aria-labelledby="rh-sec-notes-t">
+    <h3 id="rh-sec-notes-t"><i class="bi bi-bookmarks" aria-hidden="true"></i>Annotazioni: evidenziazioni e viste</h3>
+    <ul>
+      <li><strong>Evidenziazione</strong>: con la selezione del testo attiva, seleziona un brano; compare un riquadro per dargli
+          un'etichetta e una nota e salvarlo.</li>
+      <li><strong>Vista</strong>: <span class="rh-ui"><i class="bi bi-bookmark-plus" aria-hidden="true"></i> Salva vista corrente</span>
+          ricorda pagina e zoom; un clic sulla pagina fissa il segnaposto. Serve il diritto di modificare l'oggetto.</li>
+      <li><span class="rh-ui"><i class="bi bi-bookmarks" aria-hidden="true"></i> Annotazioni</span> apre l'elenco a lato:
+          un clic su una voce porta lì; si cerca e si filtra; la matita modifica, il cestino elimina.</li>
+      <li>Nell'elenco: <span class="rh-ui">Tutto</span> mostra le evidenziazioni in tutto il documento,
+          <span class="rh-ui">Pagina</span> solo nella pagina corrente, <span class="rh-ui">Nascondi</span> le toglie dalla vista.</li>
+    </ul>
+    <p class="rh-where">Ognuno modifica ed elimina le proprie annotazioni; chi gestisce l'oggetto anche quelle degli altri.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-docs" aria-labelledby="rh-sec-docs-t">
+    <h3 id="rh-sec-docs-t"><i class="bi bi-files" aria-hidden="true"></i>Più documenti nello stesso oggetto</h3>
+    <p>Se l'oggetto ha più PDF, il menu a sinistra dell'intestazione (il nome dell'oggetto) li elenca: scegline uno per aprirlo.</p>
+    <p class="rh-where">Il menu a sinistra e il menu <span class="rh-ui">☰</span> a destra mostrano anche i comandi aggiunti dal flow
+       dell'oggetto. Intestazione e footer comuni a tutti i pannelli sono spiegati nella guida del pannello.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Non riesco a selezionare il testo</strong>: abilita prima la selezione; se ancora non va, il PDF è scansionato.</li>
+      <li><strong>Le evidenziazioni non si vedono</strong>: nell'elenco delle annotazioni scegli <span class="rh-ui">Tutto</span>.</li>
+      <li><strong>Non vedo «Salva vista corrente»</strong>: serve il diritto di modificare l'oggetto.</li>
+      <li><strong>Il pannello dice «Nessun documento PDF»</strong>: il modello non ha un file.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-PDF">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes" data-help="help-nodes-PDF">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi nei flow
+      </button>
+    </div>
+  </section>
+</div>

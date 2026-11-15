@@ -1,0 +1,305 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App TJS (visualizzatore 3D, Three.js) e dei suoi template mod_spec.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: App 3D (TJS)" }
+
+  Fonti: template TJS della tabella mod_spec_templates (seed 2026-09-28: GLTF, OBJ, DRC, Pano360) e chiavi
+  lette dal codice (app/model_TJS.mjs, app/TJS_sub_modules/*). Se nella modale "Template mod_spec" sono stati
+  aggiunti o cambiati template, aggiornare la sezione "I template".
+
+  Nessuno script. Pulsanti "Apri …" = modali vere (data-bs-toggle). Agganci per un flow:
+    #rh-help, #rh-sec-formats, #rh-sec-templates, #rh-tpl-gltf, #rh-tpl-obj, #rh-tpl-drc, #rh-tpl-pano,
+    #rh-sec-saved, #rh-sec-tips   (DOM Query → Set Class "rh-current" per evidenziare)
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-badge-3d" aria-hidden="true"></i> App 3D (TJS)</h2>
+  <p class="rh-lead">
+    TJS mostra modelli tridimensionali, nuvole di punti e panorami a 360° in una scena navigabile.
+    Più modelli collegati allo stesso oggetto si caricano insieme nella stessa scena. La <strong>spec</strong>
+    del modello dice dove metterli; luci, camere e ambiente si regolano nel pannello e si salvano nella spec.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-formats"><i class="bi bi-file-earmark" aria-hidden="true"></i>File ammessi</a></li>
+      <li><a href="#rh-sec-templates"><i class="bi bi-braces" aria-hidden="true"></i>I template</a></li>
+      <li><a href="#rh-sec-transform"><i class="bi bi-arrows-move" aria-hidden="true"></i>Posizione e rotazione</a></li>
+      <li><a href="#rh-sec-saved"><i class="bi bi-floppy" aria-hidden="true"></i>Salvati dal pannello</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <!-- ─────────────────────────── File ammessi ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-formats" aria-labelledby="rh-sec-formats-t">
+    <h3 id="rh-sec-formats-t"><i class="bi bi-file-earmark" aria-hidden="true"></i>File ammessi</h3>
+    <p>Il caricatore si sceglie <strong>dall'estensione del file</strong>, non dalla spec.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Formati letti da TJS e template consigliato</caption>
+        <thead><tr><th scope="col">Estensione</th><th scope="col">Cosa diventa</th><th scope="col">Template</th></tr></thead>
+        <tbody>
+          <tr><td><code>.glb</code> <code>.gltf</code></td><td>Modello con materiali e texture; può essere compresso Draco. Il formato consigliato.</td><td>GLTF</td></tr>
+          <tr><td><code>.obj</code> (+ <code>.mtl</code>)</td><td>Mesh; il file <code>.mtl</code> dei materiali va nella stessa cartella con lo stesso nome.</td><td>OBJ</td></tr>
+          <tr><td><code>.drc</code></td><td>Draco compresso: nuvola di punti colorata o mesh.</td><td>DRC</td></tr>
+          <tr><td><code>.ply</code></td><td>Nuvola di punti o mesh, non compresso: va bene per file piccoli.</td><td>DRC</td></tr>
+          <tr><td><code>.png</code> <code>.jpg</code> <code>.jpeg</code></td><td>Panorama sferico 360° (immagine equirettangolare, rapporto 2:1).</td><td>Pano360</td></tr>
+          <tr><td><code>.3dm</code></td><td>Modello Rhino.</td><td>GLTF</td></tr>
+          <tr><td><code>.svg</code></td><td>Disegno vettoriale piano; gli spessori di tratto si perdono.</td><td>GLTF</td></tr>
+          <tr><td><code>.wrl</code> <code>.vrml</code> <code>.wrz</code></td><td>Modello VRML, anche compresso.</td><td>GLTF</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>File senza materiali.</strong> Se il file non dà un materiale a una superficie, il pannello le dà il materiale
+       <strong>clay</strong> (grigio chiaro e opaco) invece del materiale di ripiego del caricatore, spesso metallico o nero.
+       Succede con: glb/gltf senza materiale, obj senza il suo <code>.mtl</code>, wrl senza <code>Appearance</code>,
+       ply e drc di superfici senza colori. Colore e lucentezza del clay si regolano nel pannello Ambiente.</p>
+    <p class="rh-where">Per i formati senza template dedicato basta il template GLTF: conta solo il blocco <code>transform</code>.
+       Si può anche scegliere <span class="rh-ui">Nessun file (dati dal flow)</span>: la scena parte vuota e un flow la riempie.</p>
+  </section>
+
+  <!-- ─────────────────────────── Template ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-templates" aria-labelledby="rh-sec-templates-t">
+    <h3 id="rh-sec-templates-t"><i class="bi bi-braces" aria-hidden="true"></i>I template</h3>
+    <p class="rh-where">Modelli → colonna <span class="rh-ui">Spec</span> → tendina <span class="rh-ui">Template</span>
+       → <span class="rh-ui">Valida</span> → <span class="rh-ui">Salva spec</span> → salva la tabella</p>
+    <p>Il template precompila la spec. Poi la puoi modificare a mano: deve restare JSON valido
+       (virgolette doppie, niente virgola dopo l'ultimo elemento).</p>
+
+    <article class="rh-tpl" id="rh-tpl-gltf" aria-labelledby="rh-tpl-gltf-t">
+      <h4 id="rh-tpl-gltf-t">GLTF <span class="rh-badge">base</span></h4>
+      <p>Per modelli <code>.glb</code>/<code>.gltf</code> e, in pratica, per ogni modello di cui vuoi solo regolare la posizione.</p>
+      <pre class="rh-json">{
+  "type": "gltf",
+  "transform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale":    [1, 1, 1]
+  }
+}</pre>
+      <ul>
+        <li><code>type</code>: solo un promemoria. Cambiarlo non cambia nulla.</li>
+        <li><code>transform</code>: posizione, rotazione e scala del modello nella scena; vedi
+            <a href="#rh-sec-transform">Posizione e rotazione</a>. Se manca, il modello resta com'è nel file.</li>
+      </ul>
+    </article>
+
+    <article class="rh-tpl" id="rh-tpl-obj" aria-labelledby="rh-tpl-obj-t">
+      <h4 id="rh-tpl-obj-t">OBJ <span class="rh-badge">base</span></h4>
+      <p>Uguale a GLTF, con <code>"type": "obj"</code>. Il file <code>.mtl</code> si carica da solo se ha lo stesso nome del <code>.obj</code>.</p>
+      <pre class="rh-json">{ "type": "obj", "transform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] } }</pre>
+    </article>
+
+    <article class="rh-tpl" id="rh-tpl-drc" aria-labelledby="rh-tpl-drc-t">
+      <h4 id="rh-tpl-drc-t">DRC <span class="rh-badge">base</span></h4>
+      <p>Per nuvole di punti <code>.drc</code> (e <code>.ply</code>). I colori dei punti vengono dal file.</p>
+      <pre class="rh-json">{ "type": "drc", "transform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] } }</pre>
+      <p>Dimensione e forma dei punti non si scrivono qui a mano: si regolano nel pannello <strong>Materiale</strong>
+         e si salvano con <span class="rh-ui">Salva su modello</span> (blocco <code>pointsLineStyle</code>, più sotto).</p>
+    </article>
+
+    <article class="rh-tpl" id="rh-tpl-pano" aria-labelledby="rh-tpl-pano-t">
+      <h4 id="rh-tpl-pano-t">Pano360 <span class="rh-badge">base</span></h4>
+      <p>Per una foto equirettangolare <code>.jpg</code>/<code>.png</code>: l'immagine riveste l'interno di una sfera e tu sei al centro.</p>
+      <pre class="rh-json">{
+  "type": "pano360",
+  "raggio": 10,
+  "meridiani": 60,
+  "paralleli": 40,
+  "transform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] }
+}</pre>
+      <div class="rh-tablewrap">
+        <table>
+          <caption class="visually-hidden">Campi del template Pano360</caption>
+          <thead><tr><th scope="col">Campo</th><th scope="col">Predefinito</th><th scope="col">Effetto</th></tr></thead>
+          <tbody>
+            <tr><td><code>raggio</code></td><td>10</td><td>Grandezza della sfera. Conta se nella scena ci sono anche altri modelli o misure.</td></tr>
+            <tr><td><code>meridiani</code></td><td>60</td><td>Suddivisioni in orizzontale: più alto = sfera più liscia ma più pesante.</td></tr>
+            <tr><td><code>paralleli</code></td><td>40</td><td>Suddivisioni in verticale.</td></tr>
+            <tr><td><code>transform.rotation</code></td><td>[0,0,0]</td><td>Utile per girare il panorama: il secondo valore ruota attorno alla verticale.</td></tr>
+            <tr><td><code>panoDepth</code></td><td>assente</td><td>Facoltativo: la mappa delle distanze della foto, per misurare sul panorama.
+                <code>{ "url": "…/depth.exr", "scale": 1 }</code>: <code>url</code> del file EXR prodotto da ComfyUI
+                (MoGe o DA2, nodo <em>ReseArch Depth Output</em>), <code>scale</code> = fattore di calibrazione
+                (1 = non calibrato, distanze relative).</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="rh-where">Con <code>panoDepth</code>, Collima e Misura danno punti nello spazio e non sulla sfera.
+         Per i panorami creati da un flow la mappa si associa con i nodi <code>TJS/Panorama/*</code>.</p>
+    </article>
+
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Transform ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-transform" aria-labelledby="rh-sec-transform-t">
+    <h3 id="rh-sec-transform-t"><i class="bi bi-arrows-move" aria-hidden="true"></i>Posizione e rotazione</h3>
+    <p>Il blocco <code>transform</code> sposta il modello senza modificare il file. Serve soprattutto per
+       mettere d'accordo più modelli nella stessa scena.</p>
+    <ul>
+      <li><code>position</code> <code>[x, y, z]</code>: spostamento, nelle unità del file (di solito metri). In TJS l'asse <strong>Y è la verticale</strong>.</li>
+      <li><code>rotation</code> <code>[x, y, z]</code>: rotazione attorno ai tre assi, <strong>in radianti</strong>, non in gradi.</li>
+      <li><code>scale</code> <code>[x, y, z]</code>: ingrandimento per asse; usa tre valori uguali per non deformare.</li>
+    </ul>
+    <div class="rh-tablewrap">
+      <table>
+        <caption>Gradi → radianti</caption>
+        <thead><tr><th scope="col">Gradi</th><th scope="col">45°</th><th scope="col">90°</th><th scope="col">180°</th><th scope="col">−90°</th></tr></thead>
+        <tbody><tr><th scope="row">Radianti</th><td>0.7854</td><td>1.5708</td><td>3.1416</td><td>−1.5708</td></tr></tbody>
+      </table>
+    </div>
+    <h4>Casi frequenti</h4>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Esempi di transform</caption>
+        <thead><tr><th scope="col">Situazione</th><th scope="col">transform</th></tr></thead>
+        <tbody>
+          <tr><td>Il modello è "sdraiato": viene da un programma con Z verticale (Rhino, CAD, molti rilievi)</td>
+              <td><code>"rotation": [-1.5708, 0, 0]</code></td></tr>
+          <tr><td>Il file è in millimetri e appare 1000 volte troppo grande</td>
+              <td><code>"scale": [0.001, 0.001, 0.001]</code></td></tr>
+          <tr><td>Il modello è lontanissimo dall'origine (coordinate geografiche)</td>
+              <td><code>"position": [-X, -Y, -Z]</code> con le coordinate del suo centro cambiate di segno</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Blocchi salvati ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-saved" aria-labelledby="rh-sec-saved-t">
+    <h3 id="rh-sec-saved-t"><i class="bi bi-floppy" aria-hidden="true"></i>Blocchi salvati dal pannello</h3>
+    <p>Altre voci della spec non si scrivono a mano: le crea il pannello 3D quando premi il suo pulsante di salvataggio.
+       Il pannello aggiunge o sostituisce solo la sua voce e lascia intatto il resto della spec.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Voci della spec scritte dai pannelli di TJS</caption>
+        <thead><tr><th scope="col">Voce</th><th scope="col">Pannello → pulsante</th><th scope="col">Contenuto</th></tr></thead>
+        <tbody>
+          <tr><td><code>environment</code></td><td>Ambiente → <span class="rh-ui">Salva ambiente</span></td>
+              <td>Griglia, sfondo e nebbia, tone mapping ed esposizione, ombre, occlusione ambientale (GTAO), illuminazione da immagine HDR,
+                  punti e linee predefiniti. Dentro: <code>baseLight</code> (luce ambiente, sole con azimut ed elevazione, ombra del sole,
+                  pavimento per le ombre, ambiente neutro) e <code>clay</code> (vista clay, anche i trasparenti, colore, ruvidità,
+                  velatura, riflessi).</td></tr>
+          <tr><td><code>lights</code></td><td>Luci → <span class="rh-ui">Salva</span></td>
+              <td>Le luci create: tipo, colore, intensità, posizione, bersaglio, ombre.</td></tr>
+          <tr><td><code>cameras</code></td><td>Camere → <span class="rh-ui">Salva camere di questo modello</span></td>
+              <td>Punti di vista con nome: posizione, rotazione, angolo di campo.</td></tr>
+          <tr><td><code>clipConfigs</code></td><td>Sezioni → <span class="rh-ui">Salva configurazione corrente</span></td>
+              <td>Piani di sezione già pronti da richiamare: posizione, parte tenuta, colore del riempimento, sezione opaca.</td></tr>
+          <tr><td><code>collimatedPoints</code></td><td>Punti collimati → salva</td>
+              <td>Punti presi sul modello, per esempio per allineare due rilievi. Quelli presi su un panorama con mappa delle distanze
+                  conservano anche la distanza letta.</td></tr>
+          <tr><td><code>pointsLineStyle</code></td><td>Materiale → <span class="rh-ui">Salva su modello</span></td>
+              <td>Dimensione e forma dei punti, spessore delle linee di questo modello.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note">Con più modelli nella scena: ambiente, sezioni e punti collimati si leggono dal <strong>primo</strong> modello
+       che li contiene. Luci e camere invece appartengono ciascuna al proprio modello: quando salvi, scegli in quale.</p>
+    <p class="rh-note">Il pannello parte dalla spec letta all'apertura dell'oggetto. Se nel frattempo hai modificato la spec
+       dalla modale Modelli, <strong>ricarica l'oggetto</strong> prima di salvare dal pannello, altrimenti le tue modifiche vengono sovrascritte.</p>
+    <details>
+      <summary>Esempio di spec dopo qualche salvataggio</summary>
+      <pre class="rh-json">{
+  "type": "gltf",
+  "transform": { "position": [0, 0, 0], "rotation": [-1.5708, 0, 0], "scale": [1, 1, 1] },
+  "environment": { "grid": { "visible": false }, "rendering": { "exposure": 1.1, "shadowEnabled": true },
+                   "clay": { "enabled": true, "includeTransparent": false, "color": "#d8d4cc" } },
+  "cameras": [ { "name": "Ingresso", "type": "Perspective", "fov": 50,
+                 "position": { "x": 4, "y": 1.6, "z": 9 }, "rotation": { "x": 0, "y": 0.4, "z": 0 } } ]
+}</pre>
+      <p class="rh-where">I blocchi reali contengono più campi: è normale, e non serve toccarli a mano.</p>
+    </details>
+  </section>
+
+  <!-- ─────────────────────────── Problemi ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Scena vuota.</strong> In Modelli guarda la colonna <span class="rh-ui">File?</span>: se dice MANCANTE il file non è nel percorso indicato.</li>
+      <li><strong>Non vedo il modello ma è caricato.</strong> Probabilmente è lontano o enorme: usa le viste predefinite della barra
+          o correggi <code>position</code>/<code>scale</code>.</li>
+      <li><strong>Modello sdraiato o capovolto.</strong> Ruota di −90° sull'asse X (vedi sopra).</li>
+      <li><strong>Nuvola di punti tutta bianca o con punti enormi.</strong> Regola i punti nel pannello Materiale e salva sul modello.</li>
+      <li><strong>Il salvataggio della spec viene rifiutato.</strong> Premi <span class="rh-ui">Valida</span>: di solito manca una virgola o c'è una virgola di troppo.</li>
+      <li><strong>Il modello si apre tutto grigio chiaro.</strong> La spec ha <code>environment.clay.enabled</code> = true: spegni la vista clay
+          in Ambiente e premi <span class="rh-ui">Salva ambiente</span>. Se resta grigio, il file non ha materiali.</li>
+      <li><strong>Avvisi.</strong> Il menu <i class="bi bi-list" aria-hidden="true"></i><span class="visually-hidden">del pannello</span> a destra
+          → <span class="rh-ui">Avvisi modelli</span> elenca le correzioni fatte in automatico (per esempio normali mancanti, che impediscono le ombre).</li>
+    </ul>
+  </section>
+</div>

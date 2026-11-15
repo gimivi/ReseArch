@@ -1,0 +1,432 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Elenco delle App della piattaforma, con due pulsanti per App: guida del pannello (help-ui-XXX) e guida dei nodi
+  (help-nodes-XXX). CSV, VID e OWL non hanno nodi propri (IFC e OLY li hanno dal 2026-11-04).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: le App" }
+
+  Pulsanti con data-dshp="<nome della configurazione>": caricano un'altra configurazione della dashboard
+  (stesso flow: On Event click con attr = data-dshp → Dashboard Open, ingresso name).
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-…
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+
+  /* elenco delle App: una riga per App, pulsanti a destra (sotto, nei pannelli stretti) */
+  .rh-help .rh-apps { list-style: none; padding: 0; margin: 0.25rem 0 0 0; }
+  .rh-help .rh-app {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem;
+    padding: 0.5rem 0; border-top: 1px solid var(--rh-border);
+  }
+  .rh-help .rh-app:first-child { border-top: 0; }
+  .rh-help .rh-app-ico { font-size: 1.4rem; color: var(--rh-accent); width: 1.6rem; text-align: center; flex: none; }
+  .rh-help .rh-app-txt { flex: 1 1 14rem; min-width: 0; }
+  .rh-help .rh-app-name { font-weight: 600; }
+  .rh-help .rh-app-cod { font-size: 0.75rem; color: var(--rh-muted); margin-left: 0.3rem; }
+  .rh-help .rh-app-desc { display: block; color: var(--rh-muted); font-size: 0.85rem; }
+  .rh-help .rh-app .rh-actions { margin-top: 0; flex: none; }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> Le App della piattaforma</h2>
+  <p class="rh-lead">
+    Ogni oggetto si mostra con un'App: quella giusta dipende dal tipo di dati (un modello 3D, un'immagine, una tabella…).
+    Per ogni App ci sono tre guide: <span class="rh-ui"><i class="bi bi-window" aria-hidden="true"></i> Pannello</span> spiega
+    come si usa il pannello, <span class="rh-ui"><i class="bi bi-sliders" aria-hidden="true"></i> Specifiche</span> come si
+    prepara il modello, <span class="rh-ui"><i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi</span> elenca i nodi
+    dei flow che la comandano (spento se l'App non ha nodi propri). La guida scelta si apre nel pannello Help di dettaglio, se aperto.
+  </p>
+
+  <nav aria-label="Gruppi di App">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-g1"><i class="bi bi-box" aria-hidden="true"></i>Spazio e modelli 3D</a></li>
+      <li><a href="#rh-sec-g2"><i class="bi bi-images" aria-hidden="true"></i>Immagini, documenti e video</a></li>
+      <li><a href="#rh-sec-g3"><i class="bi bi-table" aria-hidden="true"></i>Dati e tabelle</a></li>
+      <li><a href="#rh-sec-g4"><i class="bi bi-diagram-3" aria-hidden="true"></i>Tempo, grafici e relazioni</a></li>
+      <li><a href="#rh-sec-g5"><i class="bi bi-filetype-html" aria-hidden="true"></i>Pagine</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-g1" aria-labelledby="rh-sec-g1-t">
+    <h3 id="rh-sec-g1-t"><i class="bi bi-box" aria-hidden="true"></i>Spazio e modelli 3D</h3>
+    <ul class="rh-apps">
+      <li class="rh-app">
+        <i class="bi bi-badge-3d rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">App 3D</span><span class="rh-app-cod">TJS</span>
+          <span class="rh-app-desc">Modelli 3D, nuvole di punti, luci e percorsi della camera.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-TJS" data-help="help-ui-TJS" aria-label="App 3D: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-TJS" data-help="help-app-TJS" aria-label="App 3D: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-TJS" data-help="help-nodes-TJS" aria-label="App 3D: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-building rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Modelli BIM</span><span class="rh-app-cod">IFC</span>
+          <span class="rh-app-desc">Modelli di edifici in formato IFC, con le loro parti.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-IFC" data-help="help-ui-IFC" aria-label="Modelli BIM: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-IFC" data-help="help-app-IFC" aria-label="Modelli BIM: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-IFC" data-help="help-nodes-IFC" aria-label="Modelli BIM: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-bank rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Museo virtuale</span><span class="rh-app-cod">HYS</span>
+          <span class="rh-app-desc">Sale e opere di HySpace da visitare in prima persona.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-HYS" data-help="help-ui-HYS" aria-label="Museo virtuale: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-HYS" data-help="help-app-HYS" aria-label="Museo virtuale: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-HYS" data-help="help-nodes-HYS" aria-label="Museo virtuale: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-geo-alt rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Mappe</span><span class="rh-app-cod">MPS</span>
+          <span class="rh-app-desc">Mappe Google piane o in 3D, con i segnaposto dei luoghi.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-MPS" data-help="help-ui-MPS" aria-label="Mappe: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-MPS" data-help="help-app-MPS" aria-label="Mappe: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-MPS" data-help="help-nodes-MPS" aria-label="Mappe: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-map rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Cartografia</span><span class="rh-app-cod">OLY</span>
+          <span class="rh-app-desc">Mappe OpenLayers con layer GeoJSON, GeoTIFF, catasto, coordinate italiane e disegno.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-OLY" data-help="help-ui-OLY" aria-label="Cartografia: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-OLY" data-help="help-app-OLY" aria-label="Cartografia: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-OLY" data-help="help-nodes-OLY" aria-label="Cartografia: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-g2" aria-labelledby="rh-sec-g2-t">
+    <h3 id="rh-sec-g2-t"><i class="bi bi-images" aria-hidden="true"></i>Immagini, documenti e video</h3>
+    <ul class="rh-apps">
+      <li class="rh-app">
+        <i class="bi bi-image rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Immagini</span><span class="rh-app-cod">OSD</span>
+          <span class="rh-app-desc">Immagini ad alta risoluzione da ingrandire, con disegni e note sopra.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-OSD" data-help="help-ui-OSD" aria-label="Immagini: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-OSD" data-help="help-app-OSD" aria-label="Immagini: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-OSD" data-help="help-nodes-OSD" aria-label="Immagini: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-file-earmark-pdf rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">PDF</span><span class="rh-app-cod">PDF</span>
+          <span class="rh-app-desc">Documenti PDF da sfogliare, cercare ed evidenziare.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-PDF" data-help="help-ui-PDF" aria-label="PDF: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-PDF" data-help="help-app-PDF" aria-label="PDF: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-PDF" data-help="help-nodes-PDF" aria-label="PDF: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-film rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Video</span><span class="rh-app-cod">VID</span>
+          <span class="rh-app-desc">Video singoli o in sequenza.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-VID" data-help="help-ui-VID" aria-label="Video: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-VID" data-help="help-app-VID" aria-label="Video: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" disabled title="Questa App non ha nodi propri" aria-label="Video: nessun nodo proprio">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-graph-up rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Disegni matematici</span><span class="rh-app-cod">JSX</span>
+          <span class="rh-app-desc">Figure geometriche e grafici di funzioni interattivi.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-JSX" data-help="help-ui-JSX" aria-label="Disegni matematici: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-JSX" data-help="help-app-JSX" aria-label="Disegni matematici: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-JSX" data-help="help-nodes-JSX" aria-label="Disegni matematici: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-g3" aria-labelledby="rh-sec-g3-t">
+    <h3 id="rh-sec-g3-t"><i class="bi bi-table" aria-hidden="true"></i>Dati e tabelle</h3>
+    <ul class="rh-apps">
+      <li class="rh-app">
+        <i class="bi bi-filetype-csv rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Tabelle CSV</span><span class="rh-app-cod">CSV</span>
+          <span class="rh-app-desc">Tabelle lette da un file CSV.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-CSV" data-help="help-ui-CSV" aria-label="Tabelle CSV: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-CSV" data-help="help-app-CSV" aria-label="Tabelle CSV: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" disabled title="Questa App non ha nodi propri" aria-label="Tabelle CSV: nessun nodo proprio">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-table rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Tabelle di dati</span><span class="rh-app-cod">DBJ</span>
+          <span class="rh-app-desc">Tabelle con i dati scritti nel modello.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-DBJ" data-help="help-ui-DBJ" aria-label="Tabelle di dati: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-DBJ" data-help="help-app-DBJ" aria-label="Tabelle di dati: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-DBJ" data-help="help-nodes-DBJ" aria-label="Tabelle di dati: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-file-earmark-spreadsheet rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Fogli Google</span><span class="rh-app-cod">GSH</span>
+          <span class="rh-app-desc">Tabelle lette da un foglio Google Sheets.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-GSH" data-help="help-ui-GSH" aria-label="Fogli Google: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-GSH" data-help="help-app-GSH" aria-label="Fogli Google: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-GSH" data-help="help-nodes-GSH" aria-label="Fogli Google: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-database rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Database</span><span class="rh-app-cod">MYS</span>
+          <span class="rh-app-desc">Tabelle del database, consultabili e modificabili.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-MYS" data-help="help-ui-MYS" aria-label="Database: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-MYS" data-help="help-app-MYS" aria-label="Database: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-MYS" data-help="help-nodes-MYS" aria-label="Database: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-g4" aria-labelledby="rh-sec-g4-t">
+    <h3 id="rh-sec-g4-t"><i class="bi bi-diagram-3" aria-hidden="true"></i>Tempo, grafici e relazioni</h3>
+    <ul class="rh-apps">
+      <li class="rh-app">
+        <i class="bi bi-calendar-range rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Timeline</span><span class="rh-app-cod">TML</span>
+          <span class="rh-app-desc">Eventi e periodi su una linea del tempo, anche avanti Cristo.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-TML" data-help="help-ui-TML" aria-label="Timeline: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-TML" data-help="help-app-TML" aria-label="Timeline: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-TML" data-help="help-nodes-TML" aria-label="Timeline: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-bar-chart rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Grafici</span><span class="rh-app-cod">ECH</span>
+          <span class="rh-app-desc">Grafici di ogni tipo: barre, linee, torte, alberi, reti.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-ECH" data-help="help-ui-ECH" aria-label="Grafici: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-ECH" data-help="help-app-ECH" aria-label="Grafici: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-ECH" data-help="help-nodes-ECH" aria-label="Grafici: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+      <li class="rh-app">
+        <i class="bi bi-diagram-3 rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Ontologie</span><span class="rh-app-cod">OWL</span>
+          <span class="rh-app-desc">Ontologie e dati collegati, disegnati come grafo.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-OWL" data-help="help-ui-OWL" aria-label="Ontologie: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-OWL" data-help="help-app-OWL" aria-label="Ontologie: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" disabled title="Questa App non ha nodi propri" aria-label="Ontologie: nessun nodo proprio">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-g5" aria-labelledby="rh-sec-g5-t">
+    <h3 id="rh-sec-g5-t"><i class="bi bi-filetype-html" aria-hidden="true"></i>Pagine</h3>
+    <ul class="rh-apps">
+      <li class="rh-app">
+        <i class="bi bi-filetype-html rh-app-ico" aria-hidden="true"></i>
+        <span class="rh-app-txt"><span class="rh-app-name">Pagine HTML</span><span class="rh-app-cod">HTM</span>
+          <span class="rh-app-desc">Pagine e moduli costruiti con i flow, comprese queste guide.</span></span>
+        <span class="rh-actions">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui-HTM" data-help="help-ui-HTM" aria-label="Pagine HTML: guida del pannello">
+            <i class="bi bi-window" aria-hidden="true"></i> Pannello
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec-HTM" data-help="help-app-HTM" aria-label="Pagine HTML: specifiche del modello">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Specifiche
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes-HTM" data-help="help-nodes-HTM" aria-label="Pagine HTML: guida dei nodi">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi
+          </button>
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-back" aria-labelledby="rh-sec-back-t">
+    <h3 id="rh-sec-back-t"><i class="bi bi-house" aria-hidden="true"></i>Torna all'inizio</h3>
+    <p>Questo pulsante carica la configurazione principale della dashboard dell'area di help e training.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-dshp-main" data-dshp="Help &amp; Training @ ReseArch">
+        <i class="bi bi-layout-three-columns" aria-hidden="true"></i> Help &amp; Training @ ReseArch
+      </button>
+    </div>
+  </section>
+</div>

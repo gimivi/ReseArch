@@ -1,0 +1,165 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App PDF (PDF.js con annotazioni e viste salvate).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Documenti PDF" }
+
+  Fonti: app/model_PDF.mjs (_loadDoc: legge spread, rotation, textLayer dalla spec di ogni modello), template "PDF"
+  di mod_spec_templates (allineato con sql/migration_mod_spec_templates_2026-10-13.sql), _doc/module-pdf-viewer.md.
+  Nessuno script. Agganci per un flow: #rh-help, #rh-sec-file, #rh-tpl-pdf, #rh-sec-notes, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Documenti PDF</h2>
+  <p class="rh-lead">
+    L'App PDF mostra documenti PDF con zoom, rotazione e vista a doppia pagina. Puoi <strong>evidenziare testo</strong>
+    e salvare <strong>viste</strong> (pagina, zoom e punto inquadrato) con una nota: restano visibili agli altri utenti
+    e si ritrovano nel pannello Annotazioni.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-file"><i class="bi bi-files" aria-hidden="true"></i>Modelli</a></li>
+      <li><a href="#rh-tpl-pdf"><i class="bi bi-braces" aria-hidden="true"></i>Il template</a></li>
+      <li><a href="#rh-sec-notes"><i class="bi bi-highlighter" aria-hidden="true"></i>Annotazioni e viste</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-file" aria-labelledby="rh-sec-file-t">
+    <h3 id="rh-sec-file-t"><i class="bi bi-files" aria-hidden="true"></i>Modelli</h3>
+    <ul>
+      <li>Carica il <code>.pdf</code> in una sottocartella del WP e scegli il file nel modello.</li>
+      <li>Puoi collegare <strong>più PDF allo stesso oggetto</strong>: il menu a sinistra del pannello li elenca e passa dall'uno all'altro.</li>
+      <li>Ogni PDF ha la sua spec e le sue annotazioni.</li>
+    </ul>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-pdf" aria-labelledby="rh-tpl-pdf-t">
+    <h3 id="rh-tpl-pdf-t"><i class="bi bi-braces" aria-hidden="true"></i>Il template <span class="rh-badge">base</span></h3>
+    <p>La spec dice come aprire il documento.</p>
+    <pre class="rh-json">{
+  "rotation": 0,
+  "spread": false,
+  "textLayer": true
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi della spec PDF</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Valori</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>rotation</code></td><td>0, 90, 180, 270</td><td>Rotazione iniziale delle pagine, per i documenti scansionati storti. Ogni altro valore vale 0.</td></tr>
+          <tr><td><code>spread</code></td><td>true / false</td><td>Apre a <strong>doppia pagina</strong> affiancata, come un libro.</td></tr>
+          <tr><td><code>textLayer</code></td><td>true / false</td><td>Rende il testo <strong>selezionabile</strong>: serve per evidenziarlo. Se manca, il testo non si seleziona finché non lo attivi dalla barra.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>All'apertura il documento si adatta da solo: alla larghezza per le pagine verticali, alla pagina intera per quelle orizzontali.
+       Il file viene sempre dal modello, non dalla spec.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-notes" aria-labelledby="rh-sec-notes-t">
+    <h3 id="rh-sec-notes-t"><i class="bi bi-highlighter" aria-hidden="true"></i>Annotazioni e viste</h3>
+    <p>Annotazioni e viste <strong>non stanno nella spec</strong>: si salvano in una tabella a parte, legate al modello.</p>
+    <h4>Evidenziare un brano</h4>
+    <ol>
+      <li>Attiva il testo selezionabile (<code>textLayer</code> o il pulsante della barra).</li>
+      <li>Seleziona il testo con il mouse: si apre una finestrella.</li>
+      <li>Scegli il <strong>tipo</strong> (colore), scrivi un'etichetta e, se vuoi, una nota. Salva.</li>
+    </ol>
+    <h4>Salvare una vista</h4>
+    <ol>
+      <li>Porta il documento alla pagina, allo zoom e all'inquadratura che vuoi.</li>
+      <li>Premi <span class="rh-ui"><i class="bi bi-floppy" aria-hidden="true"></i> Salva vista</span>.</li>
+      <li>Il segnaposto va al centro dell'inquadratura; con <span class="rh-ui">Clicca sulla pagina</span> lo metti dove vuoi.</li>
+    </ol>
+    <h4>Ritrovarle</h4>
+    <p>Il pulsante <span class="rh-ui">Annotazioni</span> apre l'elenco: passando sopra una riga vedi testo, nota, autore e data;
+       cliccando, il documento torna a quella pagina con lo stesso zoom e la stessa rotazione.</p>
+    <p class="rh-note">Modificare ed eliminare un'annotazione può solo chi l'ha scritta, oppure il responsabile scientifico della ricerca o l'amministratore.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Non riesco a selezionare il testo.</strong> Il livello di testo è spento: attivalo dalla barra o metti <code>"textLayer": true</code>.</li>
+      <li><strong>Il testo non si seleziona neanche col livello acceso.</strong> Il PDF è una scansione senza testo: va prima passato da un programma di riconoscimento del testo (OCR). Le viste invece funzionano sempre.</li>
+      <li><strong>Le evidenziazioni sono spostate dopo una rotazione.</strong> Non dovrebbe succedere: le posizioni si adattano alla rotazione corrente. Se succede, segnalalo con il nome del documento.</li>
+      <li><strong>Documento lento.</strong> Le pagine si disegnano quando ci arrivi; i PDF di molte centinaia di pagine con immagini pesanti restano comunque lenti allo zoom alto.</li>
+    </ul>
+  </section>
+</div>

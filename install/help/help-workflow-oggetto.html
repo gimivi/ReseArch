@@ -1,0 +1,329 @@
+<meta charset="utf-8">
+<!--
+  Pagina di aiuto per un pannello HTM in modalità "flow": il workflow di definizione di un oggetto
+  (Cartelle → Caricamenti → Modelli → Oggetti → Collegamenti → Flow → apertura nel pannello).
+
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: definire un oggetto" }
+  Se il caricamento di .html è rifiutato (RA_Data non protetta), rinomina il file in .txt: il contenuto non cambia.
+
+  Nessuno script (in modalità flow verrebbe comunque tolto). Cosa funziona già senza flow:
+    - i pulsanti "Apri …" aprono le modali vere della dashboard tramite gli attributi Bootstrap
+      data-bs-toggle="modal" / data-bs-target (gestiti da Bootstrap a livello di documento);
+      i permessi restano quelli dell'utente: chi non ha il ruolo vede la modale ma il server rifiuta.
+    - le sezioni <details> si aprono e chiudono da sole.
+
+  Agganci per un flow embedded (facoltativo, per comandare altri pannelli via App Bus):
+    #rh-help              contenitore della guida   (DOM Query → Set Class, es. per evidenziare un passo)
+    #rh-step-1 … #rh-step-7   i singoli passi       (DOM Query → Set Class "rh-current")
+    .rh-cmd[data-cmd]     pulsanti di comando liberi (DOM Query sull'id → On Event click → App Bus Emitter)
+  Stile confinato sotto .rh-help; colori dalle variabili Bootstrap, quindi segue il tema chiaro/scuro.
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.05rem; margin: 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  /* indice dei passi */
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  /* schema dei legami */
+  .rh-help .rh-map {
+    border: 1px solid var(--rh-border); border-radius: 8px; background: var(--rh-soft);
+    padding: 0.75rem 1rem; margin-bottom: 1.25rem;
+  }
+  .rh-help .rh-map pre { margin: 0; font-size: 0.8rem; white-space: pre; overflow-x: auto; }
+
+  /* passi */
+  .rh-help .rh-step {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-step.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-num {
+    flex: 0 0 auto; width: 1.6rem; height: 1.6rem; border-radius: 50%;
+    background: var(--rh-accent); color: #fff; font-size: 0.85rem; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help .rh-step ul, .rh-help .rh-step ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help .rh-step p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap; font-family: inherit;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2>Definire un oggetto, passo per passo</h2>
+  <p class="rh-lead">
+    Un <strong>oggetto</strong> è ciò che apri in un pannello della dashboard. Mostra uno o più
+    <strong>modelli</strong> (i file e la loro configurazione) e può avere dei <strong>flow</strong>
+    che ne guidano il comportamento. Questa guida segue l'ordine consigliato: dal file sul server
+    fino all'oggetto aperto nel pannello accanto.
+  </p>
+
+  <nav aria-label="Passi della guida">
+    <ol class="rh-index">
+      <li><a href="#rh-step-1"><i class="bi bi-folder2" aria-hidden="true"></i>1 Cartelle</a></li>
+      <li><a href="#rh-step-2"><i class="bi bi-upload" aria-hidden="true"></i>2 Caricamenti</a></li>
+      <li><a href="#rh-step-3"><i class="bi bi-files" aria-hidden="true"></i>3 Modelli</a></li>
+      <li><a href="#rh-step-4"><i class="bi bi-box2" aria-hidden="true"></i>4 Oggetti</a></li>
+      <li><a href="#rh-step-5"><i class="bi bi-link-45deg" aria-hidden="true"></i>5 Collegamenti</a></li>
+      <li><a href="#rh-step-6"><i class="bi bi-diagram-3" aria-hidden="true"></i>6 Flow</a></li>
+      <li><a href="#rh-step-7"><i class="bi bi-eye" aria-hidden="true"></i>7 Apri e verifica</a></li>
+    </ol>
+  </nav>
+
+  <section class="rh-map" aria-labelledby="rh-map-title">
+    <h3 id="rh-map-title">Come si legano i pezzi</h3>
+    <pre aria-describedby="rh-map-desc">
+ Cartella del WP ──► File caricati
+                          │
+                          ▼
+                       Modello  (file + mod_spec)
+                          │  N:N
+                          ▼
+ Flow (tipo Oggetto) ──► OGGETTO  (nome, Type A/B, App)
+           N:N            │
+                          ▼
+                   Pannello della dashboard</pre>
+    <p id="rh-map-desc" class="rh-where">
+      Un modello può servire a più oggetti, e un oggetto può avere più modelli e più flow.
+      Tutto vive dentro il work package aperto.
+    </p>
+  </section>
+
+  <!-- ─────────────────────────────── 1 ─────────────────────────────── -->
+  <section class="rh-step" id="rh-step-1" aria-labelledby="rh-step-1-t">
+    <h3 id="rh-step-1-t"><span class="rh-num" aria-hidden="true">1</span>Cartelle: prepara dove mettere i file</h3>
+    <p class="rh-where">Menu utente → <span class="rh-ui"><i class="bi bi-folder2" aria-hidden="true"></i> Cartelle</span></p>
+    <p>Ogni work package ha una sua cartella sul server. Al suo interno crei le <strong>sottocartelle</strong>
+       che raccolgono i file di un tema, per esempio <code>Rilievo_2026</code> o <code>Immagini</code>.</p>
+    <ul>
+      <li>Nome: massimo 30 caratteri, solo lettere, numeri e <code>_</code>, niente spazi.
+          La prima lettera diventa maiuscola.</li>
+      <li>Una cartella si può eliminare solo quando è vuota.</li>
+    </ul>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalSubFolders">
+        <i class="bi bi-folder2" aria-hidden="true"></i> Apri Cartelle
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────── 2 ─────────────────────────────── -->
+  <section class="rh-step" id="rh-step-2" aria-labelledby="rh-step-2-t">
+    <h3 id="rh-step-2-t"><span class="rh-num" aria-hidden="true">2</span>Caricamenti: porta i file sul server</h3>
+    <p class="rh-where">Menu utente → <span class="rh-ui"><i class="bi bi-upload" aria-hidden="true"></i> Caricamenti</span></p>
+    <ol>
+      <li>Scegli la sottocartella di destinazione.</li>
+      <li>Trascina nella finestra i file o intere cartelle.</li>
+      <li>Controlla l'elenco: dimensione e data confermano che il file è arrivato.</li>
+    </ol>
+    <p class="rh-where">L'amministratore vede un cestino accanto a ogni file. Prima di cancellare chiede conferma e
+       dice se il file è usato da qualche modello: quei modelli resterebbero senza file. Le cartelle non si cancellano da qui.</p>
+    <p class="rh-note">Massimo 256 MB per file. Sono ammesse solo le estensioni previste;
+       i file <code>.html</code> si caricano solo se l'amministratore ha protetto la cartella dei dati.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalUpload">
+        <i class="bi bi-upload" aria-hidden="true"></i> Apri Caricamenti
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────── 3 ─────────────────────────────── -->
+  <section class="rh-step" id="rh-step-3" aria-labelledby="rh-step-3-t">
+    <h3 id="rh-step-3-t"><span class="rh-num" aria-hidden="true">3</span>Modelli: dai un nome al file e configuralo</h3>
+    <p class="rh-where">Menu utente → <span class="rh-ui"><i class="bi bi-files" aria-hidden="true"></i> Modelli</span></p>
+    <p>Il <strong>modello</strong> è il file più le istruzioni per mostrarlo (la <em>spec</em>, in JSON).</p>
+    <ol>
+      <li>Aggiungi una riga e scrivi il <strong>Nome</strong> (obbligatorio) e una descrizione.</li>
+      <li>Con <span class="rh-ui">Seleziona file…</span> scegli il file nelle sottocartelle del WP.
+          Se i dati arriveranno da un flow, scegli <span class="rh-ui">Nessun file (dati dal flow)</span>.</li>
+      <li>Apri la <strong>Spec</strong>, scegli un <strong>template</strong> adatto all'App che userai
+          (3D, immagine gigapixel, PDF, grafico…), poi <span class="rh-ui">Valida</span> e <span class="rh-ui">Salva spec</span>.</li>
+      <li>Imposta <strong>Visibilità</strong> e <strong>Condivisione</strong>, poi salva la tabella.</li>
+    </ol>
+    <p>La colonna <span class="rh-ui">File?</span> segnala <strong>MANCANTE</strong> se il file non si trova più nel percorso indicato.</p>
+    <details>
+      <summary>Cosa contiene la spec</summary>
+      <p>Dipende dall'App: per il 3D la camera, i materiali e l'ambiente; per i grafici la sorgente dei dati
+         e il template; per l'HTML la modalità (<code>iframe</code> o <code>flow</code>). Il template
+         precompila i campi e il pannello accanto all'editor spiega ognuno di essi.</p>
+    </details>
+    <details id="rh-model-rights">
+      <summary>Chi può modificare il modello e come autorizzare un'altra persona</summary>
+      <p>Chi crea un modello ne diventa <strong>autore</strong>. Il modello e la sua spec seguono la stessa regola:
+         chi può modificare l'uno può modificare anche l'altra, ed eliminare il modello.</p>
+      <table>
+        <caption class="visually-hidden">Chi modifica un modello</caption>
+        <thead><tr><th scope="col">Chi</th><th scope="col">Cosa modifica</th></tr></thead>
+        <tbody>
+          <tr><td>Amministratore</td><td>Tutto.</td></tr>
+          <tr><td>Responsabile scientifico della ricerca</td><td>Tutti i modelli della ricerca.</td></tr>
+          <tr><td>Responsabile del work package (ruolo W)</td><td>Tutti i modelli del WP.</td></tr>
+          <tr><td>Autori e collaboratori del modello</td><td>Quel modello.</td></tr>
+        </tbody>
+      </table>
+      <p>Un ricercatore del WP (ruolo I) modifica solo i modelli di cui è autore o collaboratore:
+         gli altri li vede e li collega, ma non li cambia.</p>
+      <p><strong>Per autorizzare un'altra persona</strong>:</p>
+      <ol>
+        <li>Nella finestra <strong>Modelli</strong>, salva la riga se è nuova.</li>
+        <li>Clicca la colonna <span class="rh-ui">Autori</span> del modello: si apre <em>Autori e collaboratori</em>.</li>
+        <li>In <span class="rh-ui">Aggiungi una persona</span> scegli chi aggiungere. Diventa <strong>autore</strong>
+            se è responsabile scientifico, responsabile o ricercatore del WP. Diventa <strong>collaboratore</strong>
+            se nel WP ha il ruolo di collaboratore.</li>
+        <li>Salva la finestra degli autori: ha un salvataggio suo, separato da quello della tabella.</li>
+      </ol>
+      <ul>
+        <li>Possono modificare l'elenco l'amministratore, il responsabile scientifico, il responsabile del WP
+            e gli autori. I collaboratori lo vedono in sola consultazione. Deve restare almeno un autore.</li>
+        <li>Se la persona non compare tra quelle che puoi scegliere, non ha ancora un ruolo nel WP. Chiedi al
+            responsabile scientifico o all'amministratore di aggiungerla al WP: come <em>ricercatore</em>
+            (ruolo I) oppure, se è esterna, come <em>collaboratore</em>.</li>
+        <li>Se nel WP le viene dato il ruolo W, modifica tutti i modelli del WP senza bisogno di essere
+            aggiunta come autrice.</li>
+      </ul>
+      <p class="rh-note">Per gli oggetti vale la stessa regola: si usa la colonna <span class="rh-ui">Autori</span>
+         della finestra <strong>Oggetti</strong>. I flow invece hanno un solo proprietario (passo 6).</p>
+    </details>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────── 4 ─────────────────────────────── -->
+  <section class="rh-step" id="rh-step-4" aria-labelledby="rh-step-4-t">
+    <h3 id="rh-step-4-t"><span class="rh-num" aria-hidden="true">4</span>Oggetti: crea ciò che apparirà nel pannello</h3>
+    <p class="rh-where">Menu utente → <span class="rh-ui"><i class="bi bi-box2" aria-hidden="true"></i> Oggetti</span></p>
+    <table>
+      <caption class="visually-hidden">Campi dell'oggetto</caption>
+      <thead><tr><th scope="col">Campo</th><th scope="col">A cosa serve</th></tr></thead>
+      <tbody>
+        <tr><td>Nome *</td><td>Il titolo che vedi nell'albero e nel pannello.</td></tr>
+        <tr><td>Type A *</td><td>Primo livello dell'albero degli oggetti (es. <em>Rilievi</em>).</td></tr>
+        <tr><td>Type B</td><td>Secondo livello (es. <em>Facciata nord</em>).</td></tr>
+        <tr><td>App *</td><td>Il visualizzatore: 3D, immagine, PDF, grafico, HTML… Deve essere la stessa App dei modelli che collegherai.</td></tr>
+        <tr><td>Show</td><td>Chi può vedere l'oggetto.</td></tr>
+        <tr><td>Collegamenti</td><td>Chi può collegargli modelli e flow: solo l'autore, il gruppo del WP o tutta la ricerca.</td></tr>
+        <tr><td>Autori</td><td>Chi può modificare l'oggetto oltre ai responsabili. Funziona come per i modelli: vedi <a href="#rh-model-rights">chi può modificare il modello</a>.</td></tr>
+      </tbody>
+    </table>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#objectsEditModal">
+        <i class="bi bi-box2" aria-hidden="true"></i> Apri Oggetti
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────── 5 ─────────────────────────────── -->
+  <section class="rh-step" id="rh-step-5" aria-labelledby="rh-step-5-t">
+    <h3 id="rh-step-5-t"><span class="rh-num" aria-hidden="true">5</span>Collegamenti: aggancia i modelli all'oggetto</h3>
+    <p class="rh-where">Menu utente → <span class="rh-ui"><i class="bi bi-link-45deg" aria-hidden="true"></i> Collegamenti</span></p>
+    <ol>
+      <li>In alto scegli <strong>Collega a: Oggetti</strong> e seleziona l'oggetto.</li>
+      <li>Scegli il tipo di collegamento <strong>Models</strong>.</li>
+      <li>Spunta i modelli da collegare e salva. Il contatore mostra quanti sono collegati.</li>
+    </ol>
+    <p>Il filtro dell'elenco (<em>Workpackage</em>, <em>Ricerca</em>, <em>Globali</em>) mostra anche modelli di altri WP,
+       se sono condivisi abbastanza.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalObjModLinks">
+        <i class="bi bi-link-45deg" aria-hidden="true"></i> Apri Collegamenti
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────── 6 ─────────────────────────────── -->
+  <section class="rh-step" id="rh-step-6" aria-labelledby="rh-step-6-t">
+    <h3 id="rh-step-6-t"><span class="rh-num" aria-hidden="true">6</span>Flow: aggiungi un comportamento (facoltativo)</h3>
+    <p class="rh-where">Menu utente → <span class="rh-ui"><i class="bi bi-diagram-3" aria-hidden="true"></i> Flow</span>,
+       poi il pulsante <span class="rh-ui"><i class="bi bi-diagram-2" aria-hidden="true"></i> Flow embedded</span> del pannello</p>
+    <p>Un flow è un grafo di nodi che reagisce a eventi: un clic, l'apertura dell'oggetto, un messaggio da un altro pannello.</p>
+    <ol>
+      <li>Nella modale <strong>Flow</strong> crea una riga, scrivi il nome e scegli il tipo <strong>Oggetto</strong>.
+          Il ruolo <em>Comportamento</em> si può escludere all'apertura; <em>Configurazione</em> si carica sempre, per primo.</li>
+      <li>Salva: il flow nasce <strong>scollegato</strong>.</li>
+      <li>Torna in <strong>Collegamenti</strong>, seleziona l'oggetto, tipo <strong>Flows</strong>, e spunta il flow.</li>
+      <li>Apri l'oggetto in un pannello e premi <span class="rh-ui"><i class="bi bi-diagram-2" aria-hidden="true"></i> Flow embedded</span>
+          per disegnare il grafo nel Flow Editor.</li>
+    </ol>
+    <p class="rh-note">Se il flow contiene nodi che eseguono codice (Script, Formula…) resta <strong>in attesa</strong>
+       e gira solo per te finché un amministratore non lo valida.</p>
+    <p class="rh-note">Un flow ha un solo proprietario: lo modificano solo lui e l'amministratore.
+       Gli altri possono collegarlo ai propri oggetti, oppure farne una copia con <span class="rh-ui">Salva con nome</span>.
+       Il proprietario può essere cambiato solo dall'amministratore.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalFlows">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> Apri Flow
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalObjModLinks">
+        <i class="bi bi-link-45deg" aria-hidden="true"></i> Apri Collegamenti
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────── 7 ─────────────────────────────── -->
+  <section class="rh-step" id="rh-step-7" aria-labelledby="rh-step-7-t">
+    <h3 id="rh-step-7-t"><span class="rh-num" aria-hidden="true">7</span>Apri e verifica nel pannello accanto</h3>
+    <p class="rh-where">Pulsante <span class="rh-ui"><i class="bi bi-box2" aria-hidden="true"></i> Oggetti</span> nell'intestazione di un pannello</p>
+    <ol>
+      <li>Nell'albero apri <strong>Type A → Type B</strong> e scegli l'oggetto.</li>
+      <li>A destra spunta i modelli da caricare e i flow da eseguire.</li>
+      <li>Premi <span class="rh-ui">Load</span>: l'oggetto si apre nel pannello da cui sei partito.</li>
+    </ol>
+    <details>
+      <summary>Non vedo l'oggetto o un modello</summary>
+      <ul>
+        <li>L'albero mostra solo gli oggetti <strong>visibili</strong> per te: controlla <em>Show</em> nell'oggetto.</li>
+        <li>Un modello non compare se la sua <em>Visibilità</em> è più alta del tuo livello, o se non è collegato (passo 5).</li>
+        <li>Il pannello resta vuoto: guarda <span class="rh-ui">File?</span> nei Modelli e la <em>App</em> dell'oggetto.</li>
+        <li>Il flow non parte: controlla che sia collegato e che non sia <em>in attesa</em> di validazione.</li>
+      </ul>
+    </details>
+  </section>
+
+  <p class="rh-where">
+    <i class="bi bi-info-circle" aria-hidden="true"></i>
+    I pulsanti "Apri …" aprono le finestre vere della piattaforma: quello che fai lì viene salvato.
+    Alcune voci compaiono solo con il ruolo adatto nel work package.
+  </p>
+</div>

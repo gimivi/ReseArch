@@ -1,0 +1,242 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App HTM (pagine HTML: iframe e flow).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Pagine HTML (HTM)" }
+  Fonti: app/model_HTM.mjs (modi iframe/flow, iframe con flow e Frame/Navigate, inject = flow, pulizia in HTM-sanitize.mjs, <style> conservato), api/mod_spec_tool.php e
+  ui/modal_models_tools.php (srcdoc non vuoto = solo amministratore), template HTM di mod_spec_templates, _doc/module-htm-html.md.
+  Nessuno script. Agganci: #rh-help, #rh-sec-modes, #rh-tpl-iframe, #rh-tpl-flow, #rh-sec-write, #rh-sec-nodes, #rh-sec-hys, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-filetype-html" aria-hidden="true"></i> Pagine HTML (HTM)</h2>
+  <p class="rh-lead">
+    HTM mostra pagine HTML nel pannello: testi formattati, guide come questa, moduli esterni (Google Forms), piccole interfacce
+    che comandano gli altri pannelli. Questa stessa guida è un oggetto HTM.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-modes"><i class="bi bi-signpost-split" aria-hidden="true"></i>Due modalità</a></li>
+      <li><a href="#rh-tpl-iframe"><i class="bi bi-window" aria-hidden="true"></i>Pagina esterna</a></li>
+      <li><a href="#rh-tpl-flow"><i class="bi bi-diagram-3" aria-hidden="true"></i>Pagina + flow</a></li>
+      <li><a href="#rh-sec-write"><i class="bi bi-pencil" aria-hidden="true"></i>Scrivere la pagina</a></li>
+      <li><a href="#rh-sec-nodes"><i class="bi bi-puzzle" aria-hidden="true"></i>Renderla interattiva</a></li>
+      <li><a href="#rh-sec-hys"><i class="bi bi-bank" aria-hidden="true"></i>Template HySpace</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-modes" aria-labelledby="rh-sec-modes-t">
+    <h3 id="rh-sec-modes-t"><i class="bi bi-signpost-split" aria-hidden="true"></i>Due modalità</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Confronto fra le modalità di HTM</caption>
+        <thead><tr><th scope="col"></th><th scope="col"><code>"iframe"</code></th><th scope="col"><code>"flow"</code></th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Dove sta la pagina</th><td>In una finestra isolata dentro il pannello</td><td>Dentro la dashboard</td></tr>
+          <tr><th scope="row">Script della pagina</th><td>Funzionano, ma non vedono la piattaforma</td><td>Tolti: la logica va in un flow</td></tr>
+          <tr><th scope="row">Stile della piattaforma (Bootstrap, icone)</th><td>No</td><td>Sì</td></tr>
+          <tr><th scope="row">Pulsanti che aprono le finestre della piattaforma</th><td>No</td><td>Sì</td></tr>
+          <tr><th scope="row">Adatta a</th><td>Siti e moduli esterni, pagine complete</td><td>Guide, schede, interfacce collegate agli altri pannelli</td></tr>
+          <tr><th scope="row">Flow collegati</th><td>Sì, per cambiare la pagina (<code>Frame/Navigate</code>)</td><td>Sì, per tutta la logica</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note">Senza <code>"mode"</code> una pagina con file si apre in <strong>iframe</strong>. Per la modalità flow scrivi sempre <code>"mode": "flow"</code>.</p>
+    <p class="rh-where">La vecchia modalità <code>"inject"</code> non esiste più: se la trovi in una spec, funziona come <code>"flow"</code>.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-iframe" aria-labelledby="rh-tpl-iframe-t">
+    <h3 id="rh-tpl-iframe-t"><i class="bi bi-window" aria-hidden="true"></i>Template "HTML — Pagina esterna (iframe)" <span class="rh-badge">base</span></h3>
+    <pre class="rh-json">{
+  "mode": "iframe",
+  "src": "https://docs.google.com/forms/d/e/XXXXX/viewform?embedded=true",
+  "title": "Questionario"
+}</pre>
+    <ul>
+      <li><code>src</code>: l'indirizzo della pagina. Se invece scegli un file nel modello, <code>src</code> non serve.</li>
+      <li><code>title</code>: nome della pagina letto dai lettori di schermo.</li>
+      <li><code>sandbox</code>: permessi della finestra isolata; lascialo fuori, viene scelto da solo.</li>
+    </ul>
+    <p>Molti siti vietano di essere mostrati dentro altre pagine: in quel caso il pannello resta bianco e non c'è rimedio.
+       Google Forms, YouTube (indirizzo <code>/embed/</code>), Google Maps (indirizzo "incorpora") e Wikipedia lo permettono.</p>
+    <p><strong>Pagina scelta da un flow.</strong> Senza <code>src</code> e senza file, cioè <code>{ "mode": "iframe", "title": "Pagina" }</code>
+       con il modello «Nessun file», il pannello mostra "Nessuna pagina" finché un flow collegato non ne carica una con il nodo
+       <code>HTM/Frame/Navigate</code>, per esempio l'indirizzo ricevuto da un altro pannello con l'App Bus. Il pulsante
+       <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> apre in una nuova scheda la pagina mostrata.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-flow" aria-labelledby="rh-tpl-flow-t">
+    <h3 id="rh-tpl-flow-t"><i class="bi bi-diagram-3" aria-hidden="true"></i>Template "HTML — Scheletro + Flow (nodi DOM)" <span class="rh-badge">base</span></h3>
+    <p>Il modo consigliato per le pagine scritte da te:</p>
+    <ol>
+      <li>scrivi la pagina in un file <code>.html</code> (o <code>.txt</code>, vedi sotto) e caricala;</li>
+      <li>nel modello scegli il file e metti la spec:</li>
+    </ol>
+    <pre class="rh-json">{ "mode": "flow", "title": "Titolo della pagina" }</pre>
+    <p>In alternativa al file si può scrivere l'HTML direttamente nella spec, nel campo <code>srcdoc</code>: quella strada è
+       <strong>riservata all'amministratore</strong>. Con un file caricato non ci sono limiti di ruolo.</p>
+    <p class="rh-note">I file <code>.html</code> si caricano solo se l'amministratore ha protetto la cartella dei dati. In alternativa rinomina
+       la pagina in <code>.txt</code>: con <code>"mode": "flow"</code> funziona allo stesso modo.</p>
+    <p>Più pagine collegate allo stesso oggetto compaiono nel menu a sinistra del pannello.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalUpload">
+        <i class="bi bi-upload" aria-hidden="true"></i> Apri Caricamenti
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-write" aria-labelledby="rh-sec-write-t">
+    <h3 id="rh-sec-write-t"><i class="bi bi-pencil" aria-hidden="true"></i>Scrivere la pagina (modalità flow)</h3>
+    <ul>
+      <li><strong>Codifica UTF-8</strong>; metti <code>&lt;meta charset="utf-8"&gt;</code> come prima riga, utile se la pagina si apre anche da sola.</li>
+      <li>Basta il contenuto: <code>&lt;style&gt;</code> e poi il markup. Se scrivi una pagina completa, si usa solo il <code>&lt;body&gt;</code>.</li>
+      <li><strong>Vengono tolti</strong>: <code>&lt;script&gt;</code>, <code>&lt;iframe&gt;</code>, <code>&lt;link&gt;</code>, <code>&lt;meta&gt;</code>,
+          gli attributi <code>onclick</code>, <code>onload</code>… e i link <code>javascript:</code>.</li>
+      <li><strong>Restano</strong>: <code>&lt;style&gt;</code>, classi Bootstrap, icone <code>&lt;i class="bi bi-…"&gt;</code>, immagini, link, <code>&lt;details&gt;</code> per le parti apribili.</li>
+      <li>Racchiudi lo stile sotto una classe tua (es. <code>.mia-guida h3 { … }</code>), altrimenti cambia anche il resto della dashboard.</li>
+      <li>Dai alla pagina uno <strong>sfondo</strong> (<code>background: var(--bs-body-bg)</code>): il pannello di suo è trasparente.</li>
+      <li>Lascia circa <strong>36 px</strong> liberi in alto: l'intestazione del pannello si sovrappone al contenuto.</li>
+    </ul>
+    <h4>Pulsanti che aprono le finestre della piattaforma</h4>
+    <p>Funzionano senza flow, con gli attributi di Bootstrap:</p>
+    <pre class="rh-json">&lt;button type="button" class="btn btn-sm btn-outline-primary"
+        data-bs-toggle="modal" data-bs-target="#modalModels"&gt;Apri Modelli&lt;/button&gt;</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption>Finestre apribili</caption>
+        <thead><tr><th scope="col"><code>data-bs-target</code></th><th scope="col">Finestra</th></tr></thead>
+        <tbody>
+          <tr><td><code>#modalSubFolders</code></td><td>Cartelle</td></tr>
+          <tr><td><code>#modalUpload</code></td><td>Caricamenti</td></tr>
+          <tr><td><code>#modalModels</code></td><td>Modelli</td></tr>
+          <tr><td><code>#objectsEditModal</code></td><td>Oggetti</td></tr>
+          <tr><td><code>#modalObjModLinks</code></td><td>Collegamenti</td></tr>
+          <tr><td><code>#modalFlows</code></td><td>Flow</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-nodes" aria-labelledby="rh-sec-nodes-t">
+    <h3 id="rh-sec-nodes-t"><i class="bi bi-puzzle" aria-hidden="true"></i>Renderla interattiva</h3>
+    <p>Dai un <code>id</code> agli elementi da usare e collega all'oggetto un flow con i nodi <code>HTM/DOM/*</code>:</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi principali HTM/DOM</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">A cosa serve</th></tr></thead>
+        <tbody>
+          <tr><td><code>DOM Query</code></td><td>Trova un elemento della pagina (es. <code>#risultato</code>).</td></tr>
+          <tr><td><code>On Event</code></td><td>Reagisce a clic, invio di un modulo, tasti.</td></tr>
+          <tr><td><code>Get Value</code> / <code>Set Value</code></td><td>Legge o scrive il valore di un campo.</td></tr>
+          <tr><td><code>Set Text</code></td><td>Scrive un testo, anche in Markdown.</td></tr>
+          <tr><td><code>Set Class</code> / <code>Set Attr</code></td><td>Aggiunge o toglie classi e attributi (es. evidenziare un passo).</td></tr>
+          <tr><td><code>Set Options</code></td><td>Riempie un menu a tendina.</td></tr>
+          <tr><td><code>Get Image</code> / <code>Set Image</code></td><td>Legge un'immagine scelta dall'utente o ne mostra una.</td></tr>
+          <tr><td><code>Chat View</code></td><td>Riquadro di dialogo a fumetti (es. con un modello di intelligenza artificiale).</td></tr>
+          <tr><td><code>Button Row</code></td><td>Fila di pulsanti creata da un elenco (scelte, schede, collegamenti).</td></tr>
+          <tr><td><code>Set HTML</code></td><td>Scrive un pezzo di HTML ripulito, per esempio un articolo di Wikipedia letto con <code>Web/Wikipedia/Article</code>.</td></tr>
+          <tr><td><code>On Selection</code></td><td>Reagisce al testo selezionato da chi legge.</td></tr>
+
+          <tr><td><code>Container</code>, <code>Label</code>, <code>Button</code>, <code>Input</code></td><td>Creano elementi nuovi, se la pagina è vuota.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Con i nodi <code>App Bus</code> la pagina può comandare gli altri pannelli: un pulsante "mostra la facciata" che sposta la camera del 3D accanto.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-hys" aria-labelledby="rh-sec-hys-t">
+    <h3 id="rh-sec-hys-t"><i class="bi bi-bank" aria-hidden="true"></i>Template HySpace <span class="rh-badge">avanzato</span></h3>
+    <p>Tre template pronti costruiscono la pagina da soli con un nodo dedicato, senza file:</p>
+    <ul>
+      <li><strong>Scheda esercitazione HySpace (flow)</strong>: mostra la scheda della stanza in cui ci si trova in un pannello HySpace.</li>
+      <li><strong>Ricerca e musei HySpace (flow)</strong>: cerca le esercitazioni e genera musei tematici.</li>
+      <li><strong>Archivio esercitazioni HySpace (flow)</strong>: archivio per anno con scheda e modello 3D.</li>
+    </ul>
+    <p>Lo schema dei flow da collegare è nella spiegazione di ciascun template, nella finestra della spec.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Lettere accentate sbagliate (<code>Ã¨</code>) e pulsanti che non aprono nulla.</strong> La pagina è in iframe: manca <code>"mode": "flow"</code>.</li>
+      <li><strong>Pagina trasparente, si vede lo sfondo del pannello.</strong> Dai uno sfondo al contenitore principale della pagina.</li>
+      <li><strong>Il titolo è coperto.</strong> Lascia spazio in alto (36 px).</li>
+      <li><strong>Un pulsante <code>onclick</code> non fa nulla.</strong> Gli attributi <code>on…</code> vengono tolti: usa un flow con <code>On Event</code>.</li>
+      <li><strong>"Salvataggio rifiutato" sulla spec.</strong> Hai messo HTML in <code>srcdoc</code> senza essere amministratore: usa un file.</li>
+    </ul>
+  </section>
+</div>

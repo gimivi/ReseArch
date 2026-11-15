@@ -1,0 +1,175 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida dell'INTERFACCIA dell'App MPS: solo ciò che l'utente vede e usa nel pannello (barra, menu, mouse e tastiera,
+  riquadri). La spec del modello è in help-app-MPS.html, i nodi dei flow nella guida dei nodi.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Mappe, il pannello" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-…
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-geo-alt" aria-hidden="true"></i> Mappe (MPS): usare il pannello</h2>
+  <p class="rh-lead">
+    Come si esplora una mappa Google nel pannello, piana (2D) o tridimensionale (3D), e come si usano i segnaposto.
+    La spec del modello e i nodi dei flow hanno guide a parte: le trovi in fondo, in <a href="#rh-sec-guides">Guide rapide</a>.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-2d"><i class="bi bi-map" aria-hidden="true"></i>Mappa 2D</a></li>
+      <li><a href="#rh-sec-3d"><i class="bi bi-globe-europe-africa" aria-hidden="true"></i>Mappa 3D</a></li>
+      <li><a href="#rh-sec-markers"><i class="bi bi-geo-alt" aria-hidden="true"></i>Segnaposto</a></li>
+      <li><a href="#rh-sec-menu"><i class="bi bi-list" aria-hidden="true"></i>Menu</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-2d" aria-labelledby="rh-sec-2d-t">
+    <h3 id="rh-sec-2d-t"><i class="bi bi-map" aria-hidden="true"></i>Mappa 2D</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi della mappa piana</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Trascina</td><td>Sposta la mappa</td></tr>
+          <tr><td>Rotella · doppio clic</td><td>Avvicina e allontana · avvicina</td></tr>
+          <tr><td>Touch: un dito · due dita</td><td>Sposta · avvicina e allontana</td></tr>
+          <tr><td>Pulsanti di Google sulla mappa</td><td>Zoom, tipo di mappa (stradale, satellite), schermo intero, se presenti</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-3d" aria-labelledby="rh-sec-3d-t">
+    <h3 id="rh-sec-3d-t"><i class="bi bi-globe-europe-africa" aria-hidden="true"></i>Mappa 3D</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi della mappa tridimensionale</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Trascina con il tasto sinistro</td><td>Sposta la vista</td></tr>
+          <tr><td>Trascina con il tasto destro · <kbd>Ctrl</kbd> + trascina</td><td>Ruota e inclina la vista</td></tr>
+          <tr><td>Rotella</td><td>Avvicina e allontana</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">Edifici e terreno arrivano a pezzi: avvicinandosi, per un attimo possono apparire poco definiti.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-markers" aria-labelledby="rh-sec-markers-t">
+    <h3 id="rh-sec-markers-t"><i class="bi bi-geo-alt" aria-hidden="true"></i>Segnaposto</h3>
+    <p>I segnaposto indicano i luoghi della ricerca. Nella mappa 3D un clic su un segnaposto lo seleziona e porta la vista lì;
+       altri pannelli collegati (tabelle, documenti, modelli) possono reagire alla scelta.</p>
+    <p>Alcuni segnaposto li aggiunge il flow dell'oggetto, per esempio i luoghi di una timeline: si vedono anche nella mappa 2D,
+       possono avere colori, lettere o icone diverse e un'etichetta accanto. Cosa succede al clic dipende dal flow.</p>
+    <p class="rh-where">Ogni volta che la mappa si ferma, la vista viene comunicata agli altri pannelli: il footer scrive «Vista pubblicata sul bus».</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-menu" aria-labelledby="rh-sec-menu-t">
+    <h3 id="rh-sec-menu-t"><i class="bi bi-list" aria-hidden="true"></i>I menu del pannello</h3>
+    <ul>
+      <li>Menu <span class="rh-ui">☰</span> → <span class="rh-ui">Reimposta vista</span>: torna alla vista di partenza del modello.</li>
+      <li>Il menu a sinistra e altre voci mostrano i comandi aggiunti dal flow dell'oggetto.</li>
+    </ul>
+    <p class="rh-where">Intestazione e footer comuni a tutti i pannelli sono spiegati nella guida del pannello.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Mi sono perso</strong>: <span class="rh-ui">☰ → Reimposta vista</span>.</li>
+      <li><strong>La mappa resta grigia o dà un errore di Google</strong>: la chiave delle mappe della piattaforma non è valida o la connessione è lenta; avvisa l'amministratore.</li>
+      <li><strong>Il clic sui segnaposto non fa nulla</strong>: nella mappa 2D i segnaposto del modello non compaiono, solo quelli aggiunti dal flow; e perché gli altri pannelli reagiscano serve un flow che li colleghi.</li>
+
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-MPS">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes" data-help="help-nodes-MPS">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi nei flow
+      </button>
+    </div>
+  </section>
+</div>

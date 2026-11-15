@@ -1,0 +1,350 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida dell'INTERFACCIA dell'App TJS: solo ciò che l'utente vede e usa nel pannello (barra, menu, mouse e tastiera,
+  riquadri). La spec del modello è in help-app-TJS.html, i nodi dei flow nella guida dei nodi.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: App 3D, il pannello" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-spec, #rh-go-nodes
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-badge-3d" aria-hidden="true"></i> App 3D (TJS): usare il pannello</h2>
+  <p class="rh-lead">
+    Come si guarda e si esplora una scena 3D: muoversi, scegliere le viste, selezionare, misurare,
+    regolare luci, camere, ambiente e materiali. Le impostazioni del modello (la spec) e i nodi dei flow
+    hanno guide a parte: le trovi in fondo, in <a href="#rh-sec-guides">Guide rapide</a>.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-move"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi</a></li>
+      <li><a href="#rh-sec-views"><i class="bi bi-image" aria-hidden="true"></i>Viste</a></li>
+      <li><a href="#rh-sec-select"><i class="bi bi-cursor" aria-hidden="true"></i>Selezionare</a></li>
+      <li><a href="#rh-sec-transform"><i class="bi bi-arrows-move" aria-hidden="true"></i>Spostare</a></li>
+      <li><a href="#rh-sec-measure"><i class="bi bi-rulers" aria-hidden="true"></i>Misurare e collimare</a></li>
+      <li><a href="#rh-sec-panels"><i class="bi bi-layout-sidebar-reverse" aria-hidden="true"></i>Pannelli laterali</a></li>
+      <li><a href="#rh-sec-save"><i class="bi bi-floppy" aria-hidden="true"></i>Salvare</a></li>
+      <li><a href="#rh-sec-menu"><i class="bi bi-list" aria-hidden="true"></i>Menu</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <!-- ─────────────────────────── Muoversi ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-move" aria-labelledby="rh-sec-move-t">
+    <h3 id="rh-sec-move-t"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi nella scena</h3>
+    <p>Ci sono due modi di guardare. Il pulsante <span class="rh-ui"><i class="bi bi-eye" aria-hidden="true"></i></span>
+       nella barra del pannello passa dall'uno all'altro.</p>
+    <h4>Orbita (all'apertura)</h4>
+    <p>La camera gira intorno a un punto della scena, il <em>target</em>.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi in modalità orbita</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Trascina con il tasto sinistro</td><td>Ruota intorno al target</td></tr>
+          <tr><td>Trascina con il tasto destro</td><td>Sposta la vista (pan)</td></tr>
+          <tr><td>Rotella</td><td>Avvicina e allontana</td></tr>
+          <tr><td>Touch: un dito · due dita</td><td>Ruota · avvicina e sposta</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h4>EyeLock (sguardo da fermo)</h4>
+    <p>La camera resta ferma e gira su se stessa, come una persona che si guarda intorno.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi in modalità EyeLock</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Trascina con il tasto sinistro</td><td>Guarda intorno</td></tr>
+          <tr><td><kbd>Alt</kbd> + trascina</td><td>Movimento fine, senza inerzia</td></tr>
+          <tr><td>Rotella</td><td>Zoom ottico (cambia l'angolo di campo, la camera non si sposta)</td></tr>
+          <tr><td><kbd>Spazio</kbd></td><td>Mostra o nasconde il mirino al centro</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Viste ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-views" aria-labelledby="rh-sec-views-t">
+    <h3 id="rh-sec-views-t"><i class="bi bi-image" aria-hidden="true"></i>Viste e proiezione</h3>
+    <ul>
+      <li><span class="rh-ui"><i class="bi bi-box" aria-hidden="true"></i> Assonometria</span>: passa dalla prospettiva
+          alla vista assonometrica (senza punto di fuga, le misure parallele restano parallele) e ritorno.</li>
+      <li><span class="rh-ui"><i class="bi bi-image" aria-hidden="true"></i> Viste</span>: porta la camera su una vista
+          principale: Front, Left, Back, Right, Top, Bottom.</li>
+      <li><span class="rh-ui"><i class="bi bi-box-arrow-in-down-right" aria-hidden="true"></i></span> con una selezione:
+          in orbita sposta il target al centro degli oggetti selezionati (la rotazione gira intorno a loro);
+          in EyeLock porta lì la camera.</li>
+    </ul>
+  </section>
+
+  <!-- ─────────────────────────── Selezionare ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-select" aria-labelledby="rh-sec-select-t">
+    <h3 id="rh-sec-select-t"><i class="bi bi-cursor" aria-hidden="true"></i>Selezionare</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi di selezione</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Clic su un oggetto</td><td>Seleziona l'oggetto intero (il gruppo a cui appartiene)</td></tr>
+          <tr><td><kbd>Alt</kbd> + clic</td><td>Seleziona solo la parte colpita</td></tr>
+          <tr><td><kbd>Shift</kbd> + clic</td><td>Aggiunge alla selezione</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + clic</td><td>Toglie dalla selezione</td></tr>
+          <tr><td>Clic nel vuoto · <kbd>Esc</kbd></td><td>Toglie la selezione</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">Si seleziona anche dall'albero <strong>Oggetti scena</strong>, vedi <a href="#rh-sec-panels">Pannelli laterali</a>.</p>
+  </section>
+
+  <!-- ─────────────────────────── Spostare ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-transform" aria-labelledby="rh-sec-transform-t">
+    <h3 id="rh-sec-transform-t"><i class="bi bi-arrows-move" aria-hidden="true"></i>Spostare, ruotare, scalare</h3>
+    <p>Con un oggetto selezionato compare una maniglia (gizmo): trascinane le frecce o gli archi.</p>
+    <ul>
+      <li><span class="rh-ui"><i class="bi bi-arrows-move" aria-hidden="true"></i></span> <kbd>T</kbd> trasla ·
+          <span class="rh-ui"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></span> <kbd>R</kbd> ruota ·
+          <span class="rh-ui"><i class="bi bi-aspect-ratio" aria-hidden="true"></i></span> <kbd>S</kbd> scala.</li>
+      <li><kbd>Q</kbd>: assi del mondo o assi dell'oggetto. <kbd>H</kbd>: promemoria dei comandi.
+          <kbd>Shift</kbd> tenuto premuto: scatto sulla griglia finché lo tieni.</li>
+      <li><span class="rh-ui"><i class="bi bi-eraser" aria-hidden="true"></i></span> toglie dalla scena gli oggetti selezionati.</li>
+    </ul>
+    <h4>La finestra Sposta · Ruota · Scala</h4>
+    <p>Accendendo la maniglia si apre una finestra nella colonna a destra della scena. La <span class="rh-ui">X</span>
+       o <kbd>Esc</kbd> spengono la maniglia; con la X la selezione resta.</p>
+    <ul>
+      <li><strong>Oggetti selezionati</strong>: clic su una voce per renderla l'oggetto attivo; <span class="rh-ui">Svuota selezione</span>.</li>
+      <li><strong>Opzioni</strong>: assi del mondo o dell'oggetto, <span class="rh-ui">Snap su griglia</span> con il passo,
+          origine della maniglia. Con più oggetti, l'origine si può agganciare a un punto cliccato in scena.</li>
+      <li><strong>Variazione</strong>: quanto hai spostato, ruotato o scalato da quando hai iniziato. Scrivi i valori e premi
+          <span class="rh-ui">Applica valori</span>; <span class="rh-ui">Riparti da qui</span> azzera la variazione.</li>
+      <li><strong>Valore</strong>: i valori assoluti dell'oggetto attivo: posizione nel mondo, rotazione in gradi, scala.
+          Scrivi e premi <span class="rh-ui">Imposta valori</span>. Con più oggetti sono i valori del centro del gruppo.</li>
+      <li><kbd>Invio</kbd> in un campo equivale ad Applica o Imposta.</li>
+    </ul>
+    <p class="rh-note">Questi strumenti compaiono dal livello <strong>utente</strong> in su e lavorano <strong>in memoria</strong>:
+       il file del modello non cambia e ricaricando la pagina tutto torna com'era.</p>
+  </section>
+
+  <!-- ─────────────────────────── Misurare ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-measure" aria-labelledby="rh-sec-measure-t">
+    <h3 id="rh-sec-measure-t"><i class="bi bi-rulers" aria-hidden="true"></i>Misurare e collimare</h3>
+    <ul>
+      <li><span class="rh-ui"><i class="bi bi-rulers" aria-hidden="true"></i> Misura</span>: <kbd>Shift</kbd> + clic sul
+          primo punto, poi sul secondo; compare la distanza. Le misure restano in un elenco: da lì le guardi,
+          le elimini una per una o tutte insieme.</li>
+      <li><span class="rh-ui"><i class="bi bi-geo-alt" aria-hidden="true"></i> Collima punti</span>: <kbd>Shift</kbd> + clic
+          acquisisce punti sulla superficie. L'elenco permette di guardarli, eliminarli e salvarli sul modello.</li>
+    </ul>
+    <p class="rh-where">I due strumenti non stanno accesi insieme: accendendone uno si spegne l'altro.
+       Ognuno ha la sua finestra nella colonna a destra; la <span class="rh-ui">X</span> spegne lo strumento.
+       L'opzione <span class="rh-ui">Snap vertex</span> aggancia il punto al vertice più vicino.
+       Con un taglio attivo, i punti nelle parti tagliate e sui piani non si prendono.</p>
+    <h4>Misurare su una foto panoramica</h4>
+    <p>Su un panorama 360° normale il punto cade sulla sfera, quindi la misura non vale nulla. Se al panorama è associata la
+       <strong>mappa delle distanze</strong> (calcolata da ComfyUI con MoGe o DA2, vedi la guida dei nodi, famiglia Panorama),
+       Collima e Misura danno il punto vero nello spazio: il clic su una parete dà un punto sulla parete.</p>
+    <ul>
+      <li>La mappa dà distanze <strong>relative</strong>: per avere metri va calibrata una volta con una distanza nota
+          (nodo <code>Panorama/Depth Scale</code>).</li>
+      <li>Sulle sfere panoramiche lo <span class="rh-ui">Snap vertex</span> non si applica. I punti presi così hanno una "d" nell'elenco.</li>
+      <li>Se compare un messaggio, la mappa è ancora in caricamento oppure in quel punto non ha un valore (es. il cielo): clicca altrove.</li>
+    </ul>
+  </section>
+
+  <!-- ─────────────────────────── Pannelli laterali ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-panels" aria-labelledby="rh-sec-panels-t">
+    <h3 id="rh-sec-panels-t"><i class="bi bi-layout-sidebar-reverse" aria-hidden="true"></i>Pannelli laterali</h3>
+    <p>Questi pulsanti della barra aprono una finestra nella colonna a destra della scena; lo stesso pulsante o la
+       <span class="rh-ui">X</span> della finestra la chiudono. Le finestre aperte stanno una sotto l'altra, insieme a
+       quelle di Sposta/Ruota/Scala, Collima e Misura.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Pannelli laterali di TJS</caption>
+        <thead><tr><th scope="col">Pulsante</th><th scope="col">Cosa fai</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rh-ui"><i class="bi bi-layers" aria-hidden="true"></i> Oggetti scena</span></td>
+              <td>L'albero degli oggetti: mostra e nascondi, blocca la selezione, trasparenza e colore; clic su una voce per selezionarla.</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-sun" aria-hidden="true"></i> Luci</span></td>
+              <td>Aggiungi luci (ambiente, direzionale, punto, spot, emisfero), regola colore, intensità e ombre, spostale con la maniglia.
+                  Le luci nuove nascono sopra il modello con un'intensità già visibile. Direzionale e spot hanno un
+                  <strong>bersaglio</strong>: <span class="rh-ui">Punta sulla selezione</span> lo porta sugli oggetti selezionati.
+                  Accendendo un'ombra, se nessun oggetto proietta ombre, i modelli vengono impostati per proiettarle e riceverle.
+                  <span class="rh-ui">Adatta al modello</span> calcola l'area dell'ombra sulla misura del modello;
+                  <span class="rh-ui">Adatta da sola</span> la ricalcola quando sposti la luce.</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-camera-video" aria-hidden="true"></i> Camere</span></td>
+              <td>Crea punti di vista (prospettici o ortografici) e passa dall'uno all'altro.</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-sliders" aria-hidden="true"></i> Ambiente</span></td>
+              <td>Sfondo, griglia e assi, cielo, nebbia o skybox, ombre, riflessioni dei materiali (IBL), occlusione ambientale,
+                  dimensione dei punti e spessore delle linee. In più:
+                  <ul>
+                    <li><strong>Illuminazione di base</strong>: la luce ambiente e il <strong>sole</strong> che la scena ha sempre.
+                        Il sole gira intorno al modello con <span class="rh-ui">Azimut</span> ed <span class="rh-ui">Elevazione</span>
+                        e ha un'ombra che si adatta da sola. <span class="rh-ui">Pavimento per le ombre</span> mette sotto il modello
+                        un piano che mostra solo le ombre. <span class="rh-ui">Ambiente neutro (PBR)</span> dà riflessi ai materiali
+                        quando non c'è una mappa IBL.</li>
+                    <li><strong>Occlusione ambientale</strong>: scurisce angoli e fessure. <span class="rh-ui">Valori sul modello</span>
+                        calcola raggio e spessore sulla misura del modello; <span class="rh-ui">Solo AO</span> mostra solo l'effetto.</li>
+                    <li><strong>Clay</strong>: <span class="rh-ui">Vista clay</span> dà a tutti i modelli lo stesso materiale chiaro e
+                        opaco, adatto a leggere forme, ombre e occlusione; spegnendola tornano i materiali originali.
+                        <span class="rh-ui">Anche i trasparenti</span>: spento, vetri e oggetti trasparenti restano come sono; acceso,
+                        diventano clay anche loro. Colore, ruvidità, velatura lucida e riflessi si regolano qui.
+                        Gli oggetti caricati <strong>senza materiale</strong> ricevono il clay sempre, anche con la vista spenta.</li>
+                  </ul></td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-palette2" aria-hidden="true"></i> Materiale</span></td>
+              <td>Per l'oggetto selezionato: colore, opacità, lato, riflessione, ombre; per le nuvole di punti forma e dimensione.
+                  Dal livello utente.</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-scissors" aria-hidden="true"></i> Sezioni</span></td>
+              <td>Taglia gli oggetti selezionati con piani (senza selezione: tutti i modelli, anche nuvole di punti e linee):
+                  accendi e spegni il taglio, mostra o nascondi i piani, colora la superficie tagliata (modo Stencil).
+                  Per ogni piano: clic sul nome per prenderlo con la maniglia (si sposta solo lungo la sua normale, si può ruotare),
+                  cursore della posizione, <span class="rh-ui"><i class="bi bi-arrow-left-right" aria-hidden="true"></i></span> inverte la parte tenuta,
+                  <span class="rh-ui"><i class="bi bi-camera-video" aria-hidden="true"></i></span> guarda la sezione di fronte.
+                  Con la finestra aperta il clic in scena prende solo i piani.
+                  <span class="rh-ui">Sezione opaca</span>: riempimento pieno anche quando il materiale tagliato è trasparente
+                  (altrimenti la sezione si vede velata). Le configurazioni di taglio si salvano con un nome e si richiamano.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Salvare ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-save" aria-labelledby="rh-sec-save-t">
+    <h3 id="rh-sec-save-t"><i class="bi bi-floppy" aria-hidden="true"></i>Salvare</h3>
+    <p>Luci, camere, ambiente, stile dei materiali, configurazioni di taglio e punti collimati si possono salvare
+       <strong>nel modello</strong>: alla prossima apertura la scena riparte così. Ogni riquadro ha il suo pulsante
+       <span class="rh-ui">Salva</span>.</p>
+    <ul>
+      <li>Serve il diritto di modificare il modello: chi non lo ha usa gli strumenti ma non salva.</li>
+      <li>Se l'oggetto ha più modelli, il riquadro indica in quale si salva; un clic sul nome permette di cambiarlo.</li>
+      <li>Le luci e le camere che arrivano già dal file del modello (<em>preesistenti</em>) si possono regolare ma non salvare.</li>
+      <li>Illuminazione di base, occlusione ambientale e clay si salvano con <span class="rh-ui">Salva ambiente</span>:
+          se salvi con la vista clay accesa, il modello si riapre già in clay.</li>
+      <li>Salvando il modello come file <code>.glb</code> da un flow con la vista clay accesa, un messaggio chiede conferma:
+          il file conterrebbe il clay al posto dei materiali originali. Spegni prima la vista clay.</li>
+    </ul>
+  </section>
+
+  <!-- ─────────────────────────── Menu ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-menu" aria-labelledby="rh-sec-menu-t">
+    <h3 id="rh-sec-menu-t"><i class="bi bi-list" aria-hidden="true"></i>I menu del pannello</h3>
+    <ul>
+      <li>Menu <span class="rh-ui">☰</span> a destra: <span class="rh-ui">Statistiche prestazioni</span> (fotogrammi al secondo,
+          per capire se la scena è troppo pesante) e <span class="rh-ui">Avvisi modelli</span> (problemi trovati e
+          corretti al caricamento).</li>
+      <li>Altre voci compaiono se il flow dell'oggetto le aggiunge, per esempio <span class="rh-ui">Prima persona</span>
+          (cammini con <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o le frecce, <kbd>Esc</kbd> libera il cursore),
+          <span class="rh-ui">Entra in VR</span> con un visore, <span class="rh-ui">Musica</span>.</li>
+    </ul>
+    <p class="rh-where">Intestazione, footer e comandi comuni a tutti i pannelli sono spiegati nella guida del pannello.</p>
+  </section>
+
+  <!-- ─────────────────────────── Problemi comuni ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Non vedo il modello</strong>: prova <span class="rh-ui">Viste</span> → Front, oppure guarda
+          <span class="rh-ui">☰</span> → <span class="rh-ui">Avvisi modelli</span>.</li>
+      <li><strong>Mi sono perso nella scena</strong>: scegli una vista dal menu <span class="rh-ui">Viste</span>.</li>
+      <li><strong>Lo spessore delle linee non cambia</strong>: è un limite di molti browser e schede video, non un errore.</li>
+      <li><strong>La VR non parte</strong>: torna prima alla prospettiva con il pulsante Assonometria.</li>
+      <li><strong>Ho spostato o cancellato qualcosa per errore</strong>: ricarica l'oggetto; le modifiche fatte con la maniglia e la gomma
+          non toccano il file.</li>
+      <li><strong>Il modello è tutto grigio chiaro</strong>: è la vista clay (Ambiente → Clay), oppure il file non ha materiali e ha ricevuto il clay.</li>
+      <li><strong>La sezione di un vetro è velata</strong>: accendi <span class="rh-ui">Sezione opaca</span> nella finestra Sezioni.</li>
+      <li><strong>I riflessi del clay non si vedono</strong>: accendi <span class="rh-ui">Ambiente neutro (PBR)</span> o carica una mappa IBL.</li>
+      <li><strong>La misura su un panorama è sbagliata o assurda</strong>: senza mappa delle distanze il punto sta sulla sfera; con la mappa,
+          manca la calibrazione con una distanza nota.</li>
+    </ul>
+  </section>
+
+  <!-- ─────────────────────────── Guide rapide ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-TJS">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello 3D (spec)
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes" data-help="help-nodes-TJS">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi 3D nei flow
+      </button>
+    </div>
+  </section>
+</div>

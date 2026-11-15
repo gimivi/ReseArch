@@ -1,0 +1,223 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida dell'INTERFACCIA dell'App OSD: solo ciò che l'utente vede e usa nel pannello (barra, menu, mouse e tastiera,
+  riquadri). La spec del modello è in help-app-OSD.html, i nodi dei flow nella guida dei nodi.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Immagini, il pannello" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-…
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-image" aria-hidden="true"></i> Immagini ad alta risoluzione (OSD): usare il pannello</h2>
+  <p class="rh-lead">
+    Come si esplora un'immagine molto grande (gigapixel) e come si disegna sopra: linee, poligoni, cerchi, testi,
+    organizzati in layer e salvati come <em>disegno</em>. La spec del modello e i nodi dei flow hanno guide a parte:
+    le trovi in fondo, in <a href="#rh-sec-guides">Guide rapide</a>.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-move"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi</a></li>
+      <li><a href="#rh-sec-filters"><i class="bi bi-sliders" aria-hidden="true"></i>Filtri</a></li>
+      <li><a href="#rh-sec-drawings"><i class="bi bi-folder2-open" aria-hidden="true"></i>Disegni</a></li>
+      <li><a href="#rh-sec-draw"><i class="bi bi-pencil" aria-hidden="true"></i>Disegnare</a></li>
+      <li><a href="#rh-sec-edit"><i class="bi bi-arrows-move" aria-hidden="true"></i>Selezionare e modificare</a></li>
+      <li><a href="#rh-sec-layers"><i class="bi bi-layers" aria-hidden="true"></i>Layer e impostazioni</a></li>
+      <li><a href="#rh-sec-menu"><i class="bi bi-list" aria-hidden="true"></i>Menu</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-move" aria-labelledby="rh-sec-move-t">
+    <h3 id="rh-sec-move-t"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi nell'immagine</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi di navigazione</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Trascina</td><td>Sposta l'immagine</td></tr>
+          <tr><td>Rotella</td><td>Ingrandisce e rimpicciolisce nel punto indicato dal mouse</td></tr>
+          <tr><td>Touch: un dito · due dita</td><td>Sposta · ingrandisce</td></tr>
+          <tr><td>Con uno strumento di disegno attivo: <kbd>Spazio</kbd> + trascina</td><td>Sposta l'immagine senza lasciare lo strumento</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">L'immagine arriva a pezzi (tile): ingrandendo, per un attimo i dettagli possono apparire sfocati.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-filters" aria-labelledby="rh-sec-filters-t">
+    <h3 id="rh-sec-filters-t"><i class="bi bi-sliders" aria-hidden="true"></i>Filtri immagine</h3>
+    <p>Il pulsante <span class="rh-ui">Filtri immagine</span> apre un riquadro per leggere meglio l'immagine:
+       luminosità, contrasto, gamma, scala di grigi, colori invertiti, soglia, mappa di colori, nitidezza, bordi, sbalzo.
+       I preset (seppia, falso colore, posterizza, vignettatura…) danno effetti pronti; <span class="rh-ui">Reimposta</span> torna all'originale.</p>
+    <p class="rh-where">I filtri cambiano solo la visione nel pannello, non il file. La <span class="rh-ui">Modalità avanzata</span> permette di scrivere un proprio filtro (shader).</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-drawings" aria-labelledby="rh-sec-drawings-t">
+    <h3 id="rh-sec-drawings-t"><i class="bi bi-folder2-open" aria-hidden="true"></i>I disegni</h3>
+    <p>Un <strong>disegno</strong> è un insieme di segni e note sopra l'immagine. Ogni immagine può averne più d'uno.</p>
+    <ul>
+      <li><span class="rh-ui"><i class="bi bi-folder2-open" aria-hidden="true"></i> Apri disegno</span>: sceglie un disegno dell'immagine e lo mostra.</li>
+      <li><span class="rh-ui"><i class="bi bi-floppy" aria-hidden="true"></i> Salva disegno</span>: salva le modifiche. Serve il diritto di modificare l'oggetto.</li>
+    </ul>
+    <p class="rh-note">Gli strumenti di disegno compaiono dal livello <strong>utente</strong>: chi non può salvare disegna
+       solo in memoria e perde tutto ricaricando la pagina.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-draw" aria-labelledby="rh-sec-draw-t">
+    <h3 id="rh-sec-draw-t"><i class="bi bi-pencil" aria-hidden="true"></i>Disegnare</h3>
+    <p>Gli strumenti stanno in menu a tendina nella barra del pannello. Scelto uno strumento, il footer del pannello
+       scrive passo passo cosa fare (es. «Click=centro • Move=anteprima • Click=conferma»).</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Menu degli strumenti di disegno</caption>
+        <thead><tr><th scope="col">Menu</th><th scope="col">Strumenti</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rh-ui"><i class="bi bi-slash-lg" aria-hidden="true"></i> Linee</span></td><td>Punto, linea, polilinea, curva</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-pentagon" aria-hidden="true"></i> Poligoni</span></td><td>Rettangolo (anche da lato e altezza), poligono (anche da un lato), poligono stellato</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-circle" aria-hidden="true"></i> Cerchi, archi ed ellissi</span></td><td>Cerchio (centro, 2 o 3 punti), arco (centro o 3 punti), ellisse (anche dagli assi)</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-pin-map" aria-hidden="true"></i> Annotazioni</span></td><td>Testo, immagine, marker; <span class="rh-ui">Stili testo…</span> per i caratteri</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h4>Tasti comuni a tutti gli strumenti</h4>
+    <ul>
+      <li><kbd>Invio</kbd> conferma · <kbd>Backspace</kbd> annulla l'ultimo punto · <kbd>Esc</kbd> annulla.</li>
+      <li>Tasto destro: esce dallo strumento; senza strumento attivo ripete l'ultimo usato.</li>
+      <li><kbd>Alt</kbd>: disattiva per un momento lo snap (l'aggancio a punti e linee esistenti).</li>
+      <li>Nella polilinea <kbd>C</kbd> chiude la figura.</li>
+    </ul>
+    <p class="rh-where">Le voci con «(non disponibile)» sono previste ma non ancora attive.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-edit" aria-labelledby="rh-sec-edit-t">
+    <h3 id="rh-sec-edit-t"><i class="bi bi-arrows-move" aria-hidden="true"></i>Selezionare e modificare</h3>
+    <p>Il menu <span class="rh-ui"><i class="bi bi-arrows-move" aria-hidden="true"></i> Trasforma</span> raccoglie:</p>
+    <ul>
+      <li><strong>Seleziona</strong>: clic su un segno; <kbd>Shift</kbd> aggiunge, <kbd>Ctrl</kbd> toglie; trascinando si seleziona con un riquadro.</li>
+      <li><strong>Sposta</strong>, <strong>Copia</strong>, <strong>Ruota</strong> (<kbd>Shift</kbd> = scatti angolari),
+          <strong>Scala</strong> (<kbd>Shift</kbd> = uniforme): prima si selezionano i segni, poi si sceglie il comando.</li>
+      <li><strong>Proprietà</strong>: colore, spessore, layer dei segni selezionati. <strong>Elimina</strong>: li cancella.</li>
+    </ul>
+    <p><span class="rh-ui">Annulla</span> e <span class="rh-ui">Ripeti</span> nella barra tornano indietro e avanti nelle modifiche.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-layers" aria-labelledby="rh-sec-layers-t">
+    <h3 id="rh-sec-layers-t"><i class="bi bi-layers" aria-hidden="true"></i>Layer e impostazioni</h3>
+    <ul>
+      <li><span class="rh-ui">Layer</span>: i livelli del disegno, come in un programma CAD. Per ciascuno: acceso o spento, bloccato,
+          colori del tratto e del riempimento, tipo di linea (continua, tratteggiata, asse…), tipo di punto, spessore.
+          I nuovi segni vanno nel <strong>layer attivo</strong>; doppio clic sul nome per rinominarlo.</li>
+      <li><span class="rh-ui">Impostazioni</span>: griglia, snap e i suoi tipi, selezione; si possono ignorare i layer nascosti o bloccati.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-menu" aria-labelledby="rh-sec-menu-t">
+    <h3 id="rh-sec-menu-t"><i class="bi bi-list" aria-hidden="true"></i>I menu del pannello</h3>
+    <ul>
+      <li>Menu <span class="rh-ui">☰</span> a destra: <span class="rh-ui">Oggetti</span>, per scegliere un altro oggetto da aprire.</li>
+      <li>Il menu a sinistra e altre voci si riempiono con i comandi che il flow dell'oggetto aggiunge.</li>
+    </ul>
+    <p class="rh-where">Intestazione, footer e comandi comuni a tutti i pannelli sono spiegati nella guida del pannello.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Il pannello dice che serve un'immagine</strong>: il primo modello dell'oggetto non ha un file immagine.</li>
+      <li><strong>Non vedo gli strumenti di disegno</strong>: compaiono dal livello utente in su.</li>
+      <li><strong>Non riesco a salvare il disegno</strong>: serve il diritto di modificare l'oggetto, e un disegno aperto.</li>
+      <li><strong>Un segno non si seleziona</strong>: il suo layer può essere bloccato o spento.</li>
+      <li><strong>Lo strumento non fa nulla</strong>: guarda il footer, che dice il passo successivo; il layer attivo deve essere acceso.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-OSD">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes" data-help="help-nodes-OSD">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> Nodi nei flow
+      </button>
+    </div>
+  </section>
+</div>

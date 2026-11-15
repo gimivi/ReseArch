@@ -1,0 +1,33 @@
+# Librerie troppo pesanti per git: si copiano a mano sul server (elencate in lib/libraries.json)
+lib/opencv/
+
+# File compilati di Python (pacchetto ComfyUI in integrations/)
+__pycache__/
+*.pyc
+
+# Segreti dell'accesso con account esterni (modello: cfg/cfg_sso.example.php)
+cfg/cfg_sso.php
+
+# Broker MQTT dei dispositivi, con password (modello: cfg/cfg_iot.example.php)
+cfg/cfg_iot.php
+
+# Password Wi-Fi e broker degli sketch di esempio (modello: secrets.example.h)
+_doc/esempi/iot/**/secrets.h
+
+# Materiale di lavoro: resta nella cartella del progetto ma non va nel repository
+# (documentazione interna, strumenti di sviluppo, configurazione di Claude Code)
+/_doc/
+/_dev/
+/.claude/
+
+# Configurazione propria di ogni installazione, con password e chiavi
+# (modelli: cfg/*.example.php)
+cfg/cfg_MYSQL.php
+cfg/cfg_SMTP.php
+cfg/cfg_google.php
+cfg/grid_schema.php
+cfg/cfg_privacy.php
+cfg/cfg_accessibility.php
+
+# Contenuti propri di HySpace, non distribuiti
+app/HYS_sub_modules/HYS_Schermo.mp4

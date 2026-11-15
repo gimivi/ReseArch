@@ -1,0 +1,451 @@
+{
+  "last_node_id": 10,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "ReseArchImageInput",
+      "pos": [
+        40,
+        120
+      ],
+      "size": [
+        320,
+        360
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            2
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ReseArchImageInput"
+      },
+      "widgets_values": [
+        "image",
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "DA2LoadModel",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        320,
+        60
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "da2_model",
+          "type": "DA2_MODEL",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DA2LoadModel"
+      },
+      "widgets_values": [
+        "fp16"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "DA2PanoramaDepth",
+      "pos": [
+        420,
+        40
+      ],
+      "size": [
+        340,
+        230
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "da2_model",
+          "type": "DA2_MODEL",
+          "link": 1
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "links": [
+            3
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "depth_colored",
+          "type": "IMAGE",
+          "links": [
+            4
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "normal",
+          "type": "IMAGE",
+          "links": [
+            5
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "mask",
+          "type": "IMAGE",
+          "links": [
+            6
+          ],
+          "slot_index": 3
+        },
+        {
+          "name": "glb_path",
+          "type": "STRING",
+          "links": [
+            7
+          ],
+          "slot_index": 4
+        },
+        {
+          "name": "max_distance",
+          "type": "FLOAT",
+          "links": [],
+          "slot_index": 5
+        },
+        {
+          "name": "distance",
+          "type": "RA_DISTANCE",
+          "links": [
+            8
+          ],
+          "slot_index": 6
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DA2PanoramaDepth"
+      },
+      "widgets_values": [
+        "mesh",
+        2,
+        0.05,
+        "3d/DA2"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "ReseArchImageOutput",
+      "pos": [
+        820,
+        40
+      ],
+      "size": [
+        300,
+        270
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ReseArchImageOutput"
+      },
+      "widgets_values": [
+        "img_depth"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "ReseArchImageOutput",
+      "pos": [
+        820,
+        340
+      ],
+      "size": [
+        300,
+        270
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ReseArchImageOutput"
+      },
+      "widgets_values": [
+        "img_depth_color"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "ReseArchImageOutput",
+      "pos": [
+        820,
+        640
+      ],
+      "size": [
+        300,
+        270
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ReseArchImageOutput"
+      },
+      "widgets_values": [
+        "img_normal"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "ReseArchImageOutput",
+      "pos": [
+        820,
+        940
+      ],
+      "size": [
+        300,
+        270
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ReseArchImageOutput"
+      },
+      "widgets_values": [
+        "img_mask"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "ReseArchModelOutput",
+      "pos": [
+        1160,
+        40
+      ],
+      "size": [
+        300,
+        130
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mesh",
+          "type": "MESH",
+          "link": null
+        },
+        {
+          "name": "model_3d",
+          "type": "FILE_3D,FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_OBJ,FILE_3D_PLY,FILE_3D_STL,FILE_3D_FBX,FILE_3D_USDZ",
+          "link": null
+        },
+        {
+          "name": "model_file",
+          "type": "STRING",
+          "link": 7
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ReseArchModelOutput"
+      },
+      "widgets_values": [
+        "mesh",
+        "output"
+      ]
+    },
+    {
+      "id": 9,
+      "type": "ReseArchPublish",
+      "pos": [
+        1160,
+        220
+      ],
+      "size": [
+        300,
+        90
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ReseArchPublish"
+      },
+      "widgets_values": [
+        "RA_Pano_DA2"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "ReseArchDepthOutput",
+      "pos": [
+        1160,
+        210
+      ],
+      "size": [
+        300,
+        110
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "depth",
+          "type": "MOGE_GEOMETRY,RA_DISTANCE",
+          "link": 8
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ReseArchDepthOutput"
+      },
+      "widgets_values": [
+        "depth_exr",
+        "auto"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "DA2_MODEL"
+    ],
+    [
+      2,
+      1,
+      0,
+      3,
+      1,
+      "IMAGE"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      3,
+      1,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      3,
+      2,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      3,
+      3,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      3,
+      4,
+      8,
+      2,
+      "STRING"
+    ],
+    [
+      8,
+      3,
+      6,
+      10,
+      0,
+      "RA_DISTANCE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  },
+  "version": 0.4
+}

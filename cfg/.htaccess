@@ -1,0 +1,11 @@
+# Cartella di configurazione (credenziali DB/SMTP): mai servita via HTTP.
+# I file vengono solo inclusi da PHP lato server (require __DIR__ ...).
+<IfModule mod_authz_core.c>
+    # Apache 2.4+
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    # Apache 2.2
+    Order deny,allow
+    Deny from all
+</IfModule>

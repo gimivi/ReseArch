@@ -1,0 +1,515 @@
+<meta charset="utf-8">
+<!--
+  Guida: collegare ComfyUI alla piattaforma (installazione, avvio, nodi nei due grafi, pagina HTM).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: ComfyUI" }
+  Fonti: integrations/comfyui/research_bridge/README.md, _doc/integrazione-comfyui.md §9,
+  app/FLE_sub_modules/FLE-comfyui-nodes.mjs e FLE-service-nodes.mjs, _doc/esempi/htm-comfyui.html e i suoi flow.
+  Nessuno script. Gli schemi sono SVG nella pagina (colori dalle variabili del tema: leggibili anche col tema scuro).
+  Agganci: #rh-help, #rh-sec-how, #rh-sec-need, #rh-sec-install, #rh-sec-start, #rh-sec-check, #rh-sec-comfy,
+  #rh-sec-fle, #rh-sec-htm, #rh-sec-examples, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+
+  /* Schemi SVG: colori dal tema, larghezza del pannello, testo alternativo nel <title> */
+  .rh-help figure.rh-fig { margin: 0.5rem 0 0.75rem 0; }
+  .rh-help figure.rh-fig svg { display: block; width: 100%; height: auto; max-width: 46rem; }
+  .rh-help figure.rh-fig figcaption { color: var(--rh-muted); font-size: 0.82rem; margin-top: 0.25rem; }
+  .rh-help .rh-svg-box   { fill: var(--rh-soft); stroke: var(--rh-border); stroke-width: 1.5; }
+  .rh-help .rh-svg-key   { fill: var(--bs-body-bg, #fff); stroke: var(--rh-accent); stroke-width: 1.5; }
+  .rh-help .rh-svg-run   { fill: var(--rh-soft); stroke: var(--rh-accent); stroke-width: 2; }
+  .rh-help .rh-svg-line  { stroke: var(--rh-muted); stroke-width: 1.5; fill: none; }
+  .rh-help .rh-svg-dash  { stroke: var(--rh-muted); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .rh-help .rh-svg-head  { fill: var(--rh-muted); }
+  .rh-help .rh-svg-t     { fill: var(--bs-body-color, #1a1a1a); font-size: 13px; font-family: inherit; }
+  .rh-help .rh-svg-tb    { fill: var(--bs-body-color, #1a1a1a); font-size: 13px; font-weight: 600; font-family: inherit; }
+  .rh-help .rh-svg-s     { fill: var(--rh-muted); font-size: 11px; font-family: inherit; }
+  .rh-help .rh-svg-a     { fill: var(--rh-accent); font-size: 11px; font-weight: 600; font-family: inherit; }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-stars" aria-hidden="true"></i> Collegare ComfyUI alla piattaforma</h2>
+  <p class="rh-lead">
+    ComfyUI esegue modelli di intelligenza artificiale per immagini, testo e modelli 3D. Con il pacchetto <strong>ReseArch Bridge</strong>
+    un flow della piattaforma manda a ComfyUI un testo o un'immagine, lo fa lavorare e riceve il risultato: da mostrare in una pagina
+    HTM o da caricare in un pannello 3D.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-how"><i class="bi bi-diagram-2" aria-hidden="true"></i>Come funziona</a></li>
+      <li><a href="#rh-sec-need"><i class="bi bi-pc-display" aria-hidden="true"></i>Cosa serve</a></li>
+      <li><a href="#rh-sec-install"><i class="bi bi-box-seam" aria-hidden="true"></i>Installare il pacchetto</a></li>
+      <li><a href="#rh-sec-start"><i class="bi bi-play-circle" aria-hidden="true"></i>Avviare ComfyUI</a></li>
+      <li><a href="#rh-sec-check"><i class="bi bi-check2-circle" aria-hidden="true"></i>Verificare</a></li>
+      <li><a href="#rh-sec-comfy"><i class="bi bi-bezier2" aria-hidden="true"></i>Nodi in ComfyUI</a></li>
+      <li><a href="#rh-sec-fle"><i class="bi bi-diagram-3" aria-hidden="true"></i>Nodi in ReseArch</a></li>
+      <li><a href="#rh-sec-htm"><i class="bi bi-window-sidebar" aria-hidden="true"></i>La pagina HTM</a></li>
+      <li><a href="#rh-sec-examples"><i class="bi bi-clipboard-check" aria-hidden="true"></i>Esempi pronti</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <!-- 1 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-how" aria-labelledby="rh-sec-how-t">
+    <h3 id="rh-sec-how-t"><i class="bi bi-diagram-2" aria-hidden="true"></i>Come funziona</h3>
+    <figure class="rh-fig">
+      <svg viewBox="0 0 720 250" role="img" aria-labelledby="rh-fig1-t">
+        <title id="rh-fig1-t">Il flow del pannello, nel browser, parla direttamente con il server ComfyUI sul tuo computer. La finestra di ComfyUI serve solo a costruire e pubblicare i workflow. Ingressi e uscite si riconoscono per la key.</title>
+        <defs>
+          <marker id="rh-ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path class="rh-svg-head" d="M0 0 L10 5 L0 10 z"/>
+          </marker>
+        </defs>
+        <!-- piattaforma -->
+        <rect class="rh-svg-box" x="10" y="20" width="250" height="140" rx="10"/>
+        <text class="rh-svg-tb" x="26" y="46">Piattaforma (browser)</text>
+        <text class="rh-svg-t"  x="26" y="72">Pannello HTM / TJS</text>
+        <text class="rh-svg-s"  x="26" y="92">flow con Context Service</text>
+        <text class="rh-svg-s"  x="26" y="108">e ComfyUI Run / Receive</text>
+        <rect class="rh-svg-key" x="26" y="122" width="150" height="24" rx="12"/>
+        <text class="rh-svg-a"  x="40" y="138">porte = key</text>
+        <!-- server -->
+        <rect class="rh-svg-box" x="460" y="20" width="250" height="140" rx="10"/>
+        <text class="rh-svg-tb" x="476" y="46">Server ComfyUI</text>
+        <text class="rh-svg-t"  x="476" y="72">127.0.0.1:8188</text>
+        <text class="rh-svg-s"  x="476" y="92">+ pacchetto ReseArch Bridge</text>
+        <text class="rh-svg-s"  x="476" y="108">workflow pubblicati, coda, GPU</text>
+        <rect class="rh-svg-key" x="476" y="122" width="190" height="24" rx="12"/>
+        <text class="rh-svg-a"  x="490" y="138">nodi Input / Output = key</text>
+        <!-- frecce -->
+        <line class="rh-svg-line" x1="266" y1="70"  x2="452" y2="70"  marker-end="url(#rh-ah1)"/>
+        <text class="rh-svg-s" x="290" y="62">testo, numeri, immagini</text>
+        <line class="rh-svg-line" x1="452" y1="110" x2="266" y2="110" marker-end="url(#rh-ah1)"/>
+        <text class="rh-svg-s" x="290" y="128">risultati (testo, immagine, URL 3D)</text>
+        <!-- finestra ComfyUI -->
+        <rect class="rh-svg-box" x="460" y="190" width="250" height="50" rx="10"/>
+        <text class="rh-svg-t" x="476" y="212">Finestra di ComfyUI</text>
+        <text class="rh-svg-s" x="476" y="229">costruire e pubblicare (Queue)</text>
+        <line class="rh-svg-dash" x1="585" y1="186" x2="585" y2="166" marker-end="url(#rh-ah1)"/>
+      </svg>
+      <figcaption>Il dialogo passa dal server di ComfyUI: la sua finestra nel browser può anche restare chiusa.</figcaption>
+    </figure>
+    <ul>
+      <li>Il flow del pannello parla <strong>direttamente</strong> con il server di ComfyUI (modalità <code>direct</code>): il server deve
+          accettare le richieste che arrivano dalla piattaforma (sezione <a href="#rh-sec-start">Avviare ComfyUI</a>).</li>
+      <li>In ComfyUI costruisci un <strong>workflow</strong> come sempre e aggiungi i nodi <em>ReseArch Input</em> e <em>ReseArch Output</em>.
+          Il nodo <em>ReseArch Publish</em> lo rende disponibile alla piattaforma.</li>
+      <li>Ogni nodo Input e Output ha una <strong>key</strong>, un nome breve (es. <code>prompt</code>, <code>image</code>). In ReseArch il nodo
+          <code>ComfyUI Run</code> mostra una porta per ogni key: così i due grafi si collegano senza conoscersi.</li>
+    </ul>
+  </section>
+
+  <!-- 2 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-need" aria-labelledby="rh-sec-need-t">
+    <h3 id="rh-sec-need-t"><i class="bi bi-pc-display" aria-hidden="true"></i>Cosa serve</h3>
+    <ul>
+      <li><strong>ComfyUI</strong>, consigliata la versione <em>portable</em> per Windows. Una scheda video NVIDIA rende la generazione molto più veloce;
+          il demo di prova funziona anche senza.</li>
+      <li>ComfyUI <strong>sullo stesso computer</strong> da cui apri la piattaforma: il flow lo raggiunge all'indirizzo <code>http://127.0.0.1:8188</code>.</li>
+      <li>Il pacchetto <strong>ReseArch Bridge</strong> (cartella <code>integrations/comfyui/research_bridge</code> del progetto): chiedilo all'amministratore.</li>
+    </ul>
+    <p class="rh-note">Un ComfyUI su un'altra macchina della rete per ora non si può usare: serve la modalità <code>proxy</code>, ancora da realizzare.</p>
+  </section>
+
+  <!-- 3 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-install" aria-labelledby="rh-sec-install-t">
+    <h3 id="rh-sec-install-t"><i class="bi bi-box-seam" aria-hidden="true"></i>Installare il pacchetto</h3>
+    <p><a href="integrations/comfyui/research_bridge.zip" download><i class="bi bi-download" aria-hidden="true"></i> Scarica il pacchetto
+       <code>research_bridge.zip</code></a> e decomprimilo: contiene la cartella <code>research_bridge</code>.</p>
+    <ol>
+      <li>Copia la cartella <code>research_bridge</code> in <code>ComfyUI_windows_portable\ComfyUI\custom_nodes\</code>.</li>
+      <li>Riavvia ComfyUI. Nella console compare il caricamento di <code>custom_nodes\research_bridge</code> senza errori, e nel menu dei nodi
+          c'è la categoria <strong>ReseArch</strong>.</li>
+    </ol>
+    <p>Non c'è nulla da installare in più: il pacchetto usa solo librerie già presenti in ComfyUI.</p>
+    <h4>Aggiornare il pacchetto</h4>
+    <p>Copia i file nuovi <strong>sopra</strong> quelli esistenti e riavvia ComfyUI. Non cancellare la cartella <code>research_bridge\published\</code>:
+       contiene i workflow pubblicati.</p>
+  </section>
+
+  <!-- 4 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-start" aria-labelledby="rh-sec-start-t">
+    <h3 id="rh-sec-start-t"><i class="bi bi-play-circle" aria-hidden="true"></i>Avviare ComfyUI per la piattaforma</h3>
+    <p>Di suo ComfyUI rifiuta le richieste che arrivano da un altro sito. Bisogna dirgli di accettare quelle della piattaforma:</p>
+    <ol>
+      <li>Nella cartella di ComfyUI duplica il file di avvio (<code>run_nvidia_gpu.bat</code>, oppure <code>run_cpu.bat</code>) e chiamalo
+          per esempio <code>run_research.bat</code>.</li>
+      <li>Aprilo con il Blocco note e aggiungi in fondo alla riga di avvio <code>--enable-cors-header</code> seguito dall'indirizzo della piattaforma:</li>
+    </ol>
+    <pre class="rh-json">.\python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --enable-cors-header https://www.dominio.it</pre>
+    <ol start="3">
+      <li>Da ora avvia ComfyUI con un doppio clic su <code>run_research.bat</code>.</li>
+    </ol>
+    <ul>
+      <li>L'indirizzo è quello che vedi nella barra del browser quando sei nella piattaforma: <code>https://</code> e nome del sito, senza barra finale.</li>
+      <li><code>--enable-cors-header</code> accetta <strong>un solo</strong> indirizzo. Con <code>*</code> accetta qualunque sito: evitalo se il computer è raggiungibile da altri in rete.</li>
+      <li>Basta il <strong>server</strong> (la finestra nera della console). La pagina di ComfyUI nel browser serve solo per costruire e pubblicare i workflow.</li>
+    </ul>
+  </section>
+
+  <!-- 5 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-check" aria-labelledby="rh-sec-check-t">
+    <h3 id="rh-sec-check-t"><i class="bi bi-check2-circle" aria-hidden="true"></i>Verificare che funzioni</h3>
+    <ol>
+      <li>Con ComfyUI avviato apri nel browser <a href="http://127.0.0.1:8188/research/workflows" target="_blank" rel="noopener"><code>http://127.0.0.1:8188/research/workflows</code></a>:
+          deve comparire un elenco con <code>ReseArch-Demo</code>.</li>
+      <li>Il demo è <strong>già pubblicato</strong>: il testo e l'immagine che riceve tornano indietro uguali. Non usa modelli né GPU e serve a provare il collegamento.</li>
+      <li>In un flow della piattaforma metti <code>ReseArch/Context/Service</code> e <code>AI/ComfyUI/Run</code> con <code>workflow</code> = <code>ReseArch-Demo</code>
+          (sezione <a href="#rh-sec-fle">Nodi in ReseArch</a>): il menu dei workflow si riempie se il collegamento funziona.</li>
+    </ol>
+    <h4>Il LED della pagina</h4>
+    <p>Nella pagina d'esempio controlla il collegamento osservando il <strong>LED</strong> in alto, accanto al nome e all'indirizzo del server:
+       <strong>verde</strong> = ComfyUI risponde, <strong>rosso</strong> = non risponde, grigio = controllo in corso.
+       Il LED si aggiorna all'apertura della pagina, dopo ogni esecuzione e quando apri la voce <strong>Server</strong> del menu di sinistra,
+       che mostra anche le informazioni complete: versione, scheda video, memoria video libera.</p>
+    <p class="rh-where">Se il browser chiede il permesso di accedere ai dispositivi della rete locale, consentilo: è la richiesta della piattaforma verso ComfyUI sul tuo computer.</p>
+  </section>
+
+  <!-- 6 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-comfy" aria-labelledby="rh-sec-comfy-t">
+    <h3 id="rh-sec-comfy-t"><i class="bi bi-bezier2" aria-hidden="true"></i>Il grafo in ComfyUI: nodi di ingresso e di uscita</h3>
+    <p>Nel menu dei nodi di ComfyUI, categoria <strong>ReseArch</strong>:</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi del pacchetto ReseArch Bridge</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th><th scope="col">Collegalo a</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ReseArch Text Input</strong></td><td>Testo inviato dalla piattaforma (uscita STRING)</td><td><code>text</code> di <em>CLIP Text Encode</em>, o ogni ingresso di testo</td></tr>
+          <tr><td><strong>ReseArch Number Input</strong></td><td>Numero inviato dalla piattaforma (uscite FLOAT e INT)</td><td><code>seed</code>, <code>steps</code>, <code>cfg</code> del <em>KSampler</em>…</td></tr>
+          <tr><td><strong>ReseArch Image Input</strong></td><td>Immagine inviata dalla piattaforma (uscite IMAGE e MASK)</td><td>ogni ingresso IMAGE</td></tr>
+          <tr><td><strong>ReseArch Text Output</strong></td><td>Rimanda un testo</td><td>uscita di testo di un nodo (descrizioni, risposte)</td></tr>
+          <tr><td><strong>ReseArch Number Output</strong></td><td>Rimanda un numero</td><td>uscita numerica</td></tr>
+          <tr><td><strong>ReseArch Image Output</strong></td><td>Rimanda un'immagine, salvata in <code>output/research/</code></td><td>uscita di <em>VAE Decode</em> o ogni IMAGE</td></tr>
+          <tr><td><strong>ReseArch Model Output</strong></td><td>Rimanda un modello 3D: nella piattaforma diventa l'indirizzo del file</td><td><strong>uno solo</strong> fra <code>mesh</code> (MESH, es. Hunyuan3D), <code>model_3d</code> (file 3D dei nodi recenti), <code>model_file</code> (percorso già salvato, es. <code>glb_path</code> di MoGe)</td></tr>
+          <tr><td><strong>ReseArch Depth Output</strong></td><td>Rimanda la <strong>mappa delle distanze</strong> di una panoramica come file EXR a 32 bit:
+              nella piattaforma diventa l'indirizzo del file, per misurare sul panorama in TJS</td>
+              <td><code>depth</code> ← <code>moge_geometry</code> di MoGe oppure l'uscita <code>distance</code> del nodo DA2.
+              Non usare l'immagine di profondità dei workflow (<code>img_depth</code>): è normalizzata per essere guardata, non misura</td></tr>
+          <tr><td><strong>ReseArch Publish</strong></td><td>Con <code>name</code>: alla prima <strong>Queue</strong> pubblica il workflow per la piattaforma</td><td>nessun collegamento</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><strong>key</strong>: ogni Input e Output ne ha una. Diventa il nome della porta in ReseArch: scegli nomi brevi e senza spazi (<code>prompt</code>, <code>seed</code>, <code>image</code>, <code>mesh</code>).</li>
+      <li><strong>Valore di prova</strong>: gli Input hanno un valore (o un'immagine dal menu) usato quando lanci il workflow da ComfyUI. Così lo provi da solo,
+          prima di collegarlo. Dalla piattaforma, un ingresso non collegato usa questo valore.</li>
+      <li><strong>Model Output</strong>: lascia <code>folder</code> = <code>output</code>. Con <code>temp</code> ComfyUI può cancellare il file prima che la piattaforma lo scarichi.</li>
+    </ul>
+    <h4>Esempio: da testo a immagine</h4>
+    <ol>
+      <li>Apri il workflow predefinito di ComfyUI (testo → immagine).</li>
+      <li>Aggiungi <strong>ReseArch Text Input</strong> (<code>key</code> = <code>prompt</code>) e collega la sua uscita a <code>text</code> del <em>CLIP Text Encode</em> positivo.</li>
+      <li>Facoltativo: <strong>ReseArch Number Input</strong> (<code>key</code> = <code>seed</code>), uscita <code>int</code> → <code>seed</code> del <em>KSampler</em>.</li>
+      <li>Aggiungi <strong>ReseArch Image Output</strong> (<code>key</code> = <code>image</code>) collegato all'uscita di <em>VAE Decode</em>.</li>
+      <li>Aggiungi <strong>ReseArch Publish</strong> (<code>name</code> = <code>testo-immagine</code>) e premi <strong>Queue</strong> una volta: il nodo scrive "Pubblicato".</li>
+    </ol>
+    <p class="rh-note">La piattaforma esegue la copia pubblicata com'era all'<strong>ultima Queue</strong>. Dopo ogni modifica del workflow premi di nuovo Queue.
+       Salva anche il workflow con <em>Save</em> di ComfyUI, per poterlo riaprire e modificare.</p>
+    <p class="rh-where">Partendo dal demo: <em>Save As</em> con un altro nome <strong>e</strong> un <code>name</code> diverso nel nodo Publish, altrimenti sovrascrivi la copia pubblicata del demo.</p>
+  </section>
+
+  <!-- 7 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-fle" aria-labelledby="rh-sec-fle-t">
+    <h3 id="rh-sec-fle-t"><i class="bi bi-diagram-3" aria-hidden="true"></i>Il grafo in ReseArch: i nodi del flow</h3>
+    <p>Nel flow dell'oggetto (embedded) o della configurazione della dashboard:</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi del flow per ComfyUI</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Impostazioni</th><th scope="col">A cosa serve</th></tr></thead>
+        <tbody>
+          <tr><td><code>ReseArch/Context/Service</code></td><td><code>type</code> = comfyui · <code>name</code> = comfy · <code>mode</code> = direct · <code>url</code> = <code>http://127.0.0.1:8188</code></td>
+              <td>La connessione. Uno per flow; gli altri nodi lo trovano per nome (<code>service</code>).</td></tr>
+          <tr><td><code>AI/ComfyUI/Run</code></td><td><code>service</code> = comfy · <code>workflow</code> dal menu</td>
+              <td>Esegue un workflow pubblicato. Ingresso <code>trigger</code> più <strong>una porta per ogni Input</strong>; uscita <code>done</code> più <strong>una porta per ogni Output</strong>.</td></tr>
+          <tr><td><code>AI/ComfyUI/Receive</code></td><td><code>service</code> · <code>key</code> · <code>kind</code> (text, number, image, model, depth)</td>
+              <td>Riceve i risultati di un Output con quella key anche se il workflow parte da ComfyUI (pulsante Queue).</td></tr>
+          <tr><td><code>AI/ComfyUI/Progress</code></td><td><code>service</code> · <code>workflow</code> (vuoto = tutti)</td>
+              <td>Stato dei Run del flow, uguale per ogni workflow: <code>change</code> (evento), <code>status</code>, <code>phase</code>, <code>percent</code>, <code>wait_s</code>, <code>exec_s</code>.</td></tr>
+          <tr><td><code>AI/ComfyUI/Queue</code></td><td><code>service</code></td><td>Lavori in esecuzione e in attesa; uscita facoltativa <code>change</code> a ogni cambio della coda.</td></tr>
+          <tr><td><code>AI/ComfyUI/Jobs</code></td><td><code>service</code> · <code>limit</code> · <code>status</code></td><td>Lavori recenti e durata media.</td></tr>
+          <tr><td><code>AI/ComfyUI/System</code></td><td><code>service</code></td><td>Versione del server, GPU, memoria video libera.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h4>Le porte di Run</h4>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Tipi delle porte del nodo ComfyUI Run</caption>
+        <thead><tr><th scope="col">In ComfyUI</th><th scope="col">Porta di Run</th><th scope="col">Tipo</th></tr></thead>
+        <tbody>
+          <tr><td>Text Input / Text Output</td><td>ingresso / uscita con il nome della key</td><td><code>string</code></td></tr>
+          <tr><td>Number Input / Number Output</td><td>ingresso / uscita</td><td><code>number</code></td></tr>
+          <tr><td>Image Input / Image Output</td><td>ingresso / uscita</td><td><code>image</code></td></tr>
+          <tr><td>Model Output</td><td>uscita: <strong>indirizzo (URL) del file 3D</strong></td><td><code>string</code></td></tr>
+          <tr><td>Depth Output</td><td>uscita: <strong>indirizzo (URL) del file EXR</strong>, da dare a <code>TJS/Panorama/Set Depth</code></td><td><code>string</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li>Le uscite sono già scritte quando parte <code>done</code>: collega a <code>done</code> i nodi che le usano.</li>
+      <li><strong>Stato e tempi</strong> non sono su Run ma su <code>AI/ComfyUI/Progress</code>, uguale per ogni workflow: <code>change</code> (evento, al più uno al secondo,
+          subito a ogni cambio di fase), <code>status</code> (testo: in coda, avanzamento, completato, errore), <code>phase</code> (preparing, queued, running, completed, error),
+          <code>percent</code> (passi del nodo in esecuzione), <code>wait_s</code> e <code>exec_s</code> (secondi in coda e di esecuzione).
+          Con <code>workflow</code> vuoto segue tutti i Run del flow sullo stesso servizio.</li>
+      <li><strong>Errori</strong>: la porta d'errore è nascosta; clic destro → <span class="rh-ui">Show error</span>. Collegala a <code>Flow/Error Info</code> per avere il messaggio.</li>
+      <li>Se cambi le key del workflow in ComfyUI: clic destro su Run → <span class="rh-ui">⟳ Update ports from workflow</span>. Le porte tolte perdono i fili:
+          un avviso elenca quelle da ricollegare.</li>
+      <li>Un nuovo <code>trigger</code> mentre Run lavora annulla l'esecuzione precedente.</li>
+      <li><strong>Scegliere il workflow dalla pagina</strong>: ingresso facoltativo <code>workflow</code> (clic destro → <span class="rh-ui">Inputs</span>).
+          Con un nome esegue quel workflow al posto di quello del widget, che resta il riferimento per le porte. I due workflow devono avere
+          <strong>le stesse key con lo stesso tipo</strong> (l'ordine non conta), altrimenti Run non esegue e manda l'errore con le differenze.
+          Clic destro → <span class="rh-ui">Check workflows compatibility</span> elenca i workflow pubblicati che si possono usare.
+          Nella pagina: <code>&lt;select id="cf-workflow"&gt;</code> con il nome pubblicato come <code>value</code> di ogni <code>&lt;option&gt;</code>;
+          nel flow: <code>DOM Get Value</code> (el ← Query <code>#cf-workflow</code>), <code>done</code> → trigger di Run, <code>value</code> → <code>workflow</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 8 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-htm" aria-labelledby="rh-sec-htm-t">
+    <h3 id="rh-sec-htm-t"><i class="bi bi-window-sidebar" aria-hidden="true"></i>La pagina HTM: dare l'input e mostrare l'output</h3>
+    <p>Una pagina HTM in modalità flow (<code>{ "mode": "flow" }</code>) fa da interfaccia: i campi della pagina danno gli ingressi a Run,
+       i suoi riquadri mostrano le uscite. Ogni elemento ha un <code>id</code> e si raggiunge con <code>HTM/DOM/Query</code> (selettore <code>#id</code>),
+       la cui uscita <code>el</code> va all'ingresso <code>el</code> degli altri nodi DOM.</p>
+
+    <figure class="rh-fig">
+      <svg viewBox="0 0 720 300" role="img" aria-labelledby="rh-fig2-t">
+        <title id="rh-fig2-t">Testo: textarea, DOM Get Value, ingresso prompt di Run; uscita text, DOM Set Text, riquadro di testo. Immagine: campo file, DOM Get Image, ingresso image di Run; uscita image, DOM Set Image, elemento img. Modello 3D: uscita mesh di Run, App Bus Emitter, pannello TJS con App Bus Receiver e TJS Model Load URL.</title>
+        <defs>
+          <marker id="rh-ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path class="rh-svg-head" d="M0 0 L10 5 L0 10 z"/>
+          </marker>
+        </defs>
+        <!-- intestazioni -->
+        <text class="rh-svg-s" x="10"  y="16">pagina HTM</text>
+        <text class="rh-svg-s" x="140" y="16">nodo DOM</text>
+        <text class="rh-svg-s" x="320" y="16">ComfyUI Run</text>
+        <text class="rh-svg-s" x="440" y="16">nodo</text>
+        <text class="rh-svg-s" x="590" y="16">dove si vede</text>
+        <!-- Run -->
+        <rect class="rh-svg-run" x="300" y="28" width="120" height="262" rx="10"/>
+        <text class="rh-svg-tb" x="318" y="160">Run</text>
+        <text class="rh-svg-s"  x="318" y="178">workflow</text>
+        <!-- riga testo -->
+        <rect class="rh-svg-box" x="10"  y="40" width="110" height="40" rx="6"/><text class="rh-svg-t" x="20"  y="65">&lt;textarea&gt;</text>
+        <rect class="rh-svg-box" x="140" y="40" width="130" height="40" rx="6"/><text class="rh-svg-t" x="150" y="65">Get Value</text>
+        <line class="rh-svg-line" x1="120" y1="60" x2="136" y2="60" marker-end="url(#rh-ah2)"/>
+        <line class="rh-svg-line" x1="270" y1="60" x2="296" y2="60" marker-end="url(#rh-ah2)"/>
+        <text class="rh-svg-a" x="306" y="56">prompt</text>
+        <text class="rh-svg-a" x="380" y="56">text</text>
+        <rect class="rh-svg-box" x="440" y="40" width="130" height="40" rx="6"/><text class="rh-svg-t" x="450" y="65">Set Text</text>
+        <rect class="rh-svg-box" x="590" y="40" width="120" height="40" rx="6"/><text class="rh-svg-t" x="600" y="65">&lt;div&gt; testo</text>
+        <line class="rh-svg-line" x1="420" y1="60" x2="436" y2="60" marker-end="url(#rh-ah2)"/>
+        <line class="rh-svg-line" x1="570" y1="60" x2="586" y2="60" marker-end="url(#rh-ah2)"/>
+        <!-- riga immagine -->
+        <rect class="rh-svg-box" x="10"  y="120" width="110" height="40" rx="6"/><text class="rh-svg-t" x="20"  y="145">&lt;input file&gt;</text>
+        <rect class="rh-svg-box" x="140" y="120" width="130" height="40" rx="6"/><text class="rh-svg-t" x="150" y="145">Get Image</text>
+        <line class="rh-svg-line" x1="120" y1="140" x2="136" y2="140" marker-end="url(#rh-ah2)"/>
+        <line class="rh-svg-line" x1="270" y1="140" x2="296" y2="140" marker-end="url(#rh-ah2)"/>
+        <text class="rh-svg-a" x="306" y="136">image</text>
+        <text class="rh-svg-a" x="374" y="136">image</text>
+        <rect class="rh-svg-box" x="440" y="120" width="130" height="40" rx="6"/><text class="rh-svg-t" x="450" y="145">Set Image</text>
+        <rect class="rh-svg-box" x="590" y="120" width="120" height="40" rx="6"/><text class="rh-svg-t" x="600" y="145">&lt;img&gt;</text>
+        <line class="rh-svg-line" x1="420" y1="140" x2="436" y2="140" marker-end="url(#rh-ah2)"/>
+        <line class="rh-svg-line" x1="570" y1="140" x2="586" y2="140" marker-end="url(#rh-ah2)"/>
+        <!-- riga modello 3D -->
+        <text class="rh-svg-a" x="378" y="216">mesh</text>
+        <rect class="rh-svg-box" x="440" y="200" width="130" height="40" rx="6"/><text class="rh-svg-t" x="450" y="218">App Bus</text><text class="rh-svg-s" x="450" y="233">Emitter</text>
+        <rect class="rh-svg-box" x="590" y="190" width="120" height="70" rx="6"/>
+        <text class="rh-svg-t" x="600" y="210">pannello TJS</text>
+        <text class="rh-svg-s" x="600" y="228">Receiver →</text>
+        <text class="rh-svg-s" x="600" y="244">Model/Load URL</text>
+        <line class="rh-svg-line" x1="420" y1="220" x2="436" y2="220" marker-end="url(#rh-ah2)"/>
+        <line class="rh-svg-dash" x1="570" y1="220" x2="586" y2="220" marker-end="url(#rh-ah2)"/>
+        <!-- avvio -->
+        <rect class="rh-svg-box" x="10"  y="250" width="110" height="40" rx="6"/><text class="rh-svg-t" x="20"  y="275">&lt;button&gt;</text>
+        <rect class="rh-svg-box" x="140" y="250" width="130" height="40" rx="6"/><text class="rh-svg-t" x="150" y="275">On Event</text>
+        <line class="rh-svg-line" x1="120" y1="270" x2="136" y2="270" marker-end="url(#rh-ah2)"/>
+        <line class="rh-svg-line" x1="270" y1="270" x2="296" y2="270" marker-end="url(#rh-ah2)"/>
+        <text class="rh-svg-a" x="306" y="266">trigger</text>
+      </svg>
+      <figcaption>Da sinistra a destra: elemento della pagina → nodo DOM → porta di Run (la key) → nodo → dove si vede il risultato.</figcaption>
+    </figure>
+
+    <h4>Lo scheletro della pagina</h4>
+    <pre class="rh-json">&lt;form id="cf-form"&gt;
+  &lt;label for="cf-prompt" class="form-label"&gt;Descrizione&lt;/label&gt;
+  &lt;textarea id="cf-prompt" class="form-control" rows="3"&gt;&lt;/textarea&gt;
+  &lt;label for="cf-file" class="form-label"&gt;Immagine di partenza&lt;/label&gt;
+  &lt;input id="cf-file" type="file" accept="image/*" class="form-control"&gt;
+  &lt;img id="cf-input-preview" alt="Immagine inviata"&gt;
+  &lt;button type="submit" class="btn btn-primary"&gt;Genera&lt;/button&gt;
+&lt;/form&gt;
+&lt;div id="cf-text"&gt;&lt;/div&gt;
+&lt;img id="cf-image" alt="Immagine generata"&gt;</pre>
+
+    <h4>I collegamenti nel flow dell'oggetto HTM</h4>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Collegamenti fra elementi della pagina, nodi DOM e ComfyUI Run</caption>
+        <thead><tr><th scope="col">Cosa</th><th scope="col">Catena di nodi</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Avvio</th>
+              <td>Query <code>#cf-form</code> → <code>DOM On Event</code> (<code>submit</code>) → <code>DOM Get Value</code> (el ← Query <code>#cf-prompt</code>).
+                  Get Value: <code>done</code> → Run <code>trigger</code>, <code>value</code> → Run <code>prompt</code>.
+                  Per avviare anche con <kbd>Ctrl</kbd>+<kbd>Invio</kbd>: un secondo On Event (<code>keydown</code>) sul campo, unito al primo con <code>Flow/Events/Sequence</code>.</td></tr>
+          <tr><th scope="row">Testo in uscita</th>
+              <td>Run <code>done</code> → trigger di <code>DOM Set Text</code> (el ← Query <code>#cf-text</code>); uscita <code>text</code> di Run → ingresso <code>text</code>. Con <code>format</code> = markdown il testo è formattato.</td></tr>
+          <tr><th scope="row">Immagine in ingresso</th>
+              <td>Query <code>#cf-file</code> → <code>DOM On Event</code> (<code>change</code>) → <code>DOM Get Image</code> (el ← Query <code>#cf-file</code>).
+                  Uscita <code>image</code> → Run <code>image</code> e, per l'anteprima, → <code>DOM Set Image</code> (el ← Query <code>#cf-input-preview</code>, trigger ← <code>done</code> di Get Image).</td></tr>
+          <tr><th scope="row">Immagine in uscita</th>
+              <td>Run <code>done</code> → trigger di <code>DOM Set Image</code> (el ← Query <code>#cf-image</code>); uscita <code>image</code> di Run → ingresso <code>image</code>.</td></tr>
+          <tr><th scope="row">Stato</th>
+              <td>Nel footer del pannello (vedi sotto): <code>ComfyUI Progress</code>, <code>change</code> → trigger e <code>status</code> → <code>message</code> di <code>ReseArch/Panel/Hints</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Il modello 3D in un pannello TJS</h4>
+    <p>Metti nella stessa dashboard la pagina HTM e un oggetto TJS. Il risultato passa da un pannello all'altro con l'App Bus:</p>
+    <ul>
+      <li><strong>Flow dell'oggetto HTM</strong>: Run <code>done</code> → <code>App Bus Emitter</code> trigger; uscita <code>mesh</code> → payload.
+          Emitter: <code>topic</code> = <code>comfy:model</code>, <code>fields</code> <strong>vuoto</strong>.</li>
+      <li><strong>Flow dell'oggetto TJS</strong>: <code>App Bus Receiver</code> (<code>topic</code> = <code>comfy:model</code>, <code>fields</code> <strong>vuoto</strong>):
+          <code>trigger</code> → trigger di <code>TJS/Model/Load URL</code>, <code>payload</code> → <code>url</code>.</li>
+    </ul>
+    <p>Se la pagina non serve, Run può stare direttamente nel flow dell'oggetto TJS: uscita <code>mesh</code> → <code>url</code> di Load URL, <code>done</code> → trigger.</p>
+    <p class="rh-where">Formati che il pannello 3D carica: glb, gltf, obj, ply, drc, wrl. Non stl, fbx, usdz.
+       Se il workflow non produce un modello, non collegare l'Emitter: un indirizzo vuoto toglie il modello dalla scena.</p>
+
+    <h4>Stato, coda e server: nel pannello, non nella pagina</h4>
+    <p>Le informazioni di servizio non occupano la pagina: vanno nel footer e nel menu del pannello.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Dove compaiono stato, coda e informazioni del server</caption>
+        <thead><tr><th scope="col">Dove</th><th scope="col">Cosa</th><th scope="col">Catena di nodi</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Footer, al centro (Hints)</th><td>Stato dell'esecuzione: posizione in coda, secondi trascorsi, completato, errore</td>
+              <td><code>ComfyUI Progress</code> <code>change</code> → trigger e <code>status</code> → <code>message</code> di <code>ReseArch/Panel/Hints</code> con <code>hold</code> acceso.
+                  Run <code>done</code> e porta d'errore → <code>release</code> dello stesso nodo.</td></tr>
+          <tr><th scope="row">Footer, a sinistra (Status)</th><td>In esecuzione · In attesa · Durata media</td>
+              <td><code>ComfyUI Queue</code> (uscita facoltativa <code>change</code>) → trigger di <code>ComfyUI Jobs</code>; Jobs <code>done</code> →
+                  <code>String/Format</code> (<code>a</code> ← running, <code>b</code> ← pending, <code>c</code> ← avg_exec_s) → <code>ReseArch/Panel/Status</code>.</td></tr>
+          <tr><th scope="row">Menu a sinistra, voce "Server"</th><td>Versione e indirizzo di ComfyUI, GPU, memoria video libera</td>
+              <td><code>ReseArch/Menu/Command</code> (<code>label</code> Server) → trigger di <code>ComfyUI System</code>; System <code>done</code> →
+                  <code>String/Format</code> (<code>a</code> ← server, <code>b</code> ← gpu, <code>c</code> ← vram_free_gb) → <code>ReseArch/Panel/Message</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><code>String/Format</code> compone il testo da un modello: <code>In esecuzione {a} · In attesa {b} · Durata media {c:1} s</code>
+          (<code>{c:1}</code> = un decimale, <code>\n</code> = a capo).</li>
+      <li>Il footer si chiude 15 secondi dopo l'ultimo messaggio. Con <code>hold</code> acceso resta aperto per tutta l'esecuzione
+          e si chiude 15 secondi dopo la fine.</li>
+      <li><code>Panel Message</code> apre una piccola finestra con un pulsante Chiudi; non blocca la pagina.</li>
+    </ul>
+  </section>
+
+  <!-- 9 ─────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-examples" aria-labelledby="rh-sec-examples-t">
+    <h3 id="rh-sec-examples-t"><i class="bi bi-clipboard-check" aria-hidden="true"></i>Esempi pronti</h3>
+    <p>Nella cartella <code>_doc/esempi/</code> del progetto (chiedili all'amministratore):</p>
+    <ul>
+      <li><code>htm-comfyui.html</code>: la pagina completa (prompt e immagine in ingresso; testo, immagine e modello in uscita). Stato, coda e server stanno nel footer e nel menu del pannello.
+          Caricala e usa la spec <code>{ "mode": "flow", "title": "ComfyUI" }</code>.</li>
+      <li><code>htm-comfyui-flow.clipboard.json</code>: il flow dell'oggetto HTM.</li>
+      <li><code>tjs-comfyui-flow.clipboard.json</code>: il flow dell'oggetto TJS che riceve il modello.</li>
+      <li><code>tjs-comfyui-sphere-flow.clipboard.json</code>: il flow dell'oggetto TJS per le panoramiche (workflow <code>RA_Pano_MoGe</code>
+          o <code>RA_Pano_DA2</code>). Crea la sfera con la foto ricevuta, la marca con <code>TJS/Panorama/Mark</code>
+          e, con un App Bus Receiver <code>comfy:depth</code>, associa alla sfera la mappa delle distanze
+          (<code>TJS/Panorama/Set Depth</code>). Nella pagina HTM serve un App Bus Emitter con topic <code>comfy:depth</code> sull'uscita
+          <code>depth_exr</code> di Run. Poi Collima e Misura funzionano sul panorama; per avere metri si calibra con
+          <code>TJS/Panorama/Depth Scale</code> e una distanza nota.</li>
+    </ul>
+    <p>Per usare un flow: apri il file, copia tutto il testo, fai clic sul canvas del flow e premi <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+       Il nodo Run nasce con le porte di <code>ReseArch-Demo</code>: scegli il tuo workflow e controlla i fili.</p>
+    <p>I grafi nodali d'esempio si copiano anche da un flow già aperto: seleziona i nodi, premi <kbd>Ctrl</kbd>+<kbd>C</kbd>,
+       poi fai clic sul canvas del flow di destinazione e premi <kbd>Ctrl</kbd>+<kbd>V</kbd>. I collegamenti tra i nodi copiati restano.</p>
+    <p class="rh-where">Più workflow nella stessa pagina: un nodo Run per ciascuno, avviato in base a una scelta della pagina (un <code>&lt;select&gt;</code> letto con Get Value).</p>
+  </section>
+
+  <!-- 10 ────────────────────────────────────────────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Il menu dei workflow resta vuoto, "ComfyUI non raggiungibile".</strong> ComfyUI non è avviato, è avviato senza <code>--enable-cors-header</code>,
+          oppure l'indirizzo scritto non è esattamente quello della piattaforma. Controlla anche <code>url</code> nel Context Service.</li>
+      <li><strong>Il mio workflow non compare.</strong> Manca il nodo Publish, oppure non hai premuto Queue dopo averlo aggiunto.</li>
+      <li><strong>Le modifiche fatte in ComfyUI non arrivano.</strong> La piattaforma usa la copia pubblicata: premi di nuovo Queue.</li>
+      <li><strong>Sono spariti dei fili da Run.</strong> Hai rinominato una key e aggiornato le porte: ricollega le porte nuove.</li>
+      <li><strong>Il pannello 3D non riceve nulla, o riceve un valore vuoto.</strong> In App Bus Emitter e Receiver il campo <code>fields</code> va lasciato vuoto,
+          e il <code>topic</code> deve essere uguale nei due.</li>
+      <li><strong>Il modello 3D non si carica.</strong> Model Output con <code>folder</code> = <code>temp</code> (usa <code>output</code>), oppure formato non supportato (stl, fbx).</li>
+      <li><strong>Con le immagini grandi: "image upload failed (PNG … MB)".</strong> ComfyUI accetta invii fino a 100 MB: oltre, rifiuta il file.
+          Il nodo Run rimpicciolisce le immagini a <code>maxImageSide</code> pixel sul lato lungo (2048 di base, 0 = originale): abbassalo,
+          oppure aggiungi alla riga di avvio <code>--max-upload-size 500</code> (in MB).</li>
+      <li><strong>Un'immagine presa da un altro sito non parte.</strong> Il sito non permette di leggerla: salvala sul computer e sceglila con il campo file.</li>
+      <li><strong>Sul panorama le misure non tornano.</strong> MoGe e DA2 danno distanze relative: calibra con una distanza nota
+          (<code>TJS/Panorama/Depth Scale</code>). Se il punto resta sulla sfera, la sfera non è marcata con <code>TJS/Panorama/Mark</code>
+          o la mappa non è arrivata (topic App Bus diverso, oppure il workflow non ha la key <code>depth_exr</code>).</li>
+      <li><strong>Il lavoro resta "in coda".</strong> ComfyUI ha una sola coda per tutti: se altri lo usano, aspetti il tuo turno. Lo vedi con ComfyUI Queue.</li>
+    </ul>
+  </section>
+</div>

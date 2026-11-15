@@ -1,0 +1,313 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App ECH (grafici ECharts).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Grafici (ECH)" }
+  Fonti: app/model_ECH.mjs, app/ECH_sub_modules/* (data-loader: inline = array o oggetto; mysql via api/ech_data.php solo X),
+  template "Grafico — dati JSON inline" e "Grafico — query MySQL", _doc/module-ech-charts.md.
+  Nessuno script. Agganci: #rh-help, #rh-sec-ui, #rh-sec-source, #rh-sec-types, #rh-sec-look, #rh-sec-style, #rh-sec-bus, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Grafici (ECH)</h2>
+  <p class="rh-lead">
+    ECH disegna grafici (barre, linee, torte, reti, alberi, calendari…) a partire da dati scritti nella spec,
+    da un file o da una query sul database. Il grafico si esporta in PNG e dialoga con gli altri pannelli.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-ui"><i class="bi bi-ui-checks" aria-hidden="true"></i>Il modo più semplice</a></li>
+      <li><a href="#rh-sec-source"><i class="bi bi-database" aria-hidden="true"></i>Sorgente dati</a></li>
+      <li><a href="#rh-sec-types"><i class="bi bi-pie-chart" aria-hidden="true"></i>Tipi di grafico</a></li>
+      <li><a href="#rh-sec-look"><i class="bi bi-palette" aria-hidden="true"></i>Aspetto</a></li>
+      <li><a href="#rh-sec-style"><i class="bi bi-brush" aria-hidden="true"></i>Stile del grafico</a></li>
+      <li><a href="#rh-sec-bus"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-ui" aria-labelledby="rh-sec-ui-t">
+    <h3 id="rh-sec-ui-t"><i class="bi bi-ui-checks" aria-hidden="true"></i>Il modo più semplice</h3>
+    <ol>
+      <li>Crea il modello con <span class="rh-ui">Nessun file (dati dal flow)</span> e il template <strong>Grafico — dati JSON inline</strong>.</li>
+      <li>Crea l'oggetto con App <strong>ECH</strong>, collega il modello e aprilo.</li>
+      <li>Dalla barra del pannello usa <span class="rh-ui"><i class="bi bi-database" aria-hidden="true"></i> Sorgente dati</span> e
+          <span class="rh-ui"><i class="bi bi-palette" aria-hidden="true"></i> Layout grafico</span>: modificano la spec per te e la salvano.</li>
+    </ol>
+    <p>La spec a mano serve per i casi particolari. Ha quattro parti:</p>
+    <pre class="rh-json">{
+  "dataSource":      { … da dove vengono i dati … },
+  "template":        "bar-basic",
+  "templateConfig":  { … titolo, colori, legenda … },
+  "optionOverrides": { }
+}</pre>
+    <p class="rh-where">Se un oggetto ha più modelli, ECH usa solo il primo.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-source" aria-labelledby="rh-sec-source-t">
+    <h3 id="rh-sec-source-t"><i class="bi bi-database" aria-hidden="true"></i>Sorgente dati (<code>dataSource</code>)</h3>
+
+    <article class="rh-tpl" id="rh-tpl-inline" aria-labelledby="rh-tpl-inline-t">
+      <h4 id="rh-tpl-inline-t">Dati nella spec — template "Grafico — dati JSON inline" <span class="rh-badge">base</span></h4>
+      <pre class="rh-json">"dataSource": {
+  "type": "json",
+  "inline": [
+    { "secolo": "XV",  "opere": 12 },
+    { "secolo": "XVI", "opere": 31 }
+  ],
+  "mapping": { "category": "secolo", "value": "opere" }
+}</pre>
+      <p>Al posto di <code>inline</code> puoi mettere <code>"url": "https://…/dati.json"</code>: il file viene letto all'apertura.
+         Se ci sono entrambi, vale <code>inline</code>.</p>
+    </article>
+
+    <article class="rh-tpl" id="rh-tpl-csv" aria-labelledby="rh-tpl-csv-t">
+      <h4 id="rh-tpl-csv-t">CSV da un indirizzo</h4>
+      <pre class="rh-json">"dataSource": {
+  "type": "csv_url",
+  "url": "https://docs.google.com/spreadsheets/d/ID/export?format=csv&amp;gid=0",
+  "delimiter": ",",
+  "hasHeader": true,
+  "mapping": { "category": "Città", "value": "Visitatori" }
+}</pre>
+      <p>Comodo con un foglio Google pubblico: il grafico si aggiorna quando cambi il foglio e premi Ricarica.</p>
+    </article>
+
+    <article class="rh-tpl" id="rh-tpl-mysql" aria-labelledby="rh-tpl-mysql-t">
+      <h4 id="rh-tpl-mysql-t">Query sul database — template "Grafico — query MySQL" <span class="rh-badge">base</span></h4>
+      <pre class="rh-json">"dataSource": {
+  "type": "mysql",
+  "sql": "SELECT Regione AS category, COUNT(*) AS value FROM Schedatura_Teatri GROUP BY Regione",
+  "params": [],
+  "mapping": {}
+}</pre>
+      <p class="rh-note">Le query funzionano <strong>solo per l'amministratore</strong>: con un altro utente il server le rifiuta e il grafico resta vuoto.
+         Sono ammesse solo query che iniziano con <code>SELECT</code>; i valori variabili vanno in <code>params</code> con un <code>?</code> nella query.</p>
+    </article>
+
+    <h4>Il <code>mapping</code></h4>
+    <p>Ogni tipo di grafico si aspetta dei nomi precisi (es. <code>category</code> e <code>value</code>). Il mapping dice quale
+       colonna dei tuoi dati corrisponde a ciascun nome, così non devi rinominare i dati. Nelle query SQL puoi usare invece
+       <code>AS</code> e lasciare il mapping vuoto.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-types" aria-labelledby="rh-sec-types-t">
+    <h3 id="rh-sec-types-t"><i class="bi bi-pie-chart" aria-hidden="true"></i>Tipi di grafico (<code>template</code>)</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Tipi di grafico e nomi dei dati attesi</caption>
+        <thead><tr><th scope="col"><code>template</code></th><th scope="col">Grafico</th><th scope="col">Nomi dei dati (dopo il mapping)</th></tr></thead>
+        <tbody>
+          <tr><td><code>bar-basic</code></td><td>Barre</td><td><code>category</code>, <code>value</code>, <code>series</code> facoltativo</td></tr>
+          <tr><td><code>line-basic</code></td><td>Linee</td><td><code>category</code>, <code>value</code>, <code>series</code> facoltativo</td></tr>
+          <tr><td><code>pie-basic</code></td><td>Torta</td><td><code>name</code>, <code>value</code></td></tr>
+          <tr><td><code>scatter-basic</code></td><td>Dispersione</td><td><code>x</code>, <code>y</code>; facoltativi <code>name</code>, <code>series</code>, <code>size</code></td></tr>
+          <tr><td><code>radar-basic</code></td><td>Radar</td><td><code>indicator</code>, <code>value</code>, <code>series</code> facoltativo</td></tr>
+          <tr><td><code>sankey-basic</code></td><td>Flussi (Sankey)</td><td><code>source</code>, <code>target</code>, <code>value</code></td></tr>
+          <tr><td><code>heatmap-basic</code></td><td>Mappa di calore</td><td><code>x</code>, <code>y</code>, <code>value</code></td></tr>
+          <tr><td><code>graph-basic</code></td><td>Rete</td><td><code>source</code>, <code>target</code>, oppure un oggetto <code>{ "nodes": […], "links": […] }</code></td></tr>
+          <tr><td><code>tree-basic</code></td><td>Albero</td><td rowspan="3"><code>id</code>, <code>parent_id</code>, <code>name</code>, <code>value</code> (una riga per elemento), oppure un albero JSON già annidato</td></tr>
+          <tr><td><code>treemap-basic</code></td><td>Treemap</td></tr>
+          <tr><td><code>sunburst-basic</code></td><td>Raggiera</td></tr>
+          <tr><td><code>gauge-basic</code></td><td>Indicatore</td><td><code>name</code>, <code>value</code>; facoltativi <code>min</code>, <code>max</code></td></tr>
+          <tr><td><code>calendar-basic</code></td><td>Calendario</td><td><code>date</code> (AAAA-MM-GG), <code>value</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><code>series</code> divide i dati in più serie: per esempio una barra per anno dentro ogni categoria.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-look" aria-labelledby="rh-sec-look-t">
+    <h3 id="rh-sec-look-t"><i class="bi bi-palette" aria-hidden="true"></i>Aspetto (<code>templateConfig</code> e <code>optionOverrides</code>)</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi di templateConfig</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>title</code>, <code>subtitle</code></td><td>Testi sopra il grafico.</td></tr>
+          <tr><td><code>colors</code></td><td>Palette dei colori, in ordine: <code>["#0066cc", "#c62828"]</code>. Come viene usata dipende dal tipo di grafico: vedi
+              <a href="#rh-sec-palette">Stile del grafico</a>.</td></tr>
+          <tr><td><code>showLegend</code>, <code>showTooltip</code></td><td>Legenda; etichetta al passaggio del mouse.</td></tr>
+          <tr><td><code>showDataZoom</code></td><td>Barra per zoomare su una parte dell'asse, dove il grafico lo permette.</td></tr>
+          <tr><td><code>dark</code></td><td>Tema scuro.</td></tr>
+          <tr><td><code>horizontal</code></td><td>Barre orizzontali (solo barre).</td></tr>
+          <tr><td><code>stack</code></td><td>Serie impilate invece che affiancate (barre, linee).</td></tr>
+          <tr><td><code>smooth</code></td><td>Linee curve (solo linee).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><code>optionOverrides</code> è per chi conosce ECharts: qualsiasi opzione nativa scritta qui viene aggiunta al grafico finale,
+       per esempio <code>{ "animation": false }</code>.</p>
+    <p class="rh-note">La voce "Tema scuro / chiaro" del menu del pannello è solo un'anteprima e non si salva.
+       Per salvarla usa <span class="rh-ui">Layout grafico</span>.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-style" aria-labelledby="rh-sec-style-t">
+    <h3 id="rh-sec-style-t"><i class="bi bi-brush" aria-hidden="true"></i>Stile del grafico</h3>
+    <p>Il grafico è disegnato da ECharts dentro un <code>&lt;canvas&gt;</code>: i fogli di stile CSS non arrivano lì dentro.
+       Colori, caratteri, assi e sfondo si scrivono nella spec del modello, in due posti:</p>
+    <ul>
+      <li><strong><code>templateConfig</code></strong>: i campi della finestra <span class="rh-ui"><i class="bi bi-palette" aria-hidden="true"></i> Layout grafico</span>
+          (titolo, palette, legenda, tema scuro…). Basta per la maggior parte dei casi.</li>
+      <li><strong><code>optionOverrides</code></strong>: tutto il resto, con le opzioni native di ECharts. Si scrive a mano nella
+          <span class="rh-ui">Spec (JSON)</span> del modello (finestra <span class="rh-ui">Modelli</span>).</li>
+    </ul>
+
+    <h4 id="rh-sec-palette">La palette dei colori</h4>
+    <p>In <span class="rh-ui">Layout grafico</span> si scrive come elenco di colori separati da virgola
+       (<code>#0066cc, #c62828, #2e7d32</code>); nella spec diventa <code>"colors": ["#0066cc", "#c62828", "#2e7d32"]</code>.
+       Vuota = palette di ECharts (diversa con il tema scuro). I colori si usano <strong>in ordine</strong>; se gli elementi
+       da colorare sono più dei colori, si ricomincia dal primo. Che cosa riceve un colore dipende dal tipo di grafico:</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Uso della palette per tipo di grafico</caption>
+        <thead><tr><th scope="col">Grafico</th><th scope="col">Chi riceve i colori</th></tr></thead>
+        <tbody>
+          <tr><td>Barre, Linee, Dispersione, Radar</td><td>Una <strong>serie</strong> per colore: la prima serie il primo colore, e così via.
+              Senza il campo <code>series</code> c'è una serie sola, quindi tutte le barre hanno il primo colore
+              (per un colore per barra vedi la ricetta qui sotto).</td></tr>
+          <tr><td>Torta</td><td>Una <strong>fetta</strong> per colore, nell'ordine dei dati.</td></tr>
+          <tr><td>Rete</td><td>Una <strong>categoria</strong> (o livello) di nodi per colore; il primo colore è il livello 0.</td></tr>
+          <tr><td>Flussi (Sankey)</td><td>Un <strong>nodo</strong> per colore; i flussi prendono il colore del nodo di partenza o di arrivo
+              (opzione "Colore linee" in Layout grafico).</td></tr>
+          <tr><td>Treemap, Raggiera</td><td>Un colore per ogni <strong>ramo del primo livello</strong>; i figli ne prendono una sfumatura.</td></tr>
+          <tr><td>Mappa di calore, Calendario</td><td>Solo i <strong>primi due</strong> colori: valore minimo → valore massimo, con le sfumature in mezzo.</td></tr>
+          <tr><td>Indicatore</td><td>Un colore per <strong>lancetta</strong>. Con le soglie, solo dalla Spec (JSON):
+              <code>"colors": [[0.3, "#2e7d32"], [0.7, "#f9a825"], [1, "#c62828"]]</code> colora l'arco a fasce (0–30%, 30–70%, 70–100%).</td></tr>
+          <tr><td>Albero</td><td>La palette non viene usata: per i colori serve <code>optionOverrides</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Ricette con <code>optionOverrides</code></h4>
+    <p>Quello che scrivi viene <strong>unito</strong> alle opzioni preparate dal tipo di grafico: indichi solo ciò che cambia.
+       Le chiavi sono quelle della documentazione di ECharts (echarts.apache.org → Documentation → Option).</p>
+    <pre class="rh-json">"optionOverrides": {
+  "backgroundColor": "#fafafa",
+  "textStyle": { "fontFamily": "Titillium Web, sans-serif", "fontSize": 13 },
+  "title":  { "left": "center", "textStyle": { "color": "#0066cc", "fontSize": 18 } },
+  "legend": { "bottom": 10 },
+  "xAxis":  { "axisLabel": { "rotate": 45, "color": "#555" } },
+  "yAxis":  { "splitLine": { "lineStyle": { "type": "dashed" } } },
+  "series": [
+    { "itemStyle": { "borderRadius": [4, 4, 0, 0] }, "label": { "show": true, "position": "top" } }
+  ]
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Ricette di stile</caption>
+        <thead><tr><th scope="col">Per…</th><th scope="col">Scrivi</th></tr></thead>
+        <tbody>
+          <tr><td>Sfondo del grafico</td><td><code>"backgroundColor": "#fafafa"</code> (<code>"transparent"</code> per vedere il pannello)</td></tr>
+          <tr><td>Carattere di tutto il grafico</td><td><code>"textStyle": { "fontFamily": "…", "fontSize": 13 }</code></td></tr>
+          <tr><td>Titolo centrato e colorato</td><td><code>"title": { "left": "center", "textStyle": { "color": "#0066cc" } }</code></td></tr>
+          <tr><td>Legenda in basso</td><td><code>"legend": { "bottom": 10 }</code></td></tr>
+          <tr><td>Etichette dell'asse X inclinate</td><td><code>"xAxis": { "axisLabel": { "rotate": 45 } }</code></td></tr>
+          <tr><td>Margini attorno al grafico</td><td><code>"grid": { "left": 60, "right": 20, "bottom": 80 }</code></td></tr>
+          <tr><td>Un colore per ogni barra (serie unica)</td><td><code>"series": [ { "colorBy": "data" } ]</code></td></tr>
+          <tr><td>Valore scritto sulle barre</td><td><code>"series": [ { "label": { "show": true, "position": "top" } } ]</code></td></tr>
+          <tr><td>Niente animazione</td><td><code>"animation": false</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note"><strong>Gli elenchi si uniscono per posizione</strong>: il primo elemento di <code>"series"</code> modifica la prima
+       serie, il secondo la seconda. Per toccare solo la seconda: <code>"series": [ {}, { … } ]</code>.
+       I colori scritti in <code>optionOverrides</code> valgono sopra la palette e sopra il tema scuro.</p>
+    <p class="rh-where">Dai flow si può solo passare dal tema chiaro a quello scuro (<code>ECH/Chart/ToggleTheme</code>, senza salvare):
+       non c'è un nodo che cambi lo stile.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-bus" aria-labelledby="rh-sec-bus-t">
+    <h3 id="rh-sec-bus-t"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</h3>
+    <ul>
+      <li>Clic su una barra o una fetta → gli altri pannelli sanno quale elemento è stato scelto.</li>
+      <li>Cambiare la legenda o lo zoom → viene annunciato come filtro.</li>
+      <li>Al contrario, un elemento scelto altrove si evidenzia nel grafico, e un flow può chiedere di ricaricare i dati.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Messaggio informativo al posto del grafico.</strong> Mancano sia <code>dataSource</code> sia <code>template</code>.</li>
+      <li><strong>Grafico vuoto.</strong> Il <code>mapping</code> punta a colonne che non esistono (maiuscole comprese), oppure la query è rifiutata perché non sei amministratore.</li>
+      <li><strong>Errore con un indirizzo esterno.</strong> Il sito non permette la lettura da altre pagine (CORS), oppure il foglio Google non è pubblico.</li>
+      <li><strong>Esportare l'immagine.</strong> Pulsante <span class="rh-ui"><i class="bi bi-download" aria-hidden="true"></i> Esporta PNG</span>: l'immagine è a doppia risoluzione.</li>
+    </ul>
+  </section>
+</div>

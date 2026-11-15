@@ -1,0 +1,227 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida SINTETICA dei nodi IFC/* dei flow: famiglie e una riga per nodo, per dare una prima idea.
+  Porte, formati e proprietà NON vanno qui: stanno nell'editor dei flow (pannello "Help nodo selezionato",
+  desc e portHelp dei nodi). Fonte dell'elenco: registerNodeType('IFC/…') in app/IFC_sub_modules/IFC-flow-nodes.mjs
+  (controllare dopo ogni nodo nuovo). Scritta il 2026-11-04.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Modelli BIM, i nodi" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-ui, #rh-go-spec
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-diagram-3" aria-hidden="true"></i> Modelli BIM (IFC): i nodi dei flow</h2>
+  <p class="rh-lead">
+    Una prima idea di cosa si può fare con i nodi di questa App: un elenco per famiglie, con una riga per nodo.
+    Ingressi, uscite e formato dei dati sono nell'editor dei flow: seleziona il nodo e premi
+    <span class="rh-ui"><i class="bi bi-question-circle" aria-hidden="true"></i> Help nodo selezionato</span> nella barra dell'editor.
+  </p>
+  <p class="rh-where">Nel menu dell'editor i nodi stanno sotto <span class="rh-ui">IFC</span>, poi la famiglia. Lavorano nel flow di un oggetto BIM, o con il pulsante <span class="rh-ui">Testa su panel</span> dell'editor, su un pannello aperto.
+    Gli elementi si indicano con il loro <strong>GlobalId</strong> IFC: uno (<code>guid</code>) o una lista (<code>guids</code>); per passare da uno a una lista c'è <code>Params/Array/Maker</code>.</p>
+
+  <nav aria-label="Famiglie di nodi">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-events"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi</a></li>
+      <li><a href="#rh-sec-selection"><i class="bi bi-cursor" aria-hidden="true"></i>Selezione</a></li>
+      <li><a href="#rh-sec-data"><i class="bi bi-table" aria-hidden="true"></i>Dati</a></li>
+      <li><a href="#rh-sec-visibility"><i class="bi bi-eye" aria-hidden="true"></i>Visibilità e colori</a></li>
+      <li><a href="#rh-sec-camera"><i class="bi bi-camera-video" aria-hidden="true"></i>Camera</a></li>
+      <li><a href="#rh-sec-section"><i class="bi bi-scissors" aria-hidden="true"></i>Sezioni e misure</a></li>
+      <li><a href="#rh-sec-tjs"><i class="bi bi-badge-3d" aria-hidden="true"></i>Nodi TJS nella scena BIM</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-events" aria-labelledby="rh-sec-events-t">
+    <h3 id="rh-sec-events-t"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi</h3>
+    <p>Fanno partire il flow quando succede qualcosa nel pannello.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Eventi</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Events/OnSelect</code></td><td>Scatta quando si seleziona un elemento: GlobalId, classe, nome. Di norma solo per le selezioni fatte a mano (interruttore <span class="rh-ui">only user</span>).</td></tr>
+          <tr><td><code>Events/OnDeselect</code></td><td>Scatta quando la selezione si toglie.</td></tr>
+          <tr><td><code>Events/OnModelsLoaded</code></td><td>Scatta quando i modelli sono pronti: da qui partono le catene che usano il modello.</td></tr>
+          <tr><td><code>Events/OnCameraSettled</code></td><td>Scatta quando la camera si ferma, con posizione e punto guardato.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-selection" aria-labelledby="rh-sec-selection-t">
+    <h3 id="rh-sec-selection-t"><i class="bi bi-cursor" aria-hidden="true"></i>Selezione</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Selezione</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Selection/Get</code></td><td>L'elemento selezionato.</td></tr>
+          <tr><td><code>Selection/Select By Guid</code></td><td>Seleziona (e inquadra) un elemento dato il suo GlobalId, come un clic.</td></tr>
+          <tr><td><code>Selection/Clear</code></td><td>Toglie la selezione.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-data" aria-labelledby="rh-sec-data-t">
+    <h3 id="rh-sec-data-t"><i class="bi bi-table" aria-hidden="true"></i>Dati</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Dati</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Data/Get Properties</code></td><td>Tutti i dati di un elemento in un oggetto: attributi, Pset e quantità ("Pset.Proprietà"), piano, materiali.</td></tr>
+          <tr><td><code>Data/Get Property</code></td><td>Un solo valore: un attributo (<code>Name</code>) o una proprietà (<code>Pset_WallCommon.FireRating</code>).</td></tr>
+          <tr><td><code>Data/Find</code></td><td>Cerca gli elementi di una classe e/o con un valore di un attributo o di un Pset: restituisce i loro GlobalId.</td></tr>
+          <tr><td><code>Data/Categories</code></td><td>Le classi IFC del modello, con quanti elementi ha ciascuna.</td></tr>
+          <tr><td><code>Data/Spatial Tree</code></td><td>L'albero progetto → edificio → piani → elementi, per esempio da mostrare in un grafico ad albero (ECH).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-visibility" aria-labelledby="rh-sec-visibility-t">
+    <h3 id="rh-sec-visibility-t"><i class="bi bi-eye" aria-hidden="true"></i>Visibilità e colori</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Visibilità e colori</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Visibility/Isolate</code> · <code>Visibility/Hide</code> · <code>Visibility/Show</code></td><td>Lascia visibili solo gli elementi dati · li nasconde · li mostra di nuovo.</td></tr>
+          <tr><td><code>Visibility/Show All</code></td><td>Rende visibile tutto.</td></tr>
+          <tr><td><code>Visibility/Category Visible</code></td><td>Mostra o nasconde una classe intera, come la finestra Categorie.</td></tr>
+          <tr><td><code>Visibility/Color By Value</code></td><td>Un colore per ogni valore di un attributo o di un Pset, come la finestra Colora per valore; restituisce la legenda.</td></tr>
+          <tr><td><code>Visibility/X-Ray</code> · <code>Visibility/Outlines</code></td><td>Accende o spegne i raggi X · i contorni degli elementi.</td></tr>
+          <tr><td><code>Visibility/Color</code> · <code>Visibility/Reset Colors</code></td><td>Colora gli elementi dati (per esempio un colore per ogni valore di un Pset) · toglie i colori.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-camera" aria-labelledby="rh-sec-camera-t">
+    <h3 id="rh-sec-camera-t"><i class="bi bi-camera-video" aria-hidden="true"></i>Camera</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Camera</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Camera/Fit All</code> · <code>Camera/Fit Items</code></td><td>Inquadra tutto · gli elementi dati.</td></tr>
+          <tr><td><code>Camera/Projection</code></td><td>Vista 3D prospettica o ortogonale.</td></tr>
+          <tr><td><code>Camera/Saved Views</code> · <code>Camera/Go To View</code></td><td>Le viste della finestra Viste · porta la camera a una di esse per nome.</td></tr>
+          <tr><td><code>Camera/Get View</code> · <code>Camera/Set View</code></td><td>Legge la vista (posizione e punto guardato) · porta la camera in una vista, per esempio una letta prima.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-section" aria-labelledby="rh-sec-section-t">
+    <h3 id="rh-sec-section-t"><i class="bi bi-scissors" aria-hidden="true"></i>Sezioni e misure</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Sezioni e misure</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Section/Add Plane</code> · <code>Section/Clear</code></td><td>Aggiunge un piano di sezione da un punto e una direzione · toglie tutti i piani.</td></tr>
+          <tr><td><code>Measure/Get All</code> · <code>Measure/Clear</code></td><td>Le lunghezze (m), le aree (m²), gli angoli (°) e i volumi (m³) misurati nel pannello, anche quelli salvati · le toglie.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-tjs" aria-labelledby="rh-sec-tjs-t">
+    <h3 id="rh-sec-tjs-t"><i class="bi bi-badge-3d" aria-hidden="true"></i>Nodi TJS nella scena BIM</h3>
+    <p>Nel flow di un oggetto BIM funzionano anche molti nodi dell'App 3D: geometrie e curve, materiali e texture,
+       aggiungere e togliere oggetti dalla scena, luci (<code>TJS/Light/Set…</code>) e <code>TJS/Model/Load URL</code>,
+       per esempio per mettere un terreno o il contesto in GLB accanto all'edificio.</p>
+    <p class="rh-note">I nodi TJS agiscono sugli oggetti aggiunti dal flow, non sugli elementi del modello BIM: per quelli si usano i nodi
+       <code>IFC/Visibility</code>. Non funzionano qui i nodi TJS di camera, eventi, punti (Pick) e panoramiche: per la camera ci sono i nodi <code>IFC/Camera</code>.</p>
+    <h4>Collegarsi agli altri pannelli</h4>
+    <p>L'App BIM non parla da sola con gli altri pannelli: lo fa il flow. Per esempio, con una tabella che ha la colonna <code>GlobalId</code>:
+       <code>IFC/Events/OnSelect</code> → <code>App Bus/Emitter</code> manda la selezione alla tabella;
+       <code>App Bus/Receiver</code> → <code>IFC/Selection/Select By Guid</code> evidenzia nel modello la riga scelta nella tabella.</p>
+    <p class="rh-where">Nei flow si usano anche i nodi comuni a tutte le App: menu e footer del pannello (<code>ReseArch/Menu</code>, <code>ReseArch/Panel</code>), App Bus, e i nodi di logica e dati.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui" data-help="help-ui-IFC">
+        <i class="bi bi-building" aria-hidden="true"></i> Usare il pannello BIM
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-IFC">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+    </div>
+  </section>
+</div>

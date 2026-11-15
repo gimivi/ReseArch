@@ -1,0 +1,188 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App MPS (Google Maps 2D e 3D fotorealistica).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Mappe (MPS)" }
+  Fonti: app/model_MPS.mjs (legge type, geoCoord, zoom, mapId, altitude, range, tilt, coordinates dal primo modello; segnaposti della spec solo in 3D;
+  bus: emette selection:change e mps:view:changed, riceve data:refresh, selection:change con lat/lng, filter:apply su nome),
+  template "Google Maps 2D" e "Google Maps 3D". Nessuno script. Agganci: #rh-help, #rh-tpl-3d, #rh-tpl-2d, #rh-sec-coord, #rh-sec-bus, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-geo-alt" aria-hidden="true"></i> Mappe (MPS)</h2>
+  <p class="rh-lead">
+    MPS mostra un luogo su Google Maps: in <strong>3D fotorealistico</strong>, con edifici e terreno e dei segnaposti cliccabili,
+    oppure come <strong>mappa 2D</strong> classica. È utile per inquadrare un sito o un territorio accanto ai suoi modelli e documenti.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-tpl-3d"><i class="bi bi-buildings" aria-hidden="true"></i>Mappa 3D</a></li>
+      <li><a href="#rh-tpl-2d"><i class="bi bi-map" aria-hidden="true"></i>Mappa 2D</a></li>
+      <li><a href="#rh-sec-coord"><i class="bi bi-crosshair" aria-hidden="true"></i>Trovare le coordinate</a></li>
+      <li><a href="#rh-sec-bus"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-tpl-3d" aria-labelledby="rh-tpl-3d-t">
+    <h3 id="rh-tpl-3d-t"><i class="bi bi-buildings" aria-hidden="true"></i>Template "Google Maps 3D" <span class="rh-badge">base</span></h3>
+    <p>Modello <span class="rh-ui">Nessun file (dati dal flow)</span>: luogo e segnaposti sono nella spec. MPS usa solo il primo modello.</p>
+    <pre class="rh-json">{
+  "type": "3D",
+  "geoCoord": [41.8986, 12.4769],
+  "altitude": 20,
+  "range": 400,
+  "tilt": 60,
+  "coordinates": [
+    { "lat": 41.8986, "lng": 12.4769, "nome": "Pantheon",   "id_mrk": "m1", "colore": "#FBBC04" },
+    { "lat": 41.8902, "lng": 12.4922, "nome": "Colosseo",   "id_mrk": "m2", "altitude": 60 }
+  ]
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi della mappa 3D</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>type</code></td><td><code>"3D"</code> (è anche il valore usato se manca).</td></tr>
+          <tr><td><code>geoCoord</code></td><td><code>[latitudine, longitudine]</code> del punto inquadrato all'apertura.</td></tr>
+          <tr><td><code>altitude</code></td><td>Quota in metri <strong>sul livello del mare</strong> del punto inquadrato: la quota del terreno lì
+              (si legge su Google Earth, o con il nodo <code>Geo/Elevation</code>). Senza <code>range</code> vale il comportamento di prima:
+              la camera sta sopra <code>geoCoord</code> a questa quota (150 se manca) e guarda più avanti.</td></tr>
+          <tr><td><code>range</code></td><td>Distanza in metri fra la camera e il punto inquadrato: con <code>range</code> il luogo sta al centro della vista.
+              È anche la distanza usata da <code>Camera/FlyTo</code> quando il dato non la indica (altrimenti 300 m).</td></tr>
+          <tr><td><code>tilt</code></td><td>Inclinazione in gradi: 0 = dall'alto, 90 = all'orizzonte. 45–65 dà una buona vista a volo d'uccello.</td></tr>
+          <tr><td><code>coordinates</code></td><td>I segnaposti. Per ciascuno:
+            <code>lat</code>, <code>lng</code> (obbligatori), <code>nome</code> (etichetta), <code>id_mrk</code> (codice per collegarlo ad altri pannelli),
+            <code>colore</code> (es. <code>"#FBBC04"</code>), <code>altitude</code> (metri sul livello del mare; senza, il segnaposto sta 10 m sopra edifici o terreno).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-2d" aria-labelledby="rh-tpl-2d-t">
+    <h3 id="rh-tpl-2d-t"><i class="bi bi-map" aria-hidden="true"></i>Template "Google Maps 2D" <span class="rh-badge">base</span></h3>
+    <pre class="rh-json">{
+  "type": "2D",
+  "geoCoord": [45.4342, 12.3385],
+  "zoom": 8,
+  "coordinates": []
+}</pre>
+    <ul>
+      <li><code>type</code>: <code>"2D"</code>, da scrivere sempre (senza, la mappa è 3D).</li>
+      <li><code>zoom</code>: da 0 (mondo intero) a circa 20 (singolo edificio); 8 è una regione, 15 un quartiere.</li>
+      <li><code>mapId</code> (facoltativo): il Map ID creato nella Google Cloud Console. Senza, si usa quello dimostrativo di Google, che basta per i segnaposto dei flow.</li>
+    </ul>
+    <p class="rh-note">In 2D i <strong>segnaposti della spec non vengono disegnati</strong>: <code>coordinates</code> è accettato ma ignorato.
+       I segnaposto creati da un flow (nodi <code>Marker/Add</code> e <code>Marker/AddList</code>) invece si vedono e sono cliccabili anche in 2D.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-coord" aria-labelledby="rh-sec-coord-t">
+    <h3 id="rh-sec-coord-t"><i class="bi bi-crosshair" aria-hidden="true"></i>Trovare le coordinate</h3>
+    <ol>
+      <li>Apri <strong>Google Maps</strong> nel browser e fai clic destro sul punto.</li>
+      <li>La prima voce del menu sono le coordinate, es. <code>41.8986, 12.4769</code>: un clic le copia.</li>
+      <li>Incollale come <code>[41.8986, 12.4769]</code> in <code>geoCoord</code>, oppure come <code>"lat": 41.8986, "lng": 12.4769</code> in un segnaposto.</li>
+    </ol>
+    <p>Usa il <strong>punto</strong> come separatore dei decimali, non la virgola.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-bus" aria-labelledby="rh-sec-bus-t">
+    <h3 id="rh-sec-bus-t"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</h3>
+    <ul>
+      <li>Clic su un segnaposto → la piattaforma annuncia nome, <code>id_mrk</code> e coordinate. Gli altri pannelli <strong>non reagiscono da soli</strong>:
+          per far evidenziare una riga di tabella o aprire una scheda si costruisce un flow (nodo <code>App Bus Receiver</code> → azione).</li>
+      <li>Nel flow dell'oggetto mappa ci sono nodi pronti: al clic su un segnaposto, vola a un segnaposto, cambia il suo colore, leggi o imposta la vista.</li>
+      <li>Un filtro per nome mostra solo i segnaposti il cui <code>nome</code> contiene il testo cercato.</li>
+      <li>Sincronizzare la vista di due mappe va costruito in un flow: non avviene da solo.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Mappa in mezzo al mare.</strong> Latitudine e longitudine sono invertite: in <code>geoCoord</code> prima la latitudine (in Italia 36–47), poi la longitudine (6–19).</li>
+      <li><strong>Non vedo i segnaposti.</strong> La mappa è in 2D (quelli della spec si vedono solo in 3D), oppure la loro <code>altitude</code> è troppo bassa:
+          è sul livello del mare, non sopra il terreno. Togliendola, il segnaposto si appoggia sopra edifici e terreno.</li>
+      <li><strong>Il luogo non è al centro della vista, o la camera finisce dentro un palazzo.</strong> Manca <code>range</code>, oppure
+          <code>altitude</code> non è la quota del terreno di quel punto.</li>
+
+      <li><strong>Errore di caricamento della mappa.</strong> Dipende dalla chiave Google Maps della piattaforma: segnalalo all'amministratore.</li>
+      <li><strong>Voglio tornare all'inquadratura iniziale.</strong> Menu del pannello → <span class="rh-ui">Reimposta vista</span>.</li>
+    </ul>
+  </section>
+</div>

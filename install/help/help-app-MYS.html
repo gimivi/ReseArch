@@ -1,0 +1,190 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App MYS (tabella su database MySQL, Tabulator, lettura e scrittura).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Tabelle del database (MYS)" }
+  Fonti: app/model_MYS.mjs, api/grid.php + api/grid_schema.php (lista bianca delle tabelle), template "MySQL Tabulator".
+  Nessuno script. Agganci per un flow: #rh-help, #rh-sec-pre, #rh-tpl-mys, #rh-sec-edit, #rh-sec-bus, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-database" aria-hidden="true"></i> Tabelle del database (MYS)</h2>
+  <p class="rh-lead">
+    MYS mostra una tabella del database della piattaforma, con ricerca, filtri e, se abilitata, <strong>modifica
+    delle righe che viene salvata davvero</strong>. È la scelta giusta per schedature e censimenti curati da più persone.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-pre"><i class="bi bi-shield-lock" aria-hidden="true"></i>Prima di iniziare</a></li>
+      <li><a href="#rh-tpl-mys"><i class="bi bi-braces" aria-hidden="true"></i>Il template</a></li>
+      <li><a href="#rh-sec-edit"><i class="bi bi-pencil-square" aria-hidden="true"></i>Modificare i dati</a></li>
+      <li><a href="#rh-sec-bus"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-pre" aria-labelledby="rh-sec-pre-t">
+    <h3 id="rh-sec-pre-t"><i class="bi bi-shield-lock" aria-hidden="true"></i>Prima di iniziare</h3>
+    <p>Per sicurezza MYS legge solo le tabelle che l'<strong>amministratore</strong> ha registrato nel server
+       (file <code>api/grid_schema.php</code>). Per ogni tabella l'amministratore decide:</p>
+    <ul>
+      <li>quali colonne si possono <strong>leggere</strong>, <strong>filtrare</strong> e <strong>ordinare</strong>;</li>
+      <li>se la tabella si può <strong>modificare</strong> (aggiungere, cambiare, eliminare righe);</li>
+      <li>quante righe al massimo si possono chiedere in una volta.</li>
+    </ul>
+    <p class="rh-note">Se la tua tabella non è registrata, chiedi all'amministratore. La spec da sola non basta ad aprire una tabella.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-mys" aria-labelledby="rh-tpl-mys-t">
+    <h3 id="rh-tpl-mys-t"><i class="bi bi-braces" aria-hidden="true"></i>Il template "MySQL Tabulator" <span class="rh-badge">base</span></h3>
+    <p>Modello <span class="rh-ui">Nessun file (dati dal flow)</span>; tutto è nella spec.</p>
+    <pre class="rh-json">{
+  "table": "Schedatura_Teatri",
+  "fields": ["*"],
+  "where":   [ { "field": "Regione", "op": "=", "value": "Lazio" } ],
+  "orderBy": [ { "field": "Nome", "dir": "asc" } ],
+  "limit": 200,
+  "pageSize": 25,
+  "pkField": "id",
+  "searchFields": ["Nome", "Città"],
+  "columns": [
+    { "field": "id",   "title": "#",    "width": 60, "frozen": true },
+    { "field": "Nome", "title": "Nome", "width": 220 },
+    { "field": "AnnoApertura", "title": "Apertura" },
+    { "field": "Esistente", "title": "Esiste", "formatter": "boolean" }
+  ],
+  "busKey": "id"
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi della spec MYS</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Predefinito</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>table</code></td><td>—</td><td><strong>Obbligatorio.</strong> Nome della tabella registrata.</td></tr>
+          <tr><td><code>fields</code></td><td><code>["*"]</code></td><td>Colonne da leggere.</td></tr>
+          <tr><td><code>where</code></td><td>nessuno</td><td>Filtri sempre attivi, es. solo una regione. Operatori: <code>=</code> <code>!=</code> <code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code> <code>like</code> (con <code>%</code>: <code>"Roma%"</code>). Si sommano a ricerca e filtri successivi.</td></tr>
+          <tr><td><code>orderBy</code></td><td>—</td><td>Ordinamento iniziale; <code>dir</code> = <code>"asc"</code> o <code>"desc"</code>.</td></tr>
+          <tr><td><code>limit</code></td><td>200</td><td>Righe massime caricate.</td></tr>
+          <tr><td><code>pageSize</code></td><td>25</td><td>Righe per pagina.</td></tr>
+          <tr><td><code>pkField</code></td><td>quello del server</td><td>Colonna che identifica la riga. Serve per modificare ed eliminare.</td></tr>
+          <tr><td><code>searchFields</code></td><td>tutte</td><td>Colonne in cui cerca la casella di ricerca.</td></tr>
+          <tr><td><code>columns</code></td><td>tutte</td><td>Colonne da mostrare: <code>field</code>, <code>title</code>, <code>width</code>, <code>frozen</code> (ferma a sinistra), <code>formatter</code>.</td></tr>
+          <tr><td><code>busKey</code></td><td>—</td><td>Campo scambiato con gli altri pannelli.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h4>Formati di colonna (<code>formatter</code>)</h4>
+    <ul>
+      <li><code>"date"</code>, <code>"datetime"</code>: data (e ora) all'italiana.</li>
+      <li><code>"money"</code>: due decimali.</li>
+      <li><code>"boolean"</code>: ✔ / ✗.</li>
+      <li><code>"badge"</code>: etichetta colorata; serve anche <code>"colors": { "Sì": "#2e7d32", "No": "#c62828" }</code>.</li>
+    </ul>
+    <p>Più tabelle per lo stesso oggetto: un modello per tabella; il menu a sinistra del pannello passa dall'una all'altra.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-edit" aria-labelledby="rh-sec-edit-t">
+    <h3 id="rh-sec-edit-t"><i class="bi bi-pencil-square" aria-hidden="true"></i>Modificare i dati</h3>
+    <p>Se la tabella è modificabile e tu hai almeno il livello di autore, compaiono la colonna delle azioni e il pulsante per aggiungere righe.</p>
+    <ul>
+      <li><strong>Doppio clic</strong> su una cella per modificarla, poi ✓ per salvare la riga o ✗ per annullare.</li>
+      <li>Il cestino elimina la riga, dopo una conferma.</li>
+    </ul>
+    <p class="rh-note">Le modifiche vanno <strong>subito nel database</strong> e le vedono tutti. Non c'è un "annulla" dopo il salvataggio.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-bus" aria-labelledby="rh-sec-bus-t">
+    <h3 id="rh-sec-bus-t"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</h3>
+    <p>Con <code>busKey</code> la tabella <strong>parla</strong> e <strong>ascolta</strong>:</p>
+    <ul>
+      <li>clic su una riga → gli altri pannelli sanno quale elemento è stato scelto (es. la mappa centra quel teatro);</li>
+      <li>un altro pannello sceglie lo stesso elemento (stesso campo, stesso valore) → la riga si evidenzia qui;</li>
+      <li>un altro pannello o un flow può mandare dei <strong>filtri</strong> o chiedere di ricaricare i dati.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>"Tabella … non presente nella whitelist".</strong> La tabella non è registrata, o il nome in <code>table</code> è diverso (maiuscole comprese).</li>
+      <li><strong>"Colonna non consentita", "Filtro non consentito", "Ordinamento non consentito".</strong> In <code>fields</code>, <code>where</code> o <code>orderBy</code> c'è una colonna che l'amministratore non ha abilitato per quell'uso.</li>
+      <li><strong>Non posso modificare.</strong> La tabella è registrata in sola lettura, oppure il tuo livello non basta.</li>
+      <li><strong>Mancano righe.</strong> Controlla <code>limit</code> e i filtri in <code>where</code>.</li>
+    </ul>
+  </section>
+</div>

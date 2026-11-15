@@ -1,0 +1,25 @@
+{
+  "groups": [
+    { "id": "politica", "content": "Politica", "order": 1 },
+    { "id": "cultura", "content": "Cultura", "order": 2, "nested": ["architettura", "letteratura"], "open": true },
+    { "id": "architettura", "content": "Architettura", "order": 3 },
+    { "id": "letteratura", "content": "Letteratura", "order": 4 }
+  ],
+  "items": [
+    { "id": "era-rep", "type": "background", "start": "-509", "end": "-27", "content": "Repubblica", "class": ["epoca"] },
+    { "id": "era-imp", "type": "background", "start": "-27", "end": "476", "content": "Impero", "class": ["epoca"] },
+
+    { "id": "fondazione", "start": "-753-04-21", "content": "Fondazione di Roma", "group": "politica", "tags": ["leggenda"], "title": "Data tradizionale (Varrone)" },
+    { "id": "cesare", "start": "-100-07-12", "end": "-44-03-15", "content": "Giulio Cesare", "group": "politica", "class": ["2"], "tags": ["persona"] },
+    { "id": "idi", "type": "point", "start": "-44-03-15", "content": "Idi di marzo", "group": "politica", "tags": ["evento"] },
+    { "id": "augusto", "start": "-27-01-16", "end": "14-08-19", "content": "Principato di Augusto", "group": "politica", "class": ["guerra"], "tags": ["persona"] },
+    { "id": "caduta", "start": "476-09-04", "content": "Deposizione di Romolo Augusto", "group": "politica", "tags": ["evento"] },
+
+    { "id": "pantheon", "start": "113", "end": "125", "content": "Pantheon (ricostruzione adrianea)", "group": "architettura", "class": ["5"], "tags": ["edificio"] },
+    { "id": "colosseo", "start": "72", "end": "80", "content": "Anfiteatro Flavio", "group": "architettura", "class": ["5"], "tags": ["edificio"] },
+    { "id": "virgilio", "start": "-70-10-15", "end": "-19-09-21", "content": "Virgilio", "group": "letteratura", "class": ["3"], "tags": ["persona"] },
+    { "id": "eneide", "start": "-29", "end": "-19", "content": "Eneide", "group": "letteratura", "class": ["3"], "tags": ["opera"] },
+
+    { "id": "dubbio", "start": "-50", "content": "Item senza gruppo", "title": "Finisce nella corsia —" }
+  ]
+}

@@ -1,0 +1,347 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'intestazione (header) e del footer dei pannelli della dashboard, comuni a tutte le App.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Intestazione e footer del pannello" }
+  Fonti: ui/dashboard_windows.mjs (markup del pannello, divisioni, schede, intestazione compatta, scomparsa automatica),
+  app/template_XXX.mjs (menu, "Ricarica oggetto", toolbar, cmdUI del footer), dashboard.php (pulsanti Oggetti e Flow embedded,
+  $showUOML), css/ReseArch.css, FLE-nodes.mjs (ReseArch/Menu/Command, ReseArch/Menu/Status), TJS-flow-runner.mjs e
+  app/shared/panel-flow.mjs (dal 2026-10-13 i nodi Menu valgono per tutte le App, menu ricostruiti all'apertura),
+  TJS-extensions.mjs (voci delle estensioni), FLE-nodes.mjs (ReseArch/Panel/Status e /Hints, cmdUI.notify). Nessun pulsante per #modalTreeObj: senza il pannello chiamante non saprebbe dove aprire
+  l'oggetto. Nessuno script. Agganci: #rh-help, #rh-sec-map, #rh-sec-fixed, #rh-sec-loaded, #rh-sec-fle, #rh-sec-behaviour,
+  #rh-sec-footer, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-window-stack" aria-hidden="true"></i> Intestazione e footer del pannello</h2>
+  <p class="rh-lead">
+    Ogni pannello della dashboard ha una <strong>intestazione</strong> in alto e un <strong>footer</strong> in basso.
+    L'intestazione ha comandi fissi, presenti anche nel pannello vuoto, e una parte che si riempie quando apri un oggetto.
+    Alcune voci si possono aggiungere con i nodi dei flow.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-map"><i class="bi bi-layout-text-window" aria-hidden="true"></i>Com'è fatta</a></li>
+      <li><a href="#rh-sec-fixed"><i class="bi bi-pin-angle" aria-hidden="true"></i>I comandi fissi</a></li>
+      <li><a href="#rh-sec-loaded"><i class="bi bi-box-arrow-in-down" aria-hidden="true"></i>Dopo l'apertura di un oggetto</a></li>
+      <li><a href="#rh-sec-fle"><i class="bi bi-diagram-2" aria-hidden="true"></i>Personalizzare con i nodi</a></li>
+      <li><a href="#rh-sec-behaviour"><i class="bi bi-arrows-angle-contract" aria-hidden="true"></i>Comparsa, spazio stretto, schede</a></li>
+      <li><a href="#rh-sec-footer"><i class="bi bi-layout-text-sidebar-reverse" aria-hidden="true"></i>Il footer</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-map" aria-labelledby="rh-sec-map-t">
+    <h3 id="rh-sec-map-t"><i class="bi bi-layout-text-window" aria-hidden="true"></i>Com'è fatta</h3>
+    <p>L'intestazione ha tre zone, da sinistra a destra:</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Zone dell'intestazione del pannello</caption>
+        <thead><tr><th scope="col">Zona</th><th scope="col">Pannello vuoto</th><th scope="col">Con un oggetto aperto</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Menu sinistro</strong></td>
+              <td><span class="rh-ui"><i class="bi bi-list" aria-hidden="true"></i> Pannello</span>, menu vuoto</td>
+              <td>Il <strong>nome dell'oggetto</strong>; il menu contiene i comandi sull'oggetto</td></tr>
+          <tr><td><strong>Barra degli strumenti</strong> (al centro)</td>
+              <td>Vuota</td>
+              <td>I pulsanti propri dell'App (misure, sezioni, zoom, filtri…)</td></tr>
+          <tr><td><strong>Comandi del pannello</strong> (a destra)</td>
+              <td>Menu <i class="bi bi-list" aria-hidden="true"></i>, Oggetti, Flow embedded, dividi, espandi, chiudi</td>
+              <td>Gli stessi pulsanti; il menu destro si riempie con i comandi dell'App</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Il <strong>footer</strong> è una riga in fondo al pannello. Nel pannello vuoto non compare mai: lo usano le App per i messaggi
+       (vedi <a href="#rh-sec-footer">Il footer</a>).</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-fixed" aria-labelledby="rh-sec-fixed-t">
+    <h3 id="rh-sec-fixed-t"><i class="bi bi-pin-angle" aria-hidden="true"></i>I comandi fissi</h3>
+    <p>Ci sono in ogni pannello, anche prima di aprire un oggetto, e non dipendono dall'App.
+       La colonna <strong>Nodi FLE</strong> dice se un flow può aggiungere qualcosa a quel comando.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi fissi dell'intestazione</caption>
+        <thead><tr><th scope="col">Comando</th><th scope="col">Cosa fa</th><th scope="col">Chi lo vede</th><th scope="col">Nodi FLE</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rh-ui"><i class="bi bi-list" aria-hidden="true"></i> Pannello</span><br><small>menu sinistro</small></td>
+              <td>Prima di aprire un oggetto è vuoto. Dopo porta il nome dell'oggetto e ne raccoglie i comandi.</td>
+              <td>Tutti</td>
+              <td><strong>Sì</strong>: <code>Menu Command</code> con menu <code>left</code> e <code>Menu Status</code></td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-list" aria-hidden="true"></i></span><br><small>menu destro</small></td>
+              <td>Prima di aprire un oggetto è vuoto. Dopo contiene <span class="rh-ui">Ricarica oggetto</span> e i comandi dell'App.</td>
+              <td>Tutti</td>
+              <td><strong>Sì</strong>: <code>Menu Command</code> con menu <code>right</code></td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-box2" aria-hidden="true"></i> Oggetti</span></td>
+              <td>Apre <span class="rh-ui">Tree Oggetti &amp; Modelli</span>: scegli un oggetto del WP, spunta i modelli da caricare
+                  e l'oggetto si apre <strong>in questo pannello</strong>, al posto di quello che c'era.</td>
+              <td>Tutti</td>
+              <td>No</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-diagram-2" aria-hidden="true"></i> Flow embedded</span></td>
+              <td>Apre <span class="rh-ui">Apri o crea un flow</span>: scegli a cosa legare il flow (un oggetto aperto in un altro
+                  pannello, oppure la configurazione dashboard caricata) e l'editor dei flow si apre in questo pannello.</td>
+              <td>Amministratore, responsabile scientifico (P), utenti del WP con permesso di scrittura (W) o inserimento (I)</td>
+              <td>No</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-layout-split" aria-hidden="true"></i></span><br><small>dividi verticalmente</small></td>
+              <td>Divide il pannello in due, <strong>affiancati</strong> (sinistra/destra). Il nuovo pannello è vuoto.</td>
+              <td>Tutti</td>
+              <td>No</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-layout-split rotate-90" aria-hidden="true"></i></span><br><small>dividi orizzontalmente</small></td>
+              <td>Divide il pannello in due, <strong>uno sopra l'altro</strong>.</td>
+              <td>Tutti</td>
+              <td>No</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i></span><br><small>espandi / ripristina</small></td>
+              <td>Porta il pannello a tutta la dashboard nascondendo gli altri. Premuto di nuovo
+                  (<i class="bi bi-fullscreen-exit" aria-hidden="true"></i>) torna alla disposizione di prima.</td>
+              <td>Tutti</td>
+              <td>No</td></tr>
+          <tr><td><span class="rh-ui"><i class="bi bi-x-lg" aria-hidden="true"></i></span><br><small>chiudi pannello</small></td>
+              <td>Chiude il pannello; quello accanto si allarga e prende il suo posto.</td>
+              <td>Tutti</td>
+              <td>No</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li>Si divide solo se entrambe le metà restano larghe (o alte) almeno <strong>150 pixel</strong>: altrimenti il pulsante è spento.</li>
+      <li>Con un pannello espanso i pulsanti di divisione non fanno nulla: ripristina prima la disposizione.</li>
+      <li>L'<strong>ultimo pannello</strong> rimasto non si chiude.</li>
+      <li>Il bordo fra due pannelli si trascina per cambiarne le proporzioni; si ferma su una griglia di 30 pixel.</li>
+      <li>La disposizione dei pannelli, gli oggetti aperti e i modelli scelti si salvano con le <strong>configurazioni dashboard</strong>.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-loaded" aria-labelledby="rh-sec-loaded-t">
+    <h3 id="rh-sec-loaded-t"><i class="bi bi-box-arrow-in-down" aria-hidden="true"></i>Dopo l'apertura di un oggetto</h3>
+    <p>Quando un oggetto si apre, ogni App riempie l'intestazione a modo suo. Quello che vale per tutte:</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Contenuto dell'intestazione con un oggetto aperto</caption>
+        <thead><tr><th scope="col">Zona</th><th scope="col">Contenuto</th></tr></thead>
+        <tbody>
+          <tr><td>Menu sinistro</td>
+              <td>Il titolo diventa il <strong>nome dell'oggetto</strong>. Le voci sono quelle dell'App, più quelle aggiunte dai nodi dei flow.
+                  Se non ce ne sono, il menu mostra <em>Nessuna azione disponibile</em>.</td></tr>
+          <tr><td>Barra degli strumenti</td>
+              <td>Solo pulsanti dell'App: ogni guida dell'App li descrive. I flow <strong>non</strong> possono aggiungerne.</td></tr>
+          <tr><td>Menu destro</td>
+              <td>La prima voce è sempre <span class="rh-ui">Ricarica oggetto</span>, in tutte le App. Seguono i comandi dell'App e
+                  quelli aggiunti dai flow. Il pulsante resta l'icona <i class="bi bi-list" aria-hidden="true"></i>; l'etichetta scelta
+                  dall'App (per esempio <em>Opzioni</em>) compare passandoci sopra con il mouse.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><span class="rh-ui">Ricarica oggetto</span> rilegge oggetto e modelli dal database e riapre il pannello, con gli stessi modelli
+       scelti all'apertura. Serve dopo aver cambiato una spec, un file o un flow, senza ricaricare tutta la pagina.
+       Nel pannello dell'editor dei flow non fa nulla, perché lì non c'è un oggetto del database.</p>
+    <p class="rh-note">Alcune voci dei menu e della barra sono riservate a chi ha un livello più alto sul pannello
+       (per esempio chi può modificare l'oggetto). Due persone che aprono lo stesso oggetto possono quindi vedere menu diversi.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-fle" aria-labelledby="rh-sec-fle-t">
+    <h3 id="rh-sec-fle-t"><i class="bi bi-diagram-2" aria-hidden="true"></i>Personalizzare con i nodi</h3>
+    <p>Un flow collegato all'oggetto può aggiungere voci <strong>ai due menu</strong>. La barra degli strumenti e i comandi del
+       pannello (Oggetti, dividi, espandi, chiudi…) non si toccano.</p>
+    <p>Funzionano con <strong>tutte le App</strong>, nei flow collegati all'oggetto e anche in <span class="rh-ui">Testa su panel</span>
+       dell'editor dei flow: le voci compaiono nel pannello scelto per la prova. Non valgono per i flow della configurazione
+       dashboard, che non appartengono a un pannello.</p>
+
+    <div class="rh-tpl">
+      <h4><code>ReseArch/Menu/Command</code> — Menu Command</h4>
+      <p>Aggiunge una voce cliccabile. Al clic emette l'evento <code>trigger</code>: collegalo al nodo che deve agire
+         (cambiare vista, accendere una luce, salvare…).</p>
+      <div class="rh-tablewrap">
+        <table>
+          <caption class="visually-hidden">Impostazioni del nodo Menu Command</caption>
+          <thead><tr><th scope="col">Impostazione</th><th scope="col">Effetto</th></tr></thead>
+          <tbody>
+            <tr><td><code>label</code></td><td>Il testo della voce.</td></tr>
+            <tr><td><code>menu</code> = <code>left</code> (predefinito)</td><td>Voce nel menu <strong>sinistro</strong>: comandi sull'oggetto.</td></tr>
+            <tr><td><code>menu</code> = <code>right</code></td><td>Voce nel menu <strong>destro</strong>, dopo i comandi dell'App.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="rh-tpl">
+      <h4><code>ReseArch/Menu/Status</code> — Menu Status</h4>
+      <p>Aggiunge al menu <strong>sinistro</strong> una voce grigia, non cliccabile, che mostra un valore:
+         <em>etichetta: valore</em>. Collega all'ingresso <code>value</code> un numero o un testo
+         (per esempio un conteggio o il nome della vista attiva). Il menu mostra l'ultimo valore arrivato sul filo,
+         letto ogni volta che lo apri.</p>
+    </div>
+
+    <div class="rh-tpl">
+      <h4>Estensioni 3D (solo TJS)</h4>
+      <p>Alcuni nodi di configurazione aggiungono da soli le proprie voci ai menu:</p>
+      <ul>
+        <li><code>TJS/Setup/Walkthrough</code>, menu sinistro: <span class="rh-ui">Prima persona (walkthrough)</span> / <span class="rh-ui">Esci dalla prima persona</span>,
+            la scelta del comando touch e, se il dispositivo lo permette, <span class="rh-ui">Entra in VR (visore)</span>.</li>
+        <li><code>TJS/Setup/Audio</code>, menu destro: <span class="rh-ui">Musica: attiva</span> / <span class="rh-ui">Musica: disattiva</span>.</li>
+      </ul>
+    </div>
+
+    <p><strong>Ordine delle voci.</strong> Nel menu sinistro vengono prima le voci dell'App, poi quelle delle estensioni, poi i
+       comandi, infine gli stati, separati da una linea. Nel menu destro: <span class="rh-ui">Ricarica oggetto</span>, poi i comandi
+       dell'App, poi le estensioni, poi i comandi dei flow.</p>
+    <p>I menu si ricostruiscono <strong>ogni volta che li apri</strong>: una voce aggiunta durante una prova compare subito.
+       Per un flow salvato sull'oggetto, dopo averlo modificato usa <span class="rh-ui">Ricarica oggetto</span>,
+       così il pannello carica la versione nuova.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalFlows">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> Apri Flow
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalObjModLinks">
+        <i class="bi bi-link-45deg" aria-hidden="true"></i> Apri Collegamenti
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-behaviour" aria-labelledby="rh-sec-behaviour-t">
+    <h3 id="rh-sec-behaviour-t"><i class="bi bi-arrows-angle-contract" aria-hidden="true"></i>Comparsa, spazio stretto, schede</h3>
+    <ul>
+      <li><strong>Scomparsa automatica.</strong> Con un oggetto aperto l'intestazione sparisce dopo <strong>10 secondi</strong>, per
+          lasciare tutto lo spazio al contenuto. Per farla tornare porta il mouse sul <strong>bordo alto</strong> o sul <strong>bordo
+          basso</strong> del pannello. Nel pannello vuoto resta sempre visibile.</li>
+      <li><strong>Pannello stretto.</strong> Se l'intestazione non ci sta, si riduce un passo alla volta. La barra degli strumenti è l'ultima a ridursi:
+        <ol>
+          <li>il menu sinistro (<i class="bi bi-list" aria-hidden="true"></i> e nome dell'oggetto) diventa <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>;</li>
+          <li>anche i comandi di destra (menu, Oggetti, Flow embedded, dividi, espandi, chiudi) diventano <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>;</li>
+          <li>se la barra degli strumenti non ci sta ancora, <strong>scorre</strong>. Con il mouse sopra la barra, verso il bordo sinistro
+              vedi i primi pulsanti e verso il destro gli ultimi. Uscendo, la barra resta dov'è. Si scorre anche con la rotella o con il dito.</li>
+        </ol>
+        Passando con il mouse su un <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>, o toccandolo, quella parte si riapre.
+        Il resto si riduce: l'altro lato diventa <i class="bi bi-three-dots-vertical" aria-hidden="true"></i> e la barra degli strumenti
+        diventa l'icona <i class="bi bi-tools" aria-hidden="true"></i>. Uscendo con il mouse, o toccando altrove, tutto torna com'era.
+        Da tastiera: <kbd>Tab</kbd> fino al <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>, poi <kbd>Invio</kbd>.</li>
+      <li><strong>Finestra sotto i 992 pixel</strong> (tablet in verticale, telefono). I pannelli non si affiancano più: in cima compare una
+          barra di <strong>schede</strong>, una per pannello, con il nome dell'oggetto aperto. Si vede un pannello alla volta. Con la
+          tastiera le frecce passano da una scheda all'altra. Tornando a una finestra larga la disposizione è quella di prima.</li>
+      <li><strong>Telefono</strong> (lato corto sotto i 600 pixel). Si può fare una sola divisione, nella direzione imposta dall'orientamento.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-footer" aria-labelledby="rh-sec-footer-t">
+    <h3 id="rh-sec-footer-t"><i class="bi bi-layout-text-sidebar-reverse" aria-hidden="true"></i>Il footer</h3>
+    <p>Il footer non ha comandi fissi: lo scrive l'App per dire cosa sta succedendo e cosa fare. Ha tre zone:</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Zone del footer</caption>
+        <thead><tr><th scope="col">Zona</th><th scope="col">Contenuto</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stato</strong> (a sinistra)</td><td>Che cosa sta succedendo: <em>Salvato</em>, una misura, il comando attivo.
+              Chi usa un lettore di schermo lo sente annunciare.</td></tr>
+          <tr><td><strong>Suggerimenti</strong> (al centro)</td><td>Che cosa fare adesso: <em>clicca il secondo punto</em>, <em>Esc per annullare</em>…</td></tr>
+          <tr><td><strong>Controlli</strong> (a destra)</td><td>Pulsanti o campi del comando in corso (per esempio Conferma, Annulla, un valore da scrivere).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li>Compare quando l'App scrive un messaggio e scompare da solo dopo <strong>15 secondi</strong>.</li>
+      <li>Durante un comando che chiede più passaggi (una misura, un disegno) resta aperto finché il comando non finisce.</li>
+      <li>Si vede insieme all'intestazione: quando lei scompare, scompare anche il footer. Per rivederlo porta il mouse sul bordo basso del pannello.</li>
+    </ul>
+
+    <h4>Nodi FLE per il footer</h4>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi che scrivono nel footer</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>ReseArch/Panel/Status</code> — Panel Status</td><td>Scrive il testo dello <strong>stato</strong> (dal campo <code>message</code> o dall'ingresso omonimo) all'arrivo del <code>trigger</code>.</td></tr>
+          <tr><td><code>ReseArch/Panel/Hints</code> — Panel Hints</td><td>Scrive il testo dei <strong>suggerimenti</strong>, allo stesso modo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Valgono per tutte le App e in <span class="rh-ui">Testa su panel</span>. Se il footer è chiuso lo <strong>aprono</strong>,
+       insieme all'intestazione; poi si chiude da solo dopo 15 secondi. Se l'App ha un comando in corso, il comando resta attivo:
+       cambia solo il testo.</p>
+    <p class="rh-note">Non c'è un nodo per i controlli a destra: quelli restano all'App. Nei flow della configurazione dashboard i due
+       nodi non scrivono nulla, perché non c'è un pannello, ma emettono comunque <code>done</code>.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>L'intestazione è sparita.</strong> È la scomparsa automatica: porta il mouse sul bordo alto del pannello.</li>
+      <li><strong>Non vedo il pulsante Flow embedded.</strong> Serve il permesso di scrittura o inserimento nel WP, oppure essere responsabile scientifico o amministratore.</li>
+      <li><strong>Il pulsante di divisione è spento.</strong> Il pannello è troppo piccolo per due metà da 150 pixel, oppure sei su un telefono e la divisione è già stata fatta.</li>
+      <li><strong>Non trovo i pulsanti di destra.</strong> Il pannello è stretto: passa con il mouse sul <i class="bi bi-three-dots-vertical" aria-hidden="true"></i> a destra (o toccalo), oppure espandi il pannello.</li>
+      <li><strong>Non vedo tutti i pulsanti della barra.</strong> La barra scorre: muovi il mouse verso il suo bordo destro, oppure usa la rotella.</li>
+      <li><strong>Un menu a tendina della barra si apre tagliato.</strong> Succede quando la barra scorre, cioè nei pannelli molto stretti
+          (App con menu nella barra, per esempio TJS, OSD, PDF). Allarga o espandi il pannello.</li>
+      <li><strong>Ho messo un Menu Command ma la voce non c'è.</strong> Controlla che il flow sia collegato all'oggetto, salvato e scelto all'apertura, poi usa <span class="rh-ui">Ricarica oggetto</span>. In prova, controlla di aver scelto il pannello con <span class="rh-ui">Testa su panel</span>.</li>
+      <li><strong>La voce di Menu Status non mostra il valore.</strong> Sul filo d'ingresso <code>value</code> non è ancora arrivato niente: si vede solo l'etichetta.</li>
+    </ul>
+  </section>
+</div>

@@ -1,0 +1,175 @@
+/* =============================================================================
+   css/TML.css — strato base della timeline TML (vis-timeline)
+   =============================================================================
+   Separato da ReseArch.css (eccezione dichiarata in _doc/arch-css.md §3): caricato solo
+   quando si apre una timeline (app/model_TML.mjs). Progetto: _doc/module-tml-timeline.md §11.
+
+   Strati:  1. CSS di vis-timeline (inserito dalla libreria stessa)
+            2. questo file: adatta vis-timeline alla dashboard e definisce le VARIABILI
+            3. i CSS del modello (mod_spec.css), confinati al pannello
+
+   Un CSS del modello può limitarsi a cambiare le variabili:
+       .tml-root { --tml-item-bg: #fef3c7; --tml-font: "Cinzel", serif; }
+
+   Classi per chi scrive un CSS (contratto, §11.3):
+       .tml-root                     contenitore
+       .tml-c-<nome>                 item/gruppo con "class": ["<nome>"]
+       .tml-t-point|box|range|background   tipo di item
+       .tml-g-<id>                   corsia del gruppo <id>
+       .tml-tag-<tag>                item con quel tag
+       .tml-l-<livello>              item, corsie e gruppo radice del livello (§3.5)
+       .tml-layer                    gruppo radice di un livello (livelli affiancati)
+       .tml-filtered-out             item attenuati da un filtro (mode "dim")
+       .tml-disabled                 corsia disattivata (doppio clic sull'etichetta)
+       .tml-cursor                   cursore
+   ============================================================================= */
+
+.tml-root {
+    --tml-bg:            #ffffff;
+    --tml-text:          #1f2937;
+    --tml-font:          inherit;
+    --tml-font-size:     13px;
+    --tml-axis-text:     #6b7280;
+    --tml-grid:          #eef0f3;
+    --tml-grid-major:    #d1d5db;
+    --tml-border:        #e5e7eb;
+    --tml-item-bg:       #dbeafe;
+    --tml-item-border:   #2563eb;
+    --tml-item-text:     #1e3a8a;
+    --tml-item-radius:   3px;
+    --tml-selected-bg:   #fde68a;
+    --tml-selected-border: #b45309;
+    --tml-era-bg:        rgba(15, 23, 42, 0.05);
+    --tml-era-text:      #64748b;
+    --tml-group-text:    #374151;
+    --tml-group-bg:      #f9fafb;
+    --tml-cursor:        #dc2626;
+    --tml-tooltip-bg:    #111827;
+    --tml-tooltip-text:  #f9fafb;
+    --tml-filtered-opacity: 0.25;
+    --tml-disabled-text: #9ca3af;   /* etichetta di una corsia disattivata */
+    --tml-uncertain-fade: 40%;   /* fase 2: tratto sfumato delle date incerte */
+
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: var(--tml-bg);
+    color: var(--tml-text);
+    font-family: var(--tml-font);
+    font-size: var(--tml-font-size);
+}
+
+/* vis-timeline imposta position:relative sul contenitore: l'altezza va data con height:100% */
+.tml-root .tml-canvas { width: 100%; height: 100%; }
+
+.tml-root .tml-message {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem; text-align: center;
+    color: var(--tml-axis-text);
+}
+
+/* ── vis-timeline: struttura ─────────────────────────────────────────────── */
+
+.tml-root .vis-timeline {
+    border: none;
+    font-family: var(--tml-font);
+    font-size: var(--tml-font-size);
+    color: var(--tml-text);
+}
+.tml-root .vis-panel.vis-center,
+.tml-root .vis-panel.vis-left,
+.tml-root .vis-panel.vis-right,
+.tml-root .vis-panel.vis-top,
+.tml-root .vis-panel.vis-bottom { border-color: var(--tml-border); }
+
+.tml-root .vis-time-axis .vis-text      { color: var(--tml-axis-text); }
+.tml-root .vis-time-axis .vis-text.vis-major { color: var(--tml-text); font-weight: 600; }
+.tml-root .vis-time-axis .vis-grid.vis-minor { border-color: var(--tml-grid); }
+.tml-root .vis-time-axis .vis-grid.vis-major { border-color: var(--tml-grid-major); }
+
+/* corsie (gruppi) */
+.tml-root .vis-labelset .vis-label {
+    color: var(--tml-group-text);
+    background: var(--tml-group-bg);
+    border-bottom-color: var(--tml-border);
+}
+.tml-root .vis-foreground .vis-group { border-bottom-color: var(--tml-border); }
+.tml-root .vis-labelset .vis-label.vis-nesting-group { font-weight: 600; }
+/* gruppo radice di un livello (livelli affiancati, §3.5): separa i livelli */
+.tml-root .vis-labelset .vis-label.tml-layer { font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.tml-root .vis-labelset .vis-label.tml-layer,
+.tml-root .vis-foreground .vis-group.tml-layer { border-top: 2px solid var(--tml-grid-major); }
+/* corsia disattivata: etichetta grigia, niente freccia (non si apre), riga tratteggiata */
+.tml-root .vis-labelset .vis-label.tml-disabled { color: var(--tml-disabled-text); font-style: italic; }
+.tml-root .vis-labelset .vis-label.tml-disabled.vis-nesting-group::before { visibility: hidden; }
+.tml-root .vis-background .vis-group.tml-disabled {
+    background: repeating-linear-gradient(-45deg, transparent 0 6px, var(--tml-grid) 6px 7px);
+}
+
+/* ── item ────────────────────────────────────────────────────────────────── */
+
+.tml-root .vis-item {
+    background-color: var(--tml-item-bg);
+    border-color: var(--tml-item-border);
+    color: var(--tml-item-text);
+    border-radius: var(--tml-item-radius);
+}
+.tml-root .vis-item.vis-point { background: transparent; }
+/* il testo di un periodo breve esce dal riquadro invece di essere tagliato */
+.tml-root .vis-item.vis-range .vis-item-overflow { overflow: visible; }
+.tml-root .vis-item .vis-item-content { padding: 3px 6px; }
+.tml-root .vis-item.vis-dot,
+.tml-root .vis-item.vis-line { border-color: var(--tml-item-border); }
+.tml-root .vis-item.vis-selected {
+    background-color: var(--tml-selected-bg);
+    border-color: var(--tml-selected-border);
+    z-index: 2;
+}
+/* epoche */
+.tml-root .vis-item.vis-background {
+    background-color: var(--tml-era-bg);
+    border: none;
+}
+.tml-root .vis-item.vis-background .vis-item-content {
+    color: var(--tml-era-text);
+    font-style: italic;
+}
+
+/* filtro "attenua" */
+.tml-root .vis-item.tml-filtered-out { opacity: var(--tml-filtered-opacity); }
+
+/* cursore */
+.tml-root .vis-custom-time.tml-cursor { background-color: var(--tml-cursor); width: 2px; }
+.tml-root .vis-custom-time.tml-cursor > .vis-custom-time-marker {
+    background-color: var(--tml-cursor);
+    font-family: var(--tml-font);
+}
+
+/* tooltip */
+.tml-root .vis-tooltip {
+    background: var(--tml-tooltip-bg);
+    color: var(--tml-tooltip-text);
+    border: none;
+    border-radius: 4px;
+    font-family: var(--tml-font);
+    font-size: 12px;
+    white-space: pre-line;
+    max-width: 320px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ── tavolozza pronta: "class": ["1"] … ["12"] ───────────────────────────── */
+
+.tml-root .tml-c-1  { --tml-item-bg: #dbeafe; --tml-item-border: #2563eb; --tml-item-text: #1e3a8a; }
+.tml-root .tml-c-2  { --tml-item-bg: #fee2e2; --tml-item-border: #dc2626; --tml-item-text: #7f1d1d; }
+.tml-root .tml-c-3  { --tml-item-bg: #dcfce7; --tml-item-border: #16a34a; --tml-item-text: #14532d; }
+.tml-root .tml-c-4  { --tml-item-bg: #fef3c7; --tml-item-border: #d97706; --tml-item-text: #78350f; }
+.tml-root .tml-c-5  { --tml-item-bg: #ede9fe; --tml-item-border: #7c3aed; --tml-item-text: #4c1d95; }
+.tml-root .tml-c-6  { --tml-item-bg: #cffafe; --tml-item-border: #0891b2; --tml-item-text: #164e63; }
+.tml-root .tml-c-7  { --tml-item-bg: #fce7f3; --tml-item-border: #db2777; --tml-item-text: #831843; }
+.tml-root .tml-c-8  { --tml-item-bg: #ecfccb; --tml-item-border: #65a30d; --tml-item-text: #365314; }
+.tml-root .tml-c-9  { --tml-item-bg: #ffedd5; --tml-item-border: #ea580c; --tml-item-text: #7c2d12; }
+.tml-root .tml-c-10 { --tml-item-bg: #e0e7ff; --tml-item-border: #4f46e5; --tml-item-text: #312e81; }
+.tml-root .tml-c-11 { --tml-item-bg: #f1f5f9; --tml-item-border: #475569; --tml-item-text: #0f172a; }
+.tml-root .tml-c-12 { --tml-item-bg: #ccfbf1; --tml-item-border: #0d9488; --tml-item-text: #134e4a; }

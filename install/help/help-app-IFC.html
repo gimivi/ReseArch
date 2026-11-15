@@ -1,0 +1,181 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App IFC (modelli BIM, That Open Components / Fragments).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Modelli BIM (IFC)" }
+  Fonti: app/model_IFC.mjs (carica .ifc/.frag di tutti i modelli collegati; mod_spec: solo "views" del primo modello), _doc/module-ifc-bim.md
+  (.frag e .ifc funzionano dal 2026-11-03; toolbar: Inquadra tutto, Proprietà, Albero, Categorie, Isola/Mostra tutto, Sezione, Misure; flow con nodi IFC/*, App Bus solo via flow), cfg/cfg_Upload.php (.ifc e .frag ammessi dal 2026-10-13). Template "Modello BIM (Fragments)" da sql/migration_mod_spec_templates_2026-10-13.sql.
+  Nessuno script. Agganci: #rh-help, #rh-sec-state, #rh-sec-file, #rh-sec-spec, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-bricks" aria-hidden="true"></i> Modelli BIM (IFC)</h2>
+  <p class="rh-lead">
+    IFC mostra modelli BIM (edifici con elementi, livelli e proprietà) nel formato veloce <strong>Fragments</strong> di That Open.
+    Il modulo è ancora <strong>in sviluppo</strong>: leggi la sezione qui sotto prima di prepararci un'esercitazione.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-state"><i class="bi bi-cone-striped" aria-hidden="true"></i>Cosa funziona</a></li>
+      <li><a href="#rh-sec-mouse"><i class="bi bi-mouse" aria-hidden="true"></i>Mouse</a></li>
+      <li><a href="#rh-sec-file"><i class="bi bi-file-earmark-binary" aria-hidden="true"></i>Preparare il file</a></li>
+      <li><a href="#rh-sec-spec"><i class="bi bi-braces" aria-hidden="true"></i>Modelli e spec</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-state" aria-labelledby="rh-sec-state-t">
+    <h3 id="rh-sec-state-t"><i class="bi bi-cone-striped" aria-hidden="true"></i>Cosa funziona</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Stato del modulo IFC</caption>
+        <thead><tr><th scope="col">Funzione</th><th scope="col">Stato</th></tr></thead>
+        <tbody>
+          <tr><td>Aprire file <code>.frag</code> (Fragments)</td><td>✔ funziona, anche più modelli insieme</td></tr>
+          <tr><td>Aprire direttamente un <code>.ifc</code></td><td>✔ funziona: la conversione avviene nel browser (più lenta di un <code>.frag</code>)</td></tr>
+          <tr><td>Inquadra tutto <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i></td><td>✔ rimette tutto il modello in vista</td></tr>
+          <tr><td>Proprietà dell'elemento <i class="bi bi-info-square" aria-hidden="true"></i></td><td>✔ clic su un elemento: classe IFC, GlobalId, attributi, Pset, quantità, materiali, piano</td></tr>
+          <tr><td>Albero spaziale <i class="bi bi-diagram-3" aria-hidden="true"></i></td><td>✔ progetto → edificio → piani → elementi; clic per selezionare, occhio per nascondere</td></tr>
+          <tr><td>Categorie <i class="bi bi-funnel" aria-hidden="true"></i></td><td>✔ mostra o nasconde muri, solai, travi… con il numero di elementi</td></tr>
+          <tr><td>Isola la selezione <i class="bi bi-bullseye" aria-hidden="true"></i> / Mostra tutto <i class="bi bi-eye" aria-hidden="true"></i></td><td>✔ selezionando un piano si isola tutto il suo contenuto</td></tr>
+          <tr><td>Sezione <i class="bi bi-scissors" aria-hidden="true"></i> / Togli sezioni <i class="bi bi-x-square" aria-hidden="true"></i></td><td>✔ con Sezione attiva, doppio clic su una faccia crea un piano; trascina le frecce per spostarlo</td></tr>
+          <tr><td>Colora per valore <i class="bi bi-palette2" aria-hidden="true"></i></td><td>✔ un colore per ogni valore di un attributo o di un Pset, legenda con i conteggi; clic sulla voce: isola il gruppo</td></tr>
+          <tr><td>Contorni <i class="bi bi-pencil" aria-hidden="true"></i> · Ortogonale <i class="bi bi-box" aria-hidden="true"></i></td><td>✔ contorni degli elementi; proiezione ortogonale nella vista 3D</td></tr>
+          <tr><td>Misure di angoli e volumi <i class="bi bi-triangle" aria-hidden="true"></i> <i class="bi bi-box-seam" aria-hidden="true"></i></td><td>✔ angolo da tre punti; volume degli elementi scelti</td></tr>
+          <tr><td>Misure e sezioni salvate <i class="bi bi-cloud-upload" aria-hidden="true"></i></td><td>✔ salvate nella spec del modello e ricaricate all'apertura</td></tr>
+          <tr><td>Raggi X <i class="bi bi-transparency" aria-hidden="true"></i></td><td>✔ tutto trasparente tranne la selezione e gli elementi colorati</td></tr>
+          <tr><td>Viste salvate <i class="bi bi-bookmark-star" aria-hidden="true"></i></td><td>✔ viste con nome (anche di una pianta), salvate nella spec del modello</td></tr>
+          <tr><td>Piante <i class="bi bi-layers" aria-hidden="true"></i></td><td>✔ una vista dall'alto per piano (IfcBuildingStorey con nome e quota)</td></tr>
+          <tr><td>Cerca <i class="bi bi-search" aria-hidden="true"></i></td><td>✔ per classe, attributo o <code>Pset.Proprietà</code> e valore; isola, inquadra o colora i risultati</td></tr>
+          <tr><td>Salva come .frag <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i></td><td>✔ salva accanto all'<code>.ifc</code> la versione convertita; le aperture successive la usano da sole</td></tr>
+          <tr><td>Misura lunghezza <i class="bi bi-rulers" aria-hidden="true"></i></td><td>✔ doppio clic sul primo punto, poi sul secondo; Esc annulla</td></tr>
+          <tr><td>Misura area <i class="bi bi-bounding-box" aria-hidden="true"></i></td><td>✔ doppio clic su una faccia: ne mostra l'area in m²</td></tr>
+          <tr><td>Togli misure <i class="bi bi-eraser" aria-hidden="true"></i></td><td>✔ toglie tutte le misure; Canc con il mouse sopra una misura toglie solo quella</td></tr>
+          <tr><td>Flow dell'oggetto (nodi <code>IFC/*</code>)</td><td>✔ eventi di selezione, dati e Pset, ricerca, visibilità e colori, camera, sezioni e misure; si possono usare anche i nodi TJS di geometrie, materiali, luci e modelli (guida dei nodi)</td></tr>
+          <tr><td>Collegamento con altri pannelli</td><td>✔ solo con un flow: <code>IFC/Events/OnSelect</code> → <code>App Bus/Emitter</code> e <code>App Bus/Receiver</code> → <code>IFC/Selection/Select By Guid</code> (per esempio con una tabella DBJ che ha la colonna <code>GlobalId</code>)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Per mostrare oggi un edificio con più strumenti (sezioni, misure, luci), esportalo in <strong>glTF/GLB</strong> e usa l'App 3D (TJS).</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-mouse" aria-labelledby="rh-sec-mouse-t">
+    <h3 id="rh-sec-mouse-t"><i class="bi bi-mouse" aria-hidden="true"></i>Mouse</h3>
+    <ul>
+      <li><strong>Tasto sinistro trascinato</strong>: ruota la vista. <strong>Tasto destro trascinato</strong>: sposta la vista. <strong>Rotella</strong>: avvicina/allontana.</li>
+      <li><strong>Clic</strong> su un elemento: lo evidenzia e ne mostra le proprietà; clic nel vuoto: toglie la selezione.</li>
+      <li><strong>Doppio clic</strong> su un elemento: la vista ruota attorno a quel punto. Con <strong>Sezione</strong>, <strong>Misura lunghezza</strong> o <strong>Misura area</strong> attivi il doppio clic serve a quello strumento e il clic non seleziona: ripremi il pulsante per spegnerlo.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-file" aria-labelledby="rh-sec-file-t">
+    <h3 id="rh-sec-file-t"><i class="bi bi-file-earmark-binary" aria-hidden="true"></i>Preparare il file</h3>
+    <ol>
+      <li>Esporta il modello in <strong>IFC</strong> dal programma BIM (Revit, Archicad, BlenderBIM…).</li>
+      <li>Carica l'<code>.ifc</code> in una sottocartella del WP: si apre così com'è.</li>
+      <li>Per modelli grandi: aprilo una volta e premi <span class="rh-ui"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Salva nel modello ▾ → Salva come .frag</span>; il <code>.frag</code> viene salvato accanto e usato dalle aperture successive.</li>
+    </ol>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-spec" aria-labelledby="rh-sec-spec-t">
+    <h3 id="rh-sec-spec-t"><i class="bi bi-braces" aria-hidden="true"></i>Modelli e spec</h3>
+    <ul>
+      <li>Un modello per file <code>.ifc</code> o <code>.frag</code>; tutti quelli collegati all'oggetto si caricano insieme (es. architettonico + strutturale + impianti).</li>
+      <li>Della spec IFC legge <code>views</code> (viste), <code>measures</code> (misure) e <code>planes</code> (piani di sezione) salvati, nel <strong>primo</strong> modello <code>.ifc</code>/<code>.frag</code> dell'oggetto. Si scrive dalla finestra <span class="rh-ui"><i class="bi bi-bookmark-star" aria-hidden="true"></i> Viste</span> → <span class="rh-ui">Salva nel modello</span> (livello autore); le altre chiavi della spec restano come sono. Template <strong>Modello BIM (Fragments)</strong>: <code>{ }</code>.</li>
+    </ul>
+    <pre class="rh-json">{
+  "views": [
+    { "name": "Ingresso", "position": { "x": 10, "y": 60, "z": 10 }, "target": { "x": 27, "y": 0, "z": 19 }, "plan": null },
+    { "name": "Pianta 2", "position": { "x": 27, "y": 40, "z": 19 }, "target": { "x": 27, "y": 0, "z": 19 }, "plan": "02 - Floor" }
+  ]
+}</pre>
+    <ul>
+      <li><code>position</code> e <code>target</code> in metri; <code>plan</code> = nome della pianta (come nella finestra Piante) oppure <code>null</code> per la vista 3D.</li>
+      <li><code>measures</code> si scrive col pulsante <span class="rh-ui"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Salva nel modello ▾ → Salva le misure</span>: <code>{ "lengths": [ { "start": [x,y,z], "end": [x,y,z] } ], "areas": [ { "points": [[x,y,z], …] } ], "angles": [ { "start": […], "vertex": […], "end": […] } ], "volumes": [ { "guids": [ "GlobalId", … ] } ] }</code>, coordinate in metri; i volumi ricordano gli elementi sommati.</li>
+      <li><code>planes</code> si scrive col pulsante <span class="rh-ui"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Salva nel modello ▾ → Salva le sezioni</span>: <code>[ { "point": [x,y,z], "normal": [x,y,z] } ]</code>; resta visibile la parte verso cui punta <code>normal</code>.</li>
+    </ul>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Il modello è sparito dalla vista.</strong> Premi <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i> Inquadra tutto.</li>
+      <li><strong>Il modello compare a pezzi mentre giri la vista.</strong> È normale: i dettagli si caricano quando la camera si ferma.</li>
+    </ul>
+  </section>
+</div>

@@ -1,0 +1,40 @@
+{
+  "_info": "Catalogo delle librerie esterne disponibili sul server per i flow (nodo ReseArch/Context/Library List). url relativo alla pagina (dashboard.php). mode: esm (import) | script (tag <script> + global). init: none | factory (chiama la funzione esportata e ne aspetta il risultato) | emscripten (aspetta il runtime WASM). Vedi _doc/guide-fle-regole-nodi.md §15.",
+  "libraries": [
+    {
+      "id": "rhino3dm",
+      "title": "Rhino3dm",
+      "version": "8.17.0",
+      "url": "lib/rhino3dm/rhino3dm.module.js",
+      "mode": "esm",
+      "init": "factory",
+      "license": "MIT",
+      "docs": "https://mcneel.github.io/rhino3dm/javascript/api/index.html",
+      "desc": "Geometria Rhino/OpenNURBS: lettura e scrittura .3dm, punti, curve, superfici, mesh"
+    },
+    {
+      "id": "opencv",
+      "title": "OpenCV.js",
+      "version": "4.10.0",
+      "url": "lib/opencv/opencv.js",
+      "mode": "script",
+      "global": "cv",
+      "init": "emscripten",
+      "license": "Apache-2.0",
+      "docs": "https://docs.opencv.org/4.10.0/d5/d10/tutorial_js_root.html",
+      "desc": "Elaborazione immagini: filtri, soglie, contorni, trasformazioni geometriche. Gli oggetti Mat vanno liberati con il metodo delete"
+    },
+    {
+      "id": "vis-timeline",
+      "title": "vis-timeline",
+      "version": "8.5.4",
+      "url": "lib/vis-timeline/vis-timeline-graph2d.min.js",
+      "mode": "script",
+      "global": "vis",
+      "init": "none",
+      "license": "Apache-2.0 OR MIT",
+      "docs": "https://visjs.github.io/vis-timeline/docs/timeline/",
+      "desc": "Timeline interattive (vis.Timeline, vis.DataSet). Inserisce da sé il proprio CSS. Usata dall'APP TML (model_TML.mjs), che la carica solo quando serve"
+    }
+  ]
+}

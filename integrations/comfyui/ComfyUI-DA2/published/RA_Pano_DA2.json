@@ -1,0 +1,134 @@
+{
+  "name": "RA_Pano_DA2",
+  "saved": 1792365052,
+  "prompt": {
+    "1": {
+      "class_type": "ReseArchImageInput",
+      "inputs": {
+        "key": "image",
+        "image": "example.png"
+      },
+      "_meta": {
+        "title": "ReseArch Image Input"
+      }
+    },
+    "2": {
+      "class_type": "DA2LoadModel",
+      "inputs": {
+        "precision": "fp16"
+      },
+      "_meta": {
+        "title": "DA2 Load Model"
+      }
+    },
+    "3": {
+      "class_type": "DA2PanoramaDepth",
+      "inputs": {
+        "da2_model": [
+          "2",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "model_3d": "mesh",
+        "step": 2,
+        "discontinuity": 0.05,
+        "filename_prefix": "3d/DA2"
+      },
+      "_meta": {
+        "title": "DA2 Panorama Depth"
+      }
+    },
+    "4": {
+      "class_type": "ReseArchImageOutput",
+      "inputs": {
+        "key": "img_depth",
+        "images": [
+          "3",
+          0
+        ]
+      },
+      "_meta": {
+        "title": "ReseArch Image Output"
+      }
+    },
+    "5": {
+      "class_type": "ReseArchImageOutput",
+      "inputs": {
+        "key": "img_depth_color",
+        "images": [
+          "3",
+          1
+        ]
+      },
+      "_meta": {
+        "title": "ReseArch Image Output"
+      }
+    },
+    "6": {
+      "class_type": "ReseArchImageOutput",
+      "inputs": {
+        "key": "img_normal",
+        "images": [
+          "3",
+          2
+        ]
+      },
+      "_meta": {
+        "title": "ReseArch Image Output"
+      }
+    },
+    "7": {
+      "class_type": "ReseArchImageOutput",
+      "inputs": {
+        "key": "img_mask",
+        "images": [
+          "3",
+          3
+        ]
+      },
+      "_meta": {
+        "title": "ReseArch Image Output"
+      }
+    },
+    "8": {
+      "class_type": "ReseArchModelOutput",
+      "inputs": {
+        "key": "mesh",
+        "folder": "output",
+        "model_file": [
+          "3",
+          4
+        ]
+      },
+      "_meta": {
+        "title": "ReseArch Model Output"
+      }
+    },
+    "9": {
+      "class_type": "ReseArchPublish",
+      "inputs": {
+        "name": "RA_Pano_DA2"
+      },
+      "_meta": {
+        "title": "ReseArch Publish"
+      }
+    },
+    "10": {
+      "class_type": "ReseArchDepthOutput",
+      "inputs": {
+        "key": "depth_exr",
+        "units": "auto",
+        "depth": [
+          "3",
+          6
+        ]
+      },
+      "_meta": {
+        "title": "ReseArch Depth Output"
+      }
+    }
+  }
+}

@@ -1,0 +1,369 @@
+===============================================================================
+ ReseArch - Istruzioni di installazione e accortezze per server diversi
+===============================================================================
+ Aggiornato: 2026-11-14
+
+ L'app funziona con due tipi di server, provati entrambi:
+   - IIS     (es. hosting condiviso Windows)          config: Web.config
+   - Apache  (es. server o NAS Linux)                 config: .htaccess
+ Le differenze fra i due possono causare problemi "silenziosi" (pagina bianca,
+ link sbagliati nelle email): sono descritti nelle sezioni che seguono e
+ riassunti al paragrafo 10.
+
+ File in questa cartella:
+   Steps2install.txt            questo documento
+   01_ReseArch_CreateDB.sql     struttura del database (tabelle vuote)
+   02_ReseArch_Append_App.sql   dati iniziali (elenco app, tipi annotazione PDF)
+   03_ReseArch_Users.sql        utente MySQL dell'app + primo amministratore
+   04_ReseArch_Templates.sql    template dei mod_spec
+   05_ReseArch_Help_Pages.sql   guide di aiuto nel database (facoltativo, dopo
+                                aver caricato i file di help/ come modelli)
+   help/                        guide di aiuto (pagine HTML per l'App HTM)
+   esempi/                      file d'esempio citati dalle guide e dai template
+                                (timeline: JSON, CSS, foglio per Google Sheets)
+   RA_Data/                     file di protezione della cartella dei dati
+
+
+-------------------------------------------------------------------------------
+ 1. REQUISITI
+-------------------------------------------------------------------------------
+ - Web server: IIS oppure Apache 2.4
+ - PHP 8.0 o superiore (il codice usa sintassi PHP 8: match, str_contains, ...)
+   estensioni: pdo_mysql, mbstring, curl, openssl (invio email SMTPS), json
+ - MySQL 8.x oppure MariaDB >= 10.5, charset utf8mb4
+ - phpMyAdmin (o altro client MySQL) per eseguire gli script SQL
+
+
+-------------------------------------------------------------------------------
+ 2. CARTELLE SUL SERVER
+-------------------------------------------------------------------------------
+ - Cartella dell'applicazione (es. ReseArch, il nome è libero):
+   contiene tutto il codice. Può stare nella radice del sito o in una sottocartella:
+   l'app ricava da sola il proprio percorso.
+
+ - Cartella dei dati RA_Data:
+   deve stare nella RADICE DEL SITO (DOCUMENT_ROOT), non dentro la cartella
+   dell'app: il percorso è costruito come DOCUMENT_ROOT + data_path
+   (data_path = '/RA_Data' in cfg/cfg_ini.php).
+     es.  <radice sito>/RA_Data   accanto a   <radice sito>/ReseArch
+   L'utente con cui gira il web server (IIS: IUSR o l'identità del pool
+   dell'app; Apache: l'utente del servizio, es. www-data) deve poterci SCRIVERE
+   (upload, cartelle di ricerche/WP).
+
+   Nota: i file in RA_Data sono serviti direttamente dal web server, quindi chi
+   conosce l'indirizzo di un file può scaricarlo anche senza login. Non caricare
+   in RA_Data documenti che non possono essere pubblici.
+
+ - Protezione di RA_Data: copiare in RA_Data il file di install/RA_Data/
+   adatto al server:
+     IIS     : install/RA_Data/web.config  →  <radice sito>/RA_Data/web.config
+     Apache  : install/RA_Data/.htaccess   →  <radice sito>/RA_Data/.htaccess
+   Fa girare in un'origine isolata (Content-Security-Policy "sandbox") i .svg e i
+   .html aperti come documento, così i loro eventuali script non usano la
+   sessione né le API della piattaforma; aggiunge nosniff, il tipo dei font .woff2
+   e blocca gli script lato server nella cartella. Il .htaccess/Web.config
+   dell'app NON vale per RA_Data, che sta accanto alla cartella dell'app.
+   Senza questo file la piattaforma rifiuta l'upload di .html/.htm.
+   Verifica: aprire un .svg di RA_Data nel browser → strumenti di sviluppo → Rete
+   → la risposta deve avere l'intestazione Content-Security-Policy. Su IIS serve
+   il modulo URL Rewrite: se RA_Data dà errore 500, seguire il commento in testa
+   al web.config.
+
+
+-------------------------------------------------------------------------------
+ 3. DATABASE
+-------------------------------------------------------------------------------
+ Eseguire in ordine da phpMyAdmin (Importa, oppure SQL e incolla):
+
+   Prima di tutto creare il database e SELEZIONARLO in phpMyAdmin:
+     * Server propri: creare un database, es. `ReseArch`.
+     * Hosting condiviso: il database esiste già con un nome del provider
+       (es. Sql123456_1) e non se ne possono creare altri: usare quello.
+     Gli script non creano né selezionano database. Il nome deve coincidere
+     con 'db_main' in cfg/cfg_MYSQL.php.
+
+   01_ReseArch_CreateDB.sql
+     Tutte le tabelle della piattaforma, vuote.
+
+   02_ReseArch_Append_App.sql
+     Dati iniziali: elenco delle app (tabella `app`, usata quando si crea un
+     oggetto), profilo di abilitazione "Base" e tipi di annotazione PDF
+     (senza, le annotazioni non si salvano).
+
+   03_ReseArch_Users.sql
+     PARTE A - crea l'utente MySQL con cui l'app si collega, con i SOLI
+               privilegi SELECT/INSERT/UPDATE/DELETE (vedi paragrafo 7.3).
+               Su hosting condiviso si salta: l'utente lo crea il provider.
+     PARTE B - rende amministratore il primo utente: va eseguita DOPO che
+               l'utente si è registrato da register.php (paragrafo 9).
+
+   04_ReseArch_Templates.sql
+     Template mod_spec proposti nell'editor "Spec (JSON)" dei Modelli (tabella
+     `mod_spec_templates`). Senza, l'editor offre solo "Custom".
+     Dopo l'installazione i template si gestiscono dalla modale admin
+     "Template mod_spec" (menu utente, pagina delle ricerche), che ha anche
+     il pulsante "Esporta SQL" per aggiornare questo file nel repository.
+
+   05_ReseArch_Help_Pages.sql (facoltativo)
+     Crea modelli, oggetti e collegamenti per le guide di help/. Prima caricare
+     i file di help/ in una cartella dei modelli, poi impostare i PARAMETRI in
+     testa allo script (workpackage, cartella, visibilità).
+
+ Database aggiuntivi (facoltativi, stesso utente MySQL, chiavi in cfg_MYSQL.php):
+   db_data     tabelle di dati dei singoli progetti, mostrate dagli oggetti MYS
+               (api/grid.php, elenco in cfg/grid_schema.php). Non fanno parte
+               dell'installazione: tenerle separate dal database principale.
+   db_HySpace  dati del museo HySpace (api/hys_*.php); la struttura NON è
+               creata da questi script.
+
+
+-------------------------------------------------------------------------------
+ 4. CONFIGURAZIONE (cartella cfg/)
+-------------------------------------------------------------------------------
+ I file con password e chiavi NON sono nel repository: ogni installazione li
+ crea copiando il modello .example.php accanto e compilandolo.
+
+   modello                      file da creare        contenuto
+   cfg_MYSQL.example.php    →   cfg_MYSQL.php         host, porta, nomi dei database,
+                                                      utente e password MySQL
+   cfg_SMTP.example.php     →   cfg_SMTP.php          server SMTP, porta, account e
+                                                      password per le email
+   cfg_google.example.php   →   cfg_google.php        chiave Google Maps (App MPS);
+                                                      limitarla ai propri domini
+   grid_schema.example.php  →   grid_schema.php       tabelle leggibili dall'App MYS
+   cfg_sso.example.php      →   cfg_sso.php           accesso con ORCID/Google/GitHub
+                                                      (facoltativo)
+   cfg_iot.example.php      →   cfg_iot.php           broker MQTT dei dispositivi
+                                                      (facoltativo)
+
+ Gli altri file di cfg/ sono nel repository:
+ cfg/cfg_ini.php     data_path  = cartella dei dati (vedi paragrafo 2)
+                     base_url   = indirizzo dell'app nei link inviati via email
+                                  (vedi paragrafo 8); vuoto = automatico
+ cfg/cfg_Upload.php  dimensione massima e estensioni ammesse per gli upload
+ cfg/.htaccess       blocca l'accesso via web alla cartella (Apache)
+ cfg/web.config      blocca l'accesso via web alla cartella (IIS)
+
+ I file creati dai modelli sono DIVERSI per ogni server: quando si aggiorna
+ l'app copiando i file da un server all'altro, NON sovrascriverli.
+ Sulla protezione di questi due file vedere il paragrafo 7.
+
+
+-------------------------------------------------------------------------------
+ 5. CONFIGURAZIONE PHP (php.ini)
+-------------------------------------------------------------------------------
+ Controllare i valori con un file temporaneo nella radice del sito:
+     <?php phpinfo();
+ aprirlo dal browser e CANCELLARLO subito dopo (mostra a chiunque percorsi,
+ versioni, moduli e variabili d'ambiente del server).
+
+ output_buffering = 4096
+   Valore standard di produzione. Su alcuni server è "no value" (spento): una pagina
+   che manda anche un solo carattere prima di session_start() (ad es. un
+   commento HTML prima di <?php) perde la sessione e resta BIANCA, senza errori.
+   Le pagine dell'app sono state corrette (iniziano tutte con <?php), il
+   buffering resta una rete di sicurezza. Se non si può modificare php.ini,
+   con Apache + mod_php si può mettere nel .htaccess:
+       php_value output_buffering 4096
+
+ display_errors = Off   (in produzione: gli errori non vanno mostrati)
+ log_errors     = On    e  error_log = <file di log>
+   Con display_errors spento un errore fatale dà solo una pagina bianca:
+   il motivo si legge nel log degli errori di PHP.
+
+ upload_max_filesize / post_max_size
+   Devono permettere i file più grandi che si vogliono caricare. Il limite reale
+   è il PIÙ PICCOLO fra:
+     - php.ini            upload_max_filesize, post_max_size
+     - web server         100 MB (Web.config maxAllowedContentLength,
+                                  .htaccess LimitRequestBody)
+     - applicazione       256 MB (cfg/cfg_Upload.php max_bytes)
+   Oggi quindi il limite effettivo è al massimo 100 MB: allineare i tre valori.
+
+ session.save_path deve essere una cartella scrivibile dal web server
+   (senza, il login riesce ma la sessione non viene conservata).
+
+
+-------------------------------------------------------------------------------
+ 6. CONFIGURAZIONE DEL WEB SERVER
+-------------------------------------------------------------------------------
+ Nella cartella dell'app ci sono DUE file con le stesse regole, uno per server:
+   Web.config  (IIS)     - ignorato da Apache
+   .htaccess   (Apache)  - ignorato da IIS
+ Ogni modifica a uno dei due va riportata anche nell'altro.
+
+ Cosa configurano:
+   - tipi MIME per .mjs, .wasm, .glb, .gltf, .drc, .wrl/.wrz, .3dm, .ifc, ...
+     (senza, il browser rifiuta i moduli .mjs o i modelli 3D)
+   - "no-cache" su app/, ui/, css/: il browser verifica a ogni caricamento se i
+     file sono cambiati (senza, dopo un aggiornamento eseguiva i moduli vecchi)
+   - limite di dimensione delle richieste (100 MB)
+   - intestazioni di sicurezza (nosniff, X-Frame-Options, Referrer-Policy, ...)
+   - Content-Security-Policy, per ora in modalità Report-Only: non blocca nulla,
+     segnala al server (api/csp_report.php, tabella csp_reports) cosa
+     bloccherebbe. Le segnalazioni si leggono nella scheda "CSP" della modale
+     admin "Abilitazioni". La policy è UNA RIGA LUNGA, identica nei due file:
+     copiarla sempre per intero.
+   - blocco (risposta 404) di: cfg/, sql/, install/, _doc/, _dev/, _cestino/, cartelle nascoste
+     (.git, .claude, .vscode) e file .bak .old .orig .swp .sql .log .md
+   - (Apache) niente elenco dei file nelle cartelle: Options -Indexes
+
+ Apache - attenzione:
+   - Il .htaccess funziona solo se la cartella dell'app ha "AllowOverride All"
+     nella configurazione di Apache. Se è "None" viene ignorato SENZA errori.
+     Verifica: <url app>/cfg/ deve rispondere 403 o 404.
+   - Servono i moduli mod_mime, mod_headers, mod_alias, mod_authz_core
+     (normalmente presenti).
+   - Alcuni NAS rigenerano la configurazione di Apache quando si cambiano le
+     impostazioni dal pannello o si aggiorna il firmware: preferire sempre il
+     .htaccess alle modifiche dirette dei file di configurazione di Apache.
+   - Se dopo aver copiato il .htaccess il sito risponde "500 Internal Server
+     Error", una direttiva non è accettata: il motivo è nel log errori di Apache.
+
+ IIS - attenzione:
+   - Su hosting condiviso non si ha accesso alla configurazione generale di IIS:
+     tutto passa dal Web.config (verificare che il provider accetti le sezioni
+     usate: in caso contrario il sito risponde "500").
+
+
+-------------------------------------------------------------------------------
+ 7. SICUREZZA DEI DATI RISERVATI (credenziali in cfg_MYSQL.php e cfg_SMTP.php)
+-------------------------------------------------------------------------------
+ 7.1 Situazione attuale
+   I due file stanno in cfg/, DENTRO la cartella pubblicata dal web server.
+   Sono protetti da tre barriere:
+     a) sono file .php che restituiscono un array: se aperti dal browser, PHP li
+        esegue e non mostra nulla;
+     b) cfg/.htaccess e cfg/web.config negano l'accesso alla cartella
+        (risposta 403);
+     c) il .htaccess / Web.config principale blocca di nuovo cfg/ (404).
+   Tenere tutti questi file, anche se in parte si sovrappongono: se il file
+   principale viene perso o sovrascritto durante un aggiornamento, quello
+   dentro cfg/ continua a proteggere la cartella.
+
+   Rischi che restano con i file dentro la cartella pubblica:
+     - un errore di configurazione (PHP disattivato durante un aggiornamento,
+       .htaccess ignorato perché AllowOverride è None) fa scaricare il file come
+       testo, password comprese;
+     - una copia dimenticata (cfg_MYSQL.php.bak, cfg_MYSQL.php~, cfg_MYSQL_old.php)
+       non viene eseguita da PHP e potrebbe essere scaricabile.
+
+ 7.2 Soluzione scelta: credenziali in una cartella NON raggiungibile dal web
+   Un file che sta fuori dalla cartella pubblicata non ha nessun indirizzo web:
+   non è scaricabile qualunque cosa succeda alla configurazione del server.
+     - Server propri: una cartella fuori dalla radice del sito, leggibile solo
+       dall'utente del web server.
+     - Hosting condiviso: molti provider offrono una cartella dello spazio web
+       non servita dal web server (spesso pensata per i database). Prima di
+       usarla, metterci un file di prova (es. prova.txt) e provare ad aprirlo
+       dal browser: deve dare errore.
+   Da implementare (non ancora fatto): cfg_MYSQL.php e cfg_SMTP.php diventano
+   piccoli "caricatori" che leggono il file vero dalla cartella privata del
+   server e, se non lo trovano, usano quello locale. Il resto del codice non
+   cambia. Vantaggio in più: copiando l'app fra server le credenziali di un
+   server non sovrascrivono mai quelle dell'altro.
+
+   Soluzioni valutate e SCARTATE:
+     - credenziali in una tabella MySQL: impossibile per quelle del database
+       (servono per collegarsi); per quelle SMTP peggiora, perché finirebbero in
+       ogni dump/backup e sarebbero leggibili con una SQL injection.
+     - file crittografato: PHP deve poterlo decifrare, quindi la chiave sta dove
+       PHP la legge, di solito accanto al file. Protezione solo apparente.
+     - variabili d'ambiente: valide su un server proprio (SetEnv in Apache), ma
+       spesso non disponibili su hosting condiviso; si è preferita una soluzione
+       che funzioni allo stesso modo ovunque.
+
+ 7.3 Ridurre i danni se una credenziale viene scoperta
+   - Utente MySQL dedicato all'app, con i soli privilegi SELECT, INSERT, UPDATE,
+     DELETE sui database dell'app (03_ReseArch_Users.sql, parte A). Niente DROP,
+     ALTER, GRANT. Le modifiche di struttura si fanno con un altro utente.
+   - Utente MySQL che può collegarsi solo dall'host del web server ('localhost'
+     se sono sulla stessa macchina); MySQL non raggiungibile da Internet se non
+     serve (al massimo dalla rete locale).
+   - Account SMTP dedicato (no-reply@...), usato solo dall'app, non una casella
+     personale.
+   - Password diverse per ogni server, cambiate periodicamente e sempre dopo
+     un sospetto di esposizione.
+
+ 7.4 Copie, backup, repository
+   - Non lasciare copie dei file di configurazione (.bak, ~, _old) nella
+     cartella dell'app.
+   - I file propri di ogni installazione (cfg_MYSQL.php, cfg_SMTP.php,
+     cfg_google.php, grid_schema.php, cfg_sso.php, cfg_iot.php,
+     cfg_privacy.php, cfg_accessibility.php) sono esclusi da git con
+     .gitignore: nel repository ci sono solo i modelli .example.php, senza valori.
+   - Non copiare sui server di destinazione la cartella .git (è comunque
+     bloccata dal .htaccess / Web.config, ma è meglio che non ci sia).
+
+
+-------------------------------------------------------------------------------
+ 8. EMAIL DI CONFERMA ACCOUNT - indirizzo del sito nei link
+-------------------------------------------------------------------------------
+ Alla registrazione (api/register.php) e al cambio email dal profilo
+ (api/update_profile.php) l'app invia un link del tipo
+     <indirizzo app>/verify_email.php?token=...
+ L'indirizzo è calcolato da api/url_helper.php, funzione app_base_url():
+   1) se in cfg/cfg_ini.php 'base_url' è valorizzato, usa quello;
+   2) altrimenti lo ricava dalla richiesta: protocollo (http/https, anche dietro
+      proxy), dominio con eventuale porta, cartella in cui è installata l'app.
+
+ Quando valorizzare base_url:
+   - il link userebbe l'indirizzo con cui è stata aperta la pagina di
+     registrazione: se la registrazione avviene dalla rete interna con l'IP del
+     server (es. http://192.168.1.10/ReseArch), il link conterrà quell'IP e
+     funzionerà solo in rete locale;
+   - il server è dietro un reverse proxy / NAT e PHP non vede l'indirizzo pubblico.
+   In questi casi scrivere l'indirizzo pubblico, senza barra finale:
+       'base_url' => 'https://www.dominio.it/ReseArch',
+
+ Il MITTENTE delle email è l'account di cfg/cfg_SMTP.php: se un server deve
+ spedire con un altro account/dominio va cambiato nel suo cfg_SMTP.php.
+ Se l'invio fallisce, l'utente viene registrato comunque e il motivo è nel
+ log errori di PHP (riga "PHPMailer error: ...").
+
+
+-------------------------------------------------------------------------------
+ 9. PRIMO AVVIO E VERIFICHE
+-------------------------------------------------------------------------------
+ 1) Aprire <url app>/register.php e registrare l'utente amministratore.
+ 2) Eseguire 03_ReseArch_Users.sql, PARTE B, con la sua email.
+ 3) Login da <url app>/index.php: deve comparire la pagina delle ricerche con
+    "Nessuna ricerca disponibile." (il database è vuoto, è normale).
+ 4) Controlli di sicurezza dal browser (risposta attesa fra parentesi):
+      <url app>/cfg/cfg_MYSQL.php        (403 o 404 - MAI 200)
+      <url app>/install/Steps2install.txt (404)
+      <url app>/.git/HEAD                (404)
+      <url app>/app/                     (403 o 404, senza elenco file)
+ 5) Nel browser, strumenti sviluppatore > Rete, aprire una dashboard e
+    controllare un file .mjs:
+      Content-Type: text/javascript   e   Cache-Control: no-cache
+ 6) Registrare un utente di prova e controllare che il link nell'email punti
+    a QUESTO server.
+ 7) Cancellare il file phpinfo, se creato.
+
+
+-------------------------------------------------------------------------------
+ 10. PROBLEMI GIÀ INCONTRATI
+-------------------------------------------------------------------------------
+ Pagina bianca dopo il login, nessun errore in console
+   Causa: output prima di session_start() con output_buffering spento.
+   Le pagine dell'app sono già corrette; vedere paragrafo 5.
+   Regola per il codice: le pagine PHP devono iniziare con <?php, senza
+   spazi, righe vuote o commenti HTML prima.
+
+ Pagina bianca in generale
+   È un errore fatale di PHP con display_errors spento: leggere il log
+   errori di PHP (paragrafo 5).
+
+ Il link nell'email di verifica porta a un altro server
+   Paragrafo 8 (base_url in cfg/cfg_ini.php).
+
+ Login rifiutato con "Email non ancora verificata"
+   L'email di verifica non è arrivata (SMTP) o il link non è stato aperto.
+   Per l'amministratore: 03_ReseArch_Users.sql, parte B.
+
+ "500 Internal Server Error" su Apache dopo aver copiato il .htaccess
+   Direttiva non ammessa o modulo mancante: vedere il log errori di Apache.
+
+ Moduli .mjs vecchi eseguiti dopo un aggiornamento
+   Manca la regola no-cache (Web.config / .htaccess, paragrafo 6).

@@ -1,0 +1,61 @@
+{
+ "name": "ReseArch-Demo",
+ "saved": 1791244800,
+ "prompt": {
+  "1": {
+   "class_type": "ReseArchTextInput",
+   "inputs": {
+    "key": "prompt",
+    "value": "Testo di prova"
+   },
+   "_meta": {
+    "title": "ReseArch Text Input"
+   }
+  },
+  "2": {
+   "class_type": "ReseArchTextOutput",
+   "inputs": {
+    "key": "text",
+    "text": [
+     "1",
+     0
+    ]
+   },
+   "_meta": {
+    "title": "ReseArch Text Output"
+   }
+  },
+  "3": {
+   "class_type": "ReseArchImageInput",
+   "inputs": {
+    "key": "image",
+    "image": "example.png"
+   },
+   "_meta": {
+    "title": "ReseArch Image Input"
+   }
+  },
+  "4": {
+   "class_type": "ReseArchImageOutput",
+   "inputs": {
+    "key": "image",
+    "images": [
+     "3",
+     0
+    ]
+   },
+   "_meta": {
+    "title": "ReseArch Image Output"
+   }
+  },
+  "5": {
+   "class_type": "ReseArchPublish",
+   "inputs": {
+    "name": "ReseArch-Demo"
+   },
+   "_meta": {
+    "title": "ReseArch Publish"
+   }
+  }
+ }
+}

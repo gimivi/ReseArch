@@ -1,0 +1,372 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida SINTETICA dei nodi TJS/* dei flow: famiglie e una riga per nodo, per dare una prima idea.
+  Porte, formati e proprietà NON vanno qui: stanno nell'editor dei flow (pannello "Help nodo selezionato",
+  desc e portHelp dei nodi). Fonte dell'elenco: registerNodeType/reg('TJS/…') in app/ (controllare dopo ogni nodo nuovo).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: App 3D, i nodi" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-ui, #rh-go-spec
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-diagram-3" aria-hidden="true"></i> App 3D (TJS): i nodi dei flow</h2>
+  <p class="rh-lead">
+    Una prima idea di cosa si può fare con i nodi 3D: un elenco per famiglie, con una riga per nodo.
+    Ingressi, uscite e formato dei dati sono nell'editor dei flow: seleziona il nodo e premi
+    <span class="rh-ui"><i class="bi bi-question-circle" aria-hidden="true"></i> Help nodo selezionato</span> nella barra dell'editor.
+  </p>
+  <p class="rh-where">Nel menu dell'editor i nodi stanno sotto <span class="rh-ui">TJS</span>, poi la famiglia
+     (es. <span class="rh-ui">TJS → Camera → FlyTo</span>). Lavorano nel flow di un oggetto 3D, o con
+     il pulsante <span class="rh-ui">Testa su panel</span> dell'editor, su un pannello 3D aperto.</p>
+
+  <nav aria-label="Famiglie di nodi">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-scene"><i class="bi bi-boxes" aria-hidden="true"></i>Scena</a></li>
+      <li><a href="#rh-sec-object"><i class="bi bi-box" aria-hidden="true"></i>Oggetti</a></li>
+      <li><a href="#rh-sec-model"><i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>Modelli</a></li>
+      <li><a href="#rh-sec-camera"><i class="bi bi-camera-video" aria-hidden="true"></i>Camera e animazioni</a></li>
+      <li><a href="#rh-sec-events"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi e selezione</a></li>
+      <li><a href="#rh-sec-pick"><i class="bi bi-geo-alt" aria-hidden="true"></i>Punti collimati</a></li>
+      <li><a href="#rh-sec-pano"><i class="bi bi-globe" aria-hidden="true"></i>Panorama</a></li>
+      <li><a href="#rh-sec-points"><i class="bi bi-dot" aria-hidden="true"></i>Formato dei punti</a></li>
+      <li><a href="#rh-sec-geometry"><i class="bi bi-bounding-box" aria-hidden="true"></i>Geometrie e curve</a></li>
+      <li><a href="#rh-sec-material"><i class="bi bi-palette2" aria-hidden="true"></i>Materiali e texture</a></li>
+      <li><a href="#rh-sec-light"><i class="bi bi-sun" aria-hidden="true"></i>Luci</a></li>
+      <li><a href="#rh-sec-setup"><i class="bi bi-person-walking" aria-hidden="true"></i>Visita e suono</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <!-- ─────────────────────────── Scena ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-scene" aria-labelledby="rh-sec-scene-t">
+    <h3 id="rh-sec-scene-t"><i class="bi bi-boxes" aria-hidden="true"></i>Scena</h3>
+    <p>Trovare gli oggetti della scena, aggiungerne e toglierne.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Scene</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Scene/GetObjectByName</code></td><td>Trova un oggetto dal nome.</td></tr>
+          <tr><td><code>Scene/GetObjectByUuid</code></td><td>Trova un oggetto dal suo codice univoco (utile quando più oggetti hanno lo stesso nome).</td></tr>
+          <tr><td><code>Scene/GetObjectNames</code></td><td>Elenca i nomi degli oggetti della scena, con filtri.</td></tr>
+          <tr><td><code>Scene/NameFilter</code></td><td>Prepara un filtro di nomi con <code>*</code> e <code>?</code>, da usare nei nodi che elencano.</td></tr>
+          <tr><td><code>Scene/GetTree</code></td><td>Dà la struttura della scena (chi contiene chi), per esempio da mostrare come albero o grafo in un grafico.</td></tr>
+          <tr><td><code>Scene/AddObject</code></td><td>Aggiunge alla scena un oggetto creato nel flow.</td></tr>
+          <tr><td><code>Scene/RemoveObject</code></td><td>Toglie un oggetto dalla scena.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Oggetti ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-object" aria-labelledby="rh-sec-object-t">
+    <h3 id="rh-sec-object-t"><i class="bi bi-box" aria-hidden="true"></i>Oggetti</h3>
+    <p>Spostare, mostrare, evidenziare e trasformare un oggetto trovato con i nodi Scena o con un clic.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Object</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Object/SetPosition</code> · <code>SetRotation</code> · <code>SetScale</code></td><td>Sposta, ruota o scala un oggetto.</td></tr>
+          <tr><td><code>Object/SetTransform</code></td><td>Posizione, rotazione e scala insieme.</td></tr>
+          <tr><td><code>Object/GetTransform</code></td><td>Legge posizione, rotazione, scala e visibilità di un oggetto.</td></tr>
+          <tr><td><code>Object/SetVisibility</code></td><td>Mostra o nasconde un oggetto.</td></tr>
+          <tr><td><code>Object/Highlight</code></td><td>Fa risaltare per un momento un oggetto con un colore luminoso.</td></tr>
+          <tr><td><code>Object/SetMaterial</code></td><td>Cambia al volo colore, trasparenza o fil di ferro di un oggetto.</td></tr>
+          <tr><td><code>Object/GetMaterial</code> · <code>AssignMaterial</code></td><td>Legge il materiale di un oggetto · gliene dà un altro.</td></tr>
+          <tr><td><code>Object/Clone</code></td><td>Crea una copia di un oggetto.</td></tr>
+          <tr><td><code>Object/Rename</code></td><td>Cambia il nome di un oggetto.</td></tr>
+          <tr><td><code>Object/MergeChildMeshes</code></td><td>Unisce le parti di un oggetto in un pezzo unico.</td></tr>
+          <tr><td><code>Object/ExportGLB</code></td><td>Scarica un oggetto della scena come file <code>.glb</code>. Con la vista clay accesa chiede conferma:
+              il file avrebbe il clay al posto dei materiali originali.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Modelli ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-model" aria-labelledby="rh-sec-model-t">
+    <h3 id="rh-sec-model-t"><i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>Modelli</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Model e TJS/Align</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Model/Load URL</code></td><td>Carica nel pannello un modello da un indirizzo ricevuto mentre il flow lavora (per esempio il risultato di ComfyUI).</td></tr>
+          <tr><td><code>Model/Save Esercitazione</code></td><td>Salva come file l'oggetto così com'è nella scena, nella cartella delle esercitazioni. Solo amministratori.
+              Con la vista clay accesa chiede conferma, come Export GLB.</td></tr>
+          <tr><td><code>Align/SphereToCloud</code></td><td>Allinea un panorama 360° a una nuvola di punti, partendo da almeno tre punti corrispondenti.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Camera e animazioni ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-camera" aria-labelledby="rh-sec-camera-t">
+    <h3 id="rh-sec-camera-t"><i class="bi bi-camera-video" aria-hidden="true"></i>Camera e animazioni</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Camera e TJS/Animate</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Camera/FlyTo</code></td><td>Porta la camera in un punto con un volo animato.</td></tr>
+          <tr><td><code>Camera/Orbit Set</code></td><td>Gira la camera intorno al centro all'istante: adatto a un cursore o a un sensore che cambia di continuo.</td></tr>
+          <tr><td><code>Camera/GetPosition</code></td><td>Legge dove si trova la camera e dove guarda.</td></tr>
+          <tr><td><code>Animate/AlongCurve</code></td><td>Muove la camera o un oggetto lungo un percorso, anche in giro completo intorno a un punto.</td></tr>
+          <tr><td><code>Animate/Rototranslate</code></td><td>Movimento a tempo di un oggetto: andata e ritorno, ripetizione.</td></tr>
+          <tr><td><code>Animate/ApplyTransform</code></td><td>Applica uno spostamento e una rotazione a più oggetti; può riportarli all'origine.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Eventi ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-events" aria-labelledby="rh-sec-events-t">
+    <h3 id="rh-sec-events-t"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi e selezione</h3>
+    <p>Fanno partire il flow quando chi guarda fa qualcosa nella scena.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Events e TJS/Selection</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Events/OnSelectionChanged</code></td><td>Scatta quando cambia la selezione (clic su un oggetto).</td></tr>
+          <tr><td><code>Selection/Get</code></td><td>Dice quale oggetto o punto è stato selezionato per ultimo.</td></tr>
+          <tr><td><code>Events/OnPick</code></td><td>Scatta quando si indica un punto con il mirino (EyeLock) o durante la visita in prima persona.</td></tr>
+          <tr><td><code>Events/OnCameraSettled</code></td><td>Scatta quando la camera si ferma dopo un movimento.</td></tr>
+          <tr><td><code>Events/Zone Enter</code></td><td>Scatta quando il visitatore entra in una zona del modello o ne esce.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Punti collimati ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-pick" aria-labelledby="rh-sec-pick-t">
+    <h3 id="rh-sec-pick-t"><i class="bi bi-geo-alt" aria-hidden="true"></i>Punti collimati</h3>
+    <p>Leggono i punti acquisiti con lo strumento <span class="rh-ui"><i class="bi bi-geo-alt" aria-hidden="true"></i> Collima punti</span> del pannello.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Pick</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Pick/GetAll</code> · <code>Pick/Count</code></td><td>Tutti i punti · quanti sono. GetAll ha due uscite: <code>points</code>
+              (le schede complete, con etichetta e oggetto) e <code>positions</code> (solo le coordinate).</td></tr>
+          <tr><td><code>Pick/GetByIndex</code> · <code>Pick/GetByLabel</code></td><td>Un punto dalla sua posizione nell'elenco · dalla sua etichetta (es. P3).</td></tr>
+          <tr><td><code>Pick/Clear</code></td><td>Cancella tutti i punti e i loro segni nella scena.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">Una linea che unisce i punti collimati: <code>Pick/GetAll</code> → <code>Geometry/Curve/Line</code> (spezzata) o
+       <code>Curve/CatmullRom</code> (curva morbida) → <code>Scene/AddObject</code>. Ripetendo il calcolo la linea si aggiorna:
+       AddObject basta una volta.</p>
+  </section>
+
+  <!-- ─────────────────────────── Panorama ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-pano" aria-labelledby="rh-sec-pano-t">
+    <h3 id="rh-sec-pano-t"><i class="bi bi-globe" aria-hidden="true"></i>Panorama: misurare su una foto 360°</h3>
+    <p>Con la <strong>mappa delle distanze</strong> di una foto panoramica (file EXR calcolato da ComfyUI con MoGe o DA2,
+       nodo <em>ReseArch Depth Output</em>) Collima e Misura danno punti nello spazio e non sulla sfera.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Panorama</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Panorama/Mark</code></td><td>Dichiara che una sfera è un panorama. Va subito dopo <code>Geometry/SphereGeometry</code>:
+              solo le sfere marcate (e quelle dei modelli Pano360) accettano una mappa.</td></tr>
+          <tr><td><code>Panorama/Set Depth</code></td><td>Associa alla sfera la mappa delle distanze (indirizzo del file) e la scala.</td></tr>
+          <tr><td><code>Panorama/Depth Point</code></td><td>Dà il punto nello spazio e la distanza di un punto della foto (o dell'ultimo punto colpito).</td></tr>
+          <tr><td><code>Panorama/Depth Scale</code></td><td>Calibra: da due punti (o dai collimati P1 e P2) e dalla loro distanza vera calcola la scala;
+              può applicarla subito alla sfera e ai punti collimati.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note">MoGe e DA2 danno distanze <strong>relative</strong>: senza calibrazione le forme sono giuste ma le misure
+       non sono in metri. Le misure già fatte con Misura non si ricalcolano dopo la calibrazione: rifarle.</p>
+    <p class="rh-where">La catena completa da ComfyUI (pagina HTM, App Bus <code>comfy:depth</code>, flow d'esempio
+       <code>tjs-comfyui-sphere-flow</code>) è descritta nella guida di ComfyUI.</p>
+  </section>
+
+  <!-- ─────────────────────────── Formato dei punti ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-points" aria-labelledby="rh-sec-points-t">
+    <h3 id="rh-sec-points-t"><i class="bi bi-dot" aria-hidden="true"></i>Formato dei punti</h3>
+    <p>I nodi danno sempre i punti come <code>{x, y, z}</code>. Ogni ingresso che chiede un punto (posizione, bersaglio, punti di una curva…)
+       accetta anche:</p>
+    <ul>
+      <li><code>[x, y, z]</code>, per esempio da <code>Vector/Pack/XYZtoVec3</code>;</li>
+      <li>un testo <code>"x, y, z"</code>, da un campo o dall'App Bus;</li>
+      <li>una scheda di punto collimato (da <code>Pick/GetAll</code>): si usa la sua posizione;</li>
+      <li>un oggetto della scena: si usa la sua posizione.</li>
+    </ul>
+    <p>Senza <code>z</code> vale 0. Un elenco di punti può mescolare queste forme.</p>
+    <p class="rh-note">Un valore che non è un punto non viene più preso come (0,0,0): il nodo non fa nulla e scrive in console
+       <code>not a point</code> con il nome dell'ingresso.</p>
+  </section>
+
+  <!-- ─────────────────────────── Geometrie ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-geometry" aria-labelledby="rh-sec-geometry-t">
+    <h3 id="rh-sec-geometry-t"><i class="bi bi-bounding-box" aria-hidden="true"></i>Geometrie e curve</h3>
+    <p>Creano forme nuove nella scena; per vederle vanno aggiunte con <code>Scene/AddObject</code>. Ricalcolando
+       (nuovi valori in ingresso) aggiornano la stessa forma invece di crearne un'altra.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Geometry</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Geometry/BoxGeometry</code> · <code>PlaneGeometry</code></td><td>Una scatola · un piano.</td></tr>
+          <tr><td><code>Geometry/SphereGeometry</code> · <code>ConeGeometry</code> · <code>CylinderGeometry</code></td>
+              <td>Sfera, cono, cilindro; anche a spicchi o aperti.</td></tr>
+          <tr><td><code>Geometry/ExtrudeGeometry</code></td><td>Dà spessore a un profilo piano.</td></tr>
+          <tr><td><code>Geometry/LatheGeometry</code></td><td>Superficie di rotazione da un profilo (come al tornio).</td></tr>
+          <tr><td><code>Geometry/Curve/…</code></td>
+              <td>Linee e curve: segmento, arco, ellisse, Bézier, spline, percorso di più tratti. Servono come profili o come percorsi
+                  per <code>Animate/AlongCurve</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Materiali ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-material" aria-labelledby="rh-sec-material-t">
+    <h3 id="rh-sec-material-t"><i class="bi bi-palette2" aria-hidden="true"></i>Materiali e texture</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Material e TJS/Texture</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Material/GetAll</code> · <code>GetByName</code></td><td>Elenca i materiali della scena · ne trova uno dal nome.</td></tr>
+          <tr><td><code>Material/GetObjectsUsingIt</code></td><td>Dice quali oggetti usano un certo materiale.</td></tr>
+          <tr><td><code>Material/Create</code></td><td>Crea un materiale nuovo, da dare a un oggetto con <code>Object/AssignMaterial</code>.</td></tr>
+          <tr><td><code>Material/Set…</code> (Standard, Physical, Basic, Lambert, Phong…)</td>
+              <td>Regolano un materiale esistente: colore, lucentezza, metallo, trasparenza, texture. Uno per ogni tipo di materiale.</td></tr>
+          <tr><td><code>Texture/Load</code> · <code>Texture/Map</code></td><td>Caricano un'immagine e la applicano a un materiale come texture.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Luci ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-light" aria-labelledby="rh-sec-light-t">
+    <h3 id="rh-sec-light-t"><i class="bi bi-sun" aria-hidden="true"></i>Luci</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Light</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Light/Set…</code> (Ambient, Directional, Point, Spot, Hemisphere, RectArea, Probe)</td>
+              <td>Creano una luce o ne cambiano una esistente: colore, intensità, posizione. Uno per tipo di luce.</td></tr>
+          <tr><td><code>Light/SetShadow</code></td><td>Regola l'ombra di una luce.</td></tr>
+          <tr><td colspan="2" class="rh-where">La luce di base della scena (luce ambiente e sole) non è una di queste: si regola nel pannello
+              Ambiente e si salva con l'ambiente.</td></tr>
+          <tr><td><code>Light/Save</code></td><td>Salva nel modello le luci create, come il pulsante del riquadro Luci.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Setup ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-setup" aria-labelledby="rh-sec-setup-t">
+    <h3 id="rh-sec-setup-t"><i class="bi bi-person-walking" aria-hidden="true"></i>Visita e suono</h3>
+    <p>Aggiungono al pannello un modo di usarlo: le voci compaiono nel menu <span class="rh-ui">☰</span>.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi TJS/Setup e TJS/Audio</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Setup/Walkthrough</code></td><td>Visita in prima persona: si cammina con tastiera, gamepad o touch, senza attraversare i muri e salendo i gradini.</td></tr>
+          <tr><td><code>Setup/Audio</code></td><td>Musica di sottofondo del pannello: file audio del work package o una radio in streaming.</td></tr>
+          <tr><td><code>Audio/Control</code></td><td>Comanda la musica: avvia, metti in pausa, cambia brano, regola il volume.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">Nei flow dei pannelli 3D si usano anche i nodi comuni a tutte le App: menu e footer del pannello
+       (<code>ReseArch/Menu</code>, <code>ReseArch/Panel</code>), App Bus per parlare con gli altri pannelli, e i nodi di logica e dati.</p>
+  </section>
+
+  <!-- ─────────────────────────── Guide rapide ─────────────────────────── -->
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui" data-help="help-ui-TJS">
+        <i class="bi bi-badge-3d" aria-hidden="true"></i> Usare il pannello 3D
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-TJS">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello 3D (spec)
+      </button>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,260 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App TML (timeline di eventi e periodi, vis-timeline) — App in prova (beta).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Timeline (TML)" }
+  Fonti: template TML di mod_spec_templates (sql/Eseguiti/migration_app_tml.sql, migration_tml_sheets_templates.sql),
+  install/esempi/tml-esempio.json e tml-esempio.css.
+  Nessuno script. Agganci: #rh-help, #rh-sec-ways, #rh-tpl-base, #rh-sec-dates, #rh-tpl-sheets, #rh-tpl-layers, #rh-sec-style, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-calendar-range" aria-hidden="true"></i> Timeline (TML) <span class="rh-badge">beta</span></h2>
+  <p class="rh-lead">
+    TML disegna una <strong>linea del tempo</strong> con eventi, periodi ed epoche, divisi in corsie, anche prima di Cristo.
+    Si zooma dai millenni ai giorni. Serve per cronologie di cantiere, biografie, storia di un edificio o di un territorio.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-ways"><i class="bi bi-signpost-split" aria-hidden="true"></i>Due strade</a></li>
+      <li><a href="#rh-tpl-base"><i class="bi bi-filetype-json" aria-hidden="true"></i>Dati in un file</a></li>
+      <li><a href="#rh-sec-dates"><i class="bi bi-calendar3" aria-hidden="true"></i>Date</a></li>
+      <li><a href="#rh-tpl-sheets"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>Dati da Google Sheets</a></li>
+      <li><a href="#rh-tpl-layers"><i class="bi bi-layers" aria-hidden="true"></i>Più livelli</a></li>
+      <li><a href="#rh-sec-style"><i class="bi bi-palette" aria-hidden="true"></i>Colori e stile</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-ways" aria-labelledby="rh-sec-ways-t">
+    <h3 id="rh-sec-ways-t"><i class="bi bi-signpost-split" aria-hidden="true"></i>Due strade</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Modi di fornire i dati a TML</caption>
+        <thead><tr><th scope="col"></th><th scope="col">File JSON</th><th scope="col">Google Sheets</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Dove si scrivono i dati</th><td>In un file <code>.json</code> caricato</td><td>In un foglio Google, una riga per evento</td></tr>
+          <tr><th scope="row">Chi li aggiorna</th><td>Chi ricarica il file</td><td>Chiunque possa modificare il foglio</td></tr>
+          <tr><th scope="row">Template</th><td>Timeline — Base</td><td>Timeline — Foglio Google (eventi / gruppi / epoche)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>In entrambi i casi lo <strong>stile</strong> (colori, forme) sta nei CSS, non nei dati.</p>
+    <h4>Dove si scrive come mostrare i dati</h4>
+    <p>Le chiavi <code>view</code>, <code>css</code>, <code>cssText</code>, <code>layerMode</code> e <code>layers</code> vanno nel mod_spec
+       di <strong>un solo modello</strong> dell'oggetto: TML lo riconosce dal contenuto, l'ordine dei modelli non conta.
+       Di solito è un modello <strong>"Nessun file"</strong> dedicato (es. "Timeline – configurazione").</p>
+    <ul>
+      <li>Se più modelli hanno queste chiavi vale il più vecchio, e in basso compare un avviso.</li>
+      <li>Se nessuno le ha, la vista si adatta ai dati.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-base" aria-labelledby="rh-tpl-base-t">
+    <h3 id="rh-tpl-base-t"><i class="bi bi-filetype-json" aria-hidden="true"></i>Dati in un file — template "Timeline — Base" <span class="rh-badge">base</span></h3>
+    <h4>Il file del modello (<code>.json</code>)</h4>
+    <pre class="rh-json">{
+  "groups": [
+    { "id": "persone", "content": "Persone", "nested": ["artisti"], "open": true },
+    { "id": "artisti", "content": "Artisti" }
+  ],
+  "items": [
+    { "id": "e1", "start": "1452-04-15", "end": "1519-05-02", "content": "Leonardo",
+      "group": "artisti", "class": ["3"], "tags": ["arte"], "title": "Vinci – Amboise" },
+    { "id": "e2", "start": "1503", "content": "Gioconda", "type": "point", "group": "artisti" }
+  ]
+}</pre>
+    <ul>
+      <li><code>groups</code>: le corsie. <code>nested</code> elenca le sotto-corsie, <code>open</code> le mostra aperte.</li>
+      <li><code>items</code>: gli elementi. <code>id</code> stabile, <code>start</code> obbligatorio, <code>end</code> per i periodi,
+          <code>content</code> il testo, <code>title</code> la nota al passaggio del mouse, <code>class</code> e <code>tags</code> per lo stile.</li>
+      <li><code>type</code>: <code>"box"</code> evento (predefinito senza fine), <code>"point"</code> punto, <code>"range"</code> periodo
+          (predefinito con fine), <code>"background"</code> fascia d'epoca dietro le corsie.</li>
+    </ul>
+    <h4>La spec: come mostrarli</h4>
+    <pre class="rh-json">{
+  "view": { "start": null, "end": null, "zoomMax": "5000y", "orientation": "top",
+            "stack": true, "era": "auto", "cursor": null },
+  "css": []
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi di view</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>start</code>, <code>end</code></td><td>Periodo visibile all'apertura; <code>null</code> = tutti gli elementi.</td></tr>
+          <tr><td><code>min</code>, <code>max</code></td><td>Limiti oltre i quali non si può scorrere.</td></tr>
+          <tr><td><code>zoomMin</code>, <code>zoomMax</code></td><td>Zoom minimo e massimo come durate: <code>"30min"</code>, <code>"1d"</code>, <code>"5000y"</code>.</td></tr>
+          <tr><td><code>orientation</code></td><td>Asse delle date in alto (<code>"top"</code>) o in basso (<code>"bottom"</code>).</td></tr>
+          <tr><td><code>stack</code></td><td>Elementi sovrapposti messi uno sotto l'altro.</td></tr>
+          <tr><td><code>era</code></td><td>Indicazione a.C./d.C.: <code>"auto"</code> solo se serve, <code>"always"</code>, <code>"never"</code>.</td></tr>
+          <tr><td><code>cursor</code></td><td>Data di una linea verticale di riferimento; <code>null</code> = nessuna.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Un esempio completo è nei file di installazione della piattaforma (<code>install/esempi/tml-esempio.json</code>).</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-dates" aria-labelledby="rh-sec-dates-t">
+    <h3 id="rh-sec-dates-t"><i class="bi bi-calendar3" aria-hidden="true"></i>Date</h3>
+    <ul>
+      <li>Forme ammesse: <code>"1492"</code>, <code>"1492-10"</code>, <code>"1492-10-12"</code>, <code>"1492-10-12T08:30"</code>. Un numero intero vale come anno.</li>
+      <li><strong>Prima di Cristo</strong>: anno negativo, <code>"-753"</code> = 753 a.C. L'anno 0 non esiste.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-sheets" aria-labelledby="rh-tpl-sheets-t">
+    <h3 id="rh-tpl-sheets-t"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>Dati da Google Sheets <span class="rh-badge">base</span></h3>
+    <p>Un modello <strong>senza file</strong> per ogni scheda del documento. Il documento va condiviso con "Chiunque abbia il link" in lettura.</p>
+    <pre class="rh-json">{ "spreadsheetId": "1BxiMVs0…upms", "gid": "0", "role": "items", "layer": "rossi", "limit": 1000 }</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Schede di un documento Google per TML</caption>
+        <thead><tr><th scope="col">Template</th><th scope="col"><code>role</code></th><th scope="col">Colonne (prima riga)</th></tr></thead>
+        <tbody>
+          <tr><td>Foglio Google (eventi)</td><td><code>"items"</code></td>
+              <td><strong>id</strong>, tipo (punto, evento, periodo, epoca), <strong>inizio</strong>, fine, etichetta, nota, gruppo, classi, tag, obj_id</td></tr>
+          <tr><td>Foglio Google (gruppi)</td><td><code>"groups"</code></td>
+              <td><strong>id</strong>, etichetta, padre, ordine, aperto (sì/no), visibile (sì/no), classi, nota</td></tr>
+          <tr><td>Foglio Google (epoche)</td><td><code>"eras"</code></td>
+              <td><strong>id</strong>, <strong>inizio</strong>, <strong>fine</strong>, etichetta, nota, classi, gruppo (per limitarla a una corsia)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><code>spreadsheetId</code> e <code>gid</code>: dall'indirizzo del foglio, come per l'App GSH.</li>
+      <li><code>layer</code>: nome del livello; tutte le schede dello stesso documento hanno lo stesso.</li>
+      <li><code>mapping</code> (facoltativo): se le colonne hanno altri nomi, es. <code>{ "start": "Data" }</code>.</li>
+      <li>Più valori in una cella (classi, tag) si separano con <code>|</code>. Le colonne in più finiscono nei dati dell'evento.</li>
+      <li>Collega <strong>tutti i modelli-foglio</strong> allo stesso oggetto TML. Un foglio che non si legge non blocca gli altri: compare un avviso in basso.</li>
+      <li>La vista e lo stile stanno nel modello di configurazione (vedi <a href="#rh-sec-ways">Due strade</a>), che può essere un modello "Nessun file".</li>
+    </ul>
+    <p class="rh-note"><strong>Importante:</strong> prima di scrivere le date, metti le colonne inizio e fine in
+       <span class="rh-ui">Formato → Numero → Testo normale</span>. Altrimenti Google le trasforma e gli anni a.C. si perdono.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-layers" aria-labelledby="rh-tpl-layers-t">
+    <h3 id="rh-tpl-layers-t"><i class="bi bi-layers" aria-hidden="true"></i>Più livelli — template "Timeline — Livelli" <span class="rh-badge">avanzato</span></h3>
+    <p>Per mettere sulla stessa linea del tempo due o più fonti (es. due archivi) con zoom e cursore comuni.
+       La spec va nel modello di configurazione (di solito un modello "Nessun file"):</p>
+    <pre class="rh-json">{
+  "view": { "zoomMax": "5000y", "era": "auto", "orientation": "bottom" },
+  "css": [],
+  "layerMode": "stack",
+  "layers": {
+    "rossi":   { "label": "Archivio Rossi",   "css": [], "visible": true, "open": false },
+    "bianchi": { "label": "Archivio Bianchi", "css": [], "visible": true, "open": false }
+  }
+}</pre>
+    <ul>
+      <li><code>layerMode</code>: <code>"stack"</code> livelli uno sotto l'altro; <code>"merge"</code> fusi, con le corsie dello stesso nome unite (per confrontare cronologie). Si cambia anche dal menu del pannello.</li>
+      <li><code>layers</code>: per ogni livello etichetta, CSS propri (<code>css</code>, <code>cssText</code>), visibilità iniziale (<code>visible</code>)
+          e <code>open</code>: con <code>false</code> il livello parte <strong>chiuso</strong> in una riga, e si apre con un clic sul nome.
+          I livelli si accendono e spengono dal menu a sinistra.</li>
+      <li>Con più livelli gli id diventano <code>livello:id</code> (es. <code>rossi:cesare</code>) nei flow e negli scambi con gli altri pannelli.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-style" aria-labelledby="rh-sec-style-t">
+    <h3 id="rh-sec-style-t"><i class="bi bi-palette" aria-hidden="true"></i>Colori e stile</h3>
+    <ul>
+      <li>Senza CSS ci sono 12 colori pronti: metti <code>"class": ["1"]</code> … <code>["12"]</code> (nei fogli: colonna classi = <code>1</code> … <code>12</code>).</li>
+      <li>Per uno stile tuo ci sono tre modi, anche insieme. Valgono solo in questo pannello:
+        <ul>
+          <li><strong>Modello con un file <code>.css</code></strong> collegato all'oggetto: si applica sempre.</li>
+          <li><strong><code>"css": ["cronologia.css"]</code></strong> nel modello di configurazione: nomi di file nella <strong>cartella</strong> di quel modello.</li>
+          <li><strong><code>"cssText"</code></strong>: il CSS scritto direttamente nel mod_spec (testo, o elenco di righe).</li>
+        </ul>
+      </li>
+      <li>Classi utili: <code>.tml-c-&lt;classe&gt;</code>, <code>.tml-g-&lt;gruppo&gt;</code>, <code>.tml-tag-&lt;tag&gt;</code>, <code>.tml-l-&lt;livello&gt;</code>,
+          <code>.tml-t-range</code> (tutti i periodi), <code>.tml-root</code> (variabili <code>--tml-*</code>). Esempio: <code>install/esempi/tml-esempio.css</code>.</li>
+      <li>Tutti i dettagli (variabili, parti della timeline, ricette, cosa viene tolto) sono nella guida <strong>Timeline, stile CSS</strong>.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Eventi a.C. finiti nel posto sbagliato.</strong> Le celle data del foglio non sono in "Testo normale".</li>
+      <li><strong>Un evento non compare.</strong> Manca <code>id</code> o <code>start</code>/inizio, oppure due eventi hanno lo stesso id.</li>
+      <li><strong>Il CSS non si applica.</strong> Il file non è nella cartella del modello di configurazione, o il nome in <code>css</code> è scritto diversamente.</li>
+      <li><strong>La vista non è quella scritta nel mod_spec.</strong> Più modelli hanno <code>view</code>, <code>css</code> o <code>layers</code>: vale il più vecchio (avviso in basso). Lascia queste chiavi in un solo modello.</li>
+      <li><strong>Corsia con un nome strano.</strong> Un evento cita un gruppo che non c'è nel foglio dei gruppi: diventa una corsia con l'id come nome.</li>
+    </ul>
+  </section>
+</div>

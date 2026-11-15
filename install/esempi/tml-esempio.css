@@ -1,0 +1,39 @@
+/* Esempio di CSS per una timeline TML (_doc/module-tml-timeline.md §11).
+   Va nella stessa cartella del file JSON del modello e si indica nel mod_spec:
+       "css": ["tml-esempio.css"]
+   Vale solo nel pannello della timeline: .tml-root (o :root) è la radice del pannello. */
+
+/* 1. variabili: cambiano l'aspetto generale */
+.tml-root {
+    --tml-bg: #fbf8f1;
+    --tml-font: Georgia, "Times New Roman", serif;
+    --tml-item-bg: #f3ead7;
+    --tml-item-border: #8b5e34;
+    --tml-item-text: #3b2a1a;
+    --tml-group-bg: #f3ecdd;
+    --tml-era-bg: rgba(139, 94, 52, 0.08);
+    --tml-cursor: #8b1e1e;
+}
+
+/* 2. classi dei dati: "class": ["guerra"] → .tml-c-guerra */
+.tml-c-guerra {
+    --tml-item-bg: #f6d5cf;
+    --tml-item-border: #8b1e1e;
+    --tml-item-text: #4a0d0d;
+}
+.tml-c-epoca .vis-item-content {
+    font-variant: small-caps;
+    letter-spacing: 0.05em;
+}
+
+/* 3. tag: "tags": ["leggenda"] → .tml-tag-leggenda */
+.tml-tag-leggenda {
+    border-style: dashed;
+    font-style: italic;
+}
+
+/* 4. gruppi: corsia "letteratura" → .tml-g-letteratura (etichetta e riga) */
+.vis-label.tml-g-letteratura { color: #2f5d3a; }
+
+/* 5. tipi: .tml-t-point, .tml-t-box, .tml-t-range, .tml-t-background */
+.tml-t-range { border-radius: 10px; }

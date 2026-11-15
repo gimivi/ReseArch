@@ -1,0 +1,3364 @@
+/* ==========================================================================
+   ReseArch — foglio di stile unificato
+   Usato da: researches.php, workpackages.php, dashboard.php
+   --------------------------------------------------------------------------
+   Sezioni:
+    0)  Fondamenta visive: token del Design System Italia, carattere,
+        variabili della piattaforma (--ra-*), focus, movimento ridotto
+    1)  Base / layout
+    2)  Header
+    3)  Footer (app-footer)
+    4)  Landing pages (researches, workpackages)
+    5)  Dashboard layout
+    6)  Panel: struttura e griglia
+    7)  Panel: header e footer
+    8)  Panel: toolbar
+    9)  Panel: maximized mode
+   10)  Model viewer
+   11)  Objects modal tree
+   12)  Transform utilities
+   13)  BSP Tiling Window Manager (WM)
+   14)  Touch-friendly overrides
+   15)  LiteGraph.js overrides
+   16)  TJS Viewer — Right-panel system
+        (Scene Tree · Light Manager · Camera Manager · Env Manager)
+   17)  PDF Viewer
+        (Tab bar · Viewport · Navbar · Views panel)
+   ========================================================================== */
+
+@import url("../lib/design-tokens-italia/variables.css");
+
+/* ==========================================================================
+   0) Fondamenta visive  (_doc/arch-css.md §4, _doc/arch-i18n-a11y.md §11)
+   --------------------------------------------------------------------------
+   - lib/design-tokens-italia/variables.css: token ufficiali del Design System
+     Italia (design-tokens-italia 1.3.3, BSD-3-Clause), variabili --it-*.
+   - Qui sotto: le variabili della piattaforma (--ra-*) definite a partire dai
+     token, e le variabili di Bootstrap 5.3.3 collegate alle --ra-*.
+   - Nuovi stili: usare le --ra-*, non colori scritti a mano.
+   ========================================================================== */
+
+/* Titillium Web (SIL Open Font License, lib/fonts/titillium-web/OFL.txt), da file locali */
+@font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 300; font-display: swap;
+  src: url("../lib/fonts/titillium-web/titillium-web-300.woff2") format("woff2"); }
+@font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../lib/fonts/titillium-web/titillium-web-regular.woff2") format("woff2"); }
+@font-face { font-family: 'Titillium Web'; font-style: italic; font-weight: 400; font-display: swap;
+  src: url("../lib/fonts/titillium-web/titillium-web-italic.woff2") format("woff2"); }
+@font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("../lib/fonts/titillium-web/titillium-web-600.woff2") format("woff2"); }
+@font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../lib/fonts/titillium-web/titillium-web-700.woff2") format("woff2"); }
+
+:root {
+  /* Carattere */
+  --ra-font-sans: var(--it-font-sans), system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --ra-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Colori semantici (contrasto su bianco: primary 5.6:1, text 17:1, muted >= 4.5:1) */
+  --ra-color-primary:        var(--it-color-background-primary);         /* #0066cc */
+  --ra-color-primary-hover:  var(--it-color-background-primary-hover);
+  --ra-color-primary-active: var(--it-color-background-primary-active);
+  --ra-color-primary-light:  var(--it-color-background-primary-lighter);
+  --ra-color-text:           var(--it-color-text-base);
+  --ra-color-text-secondary: var(--it-color-text-secondary);
+  --ra-color-text-muted:     var(--it-color-text-muted);
+  --ra-color-text-inverse:   var(--it-color-text-inverse);
+  --ra-color-link:           var(--it-color-link-base);
+  --ra-color-bg-muted:       var(--it-color-background-muted);
+  --ra-color-border:         var(--it-color-border-secondary);
+  --ra-color-success:        var(--it-color-background-success);
+  --ra-color-warning:        var(--it-color-background-warning);
+  --ra-color-danger:         var(--it-color-background-danger);
+
+  /* Focus: anello scuro con alone chiaro, visibile sia su sfondi chiari sia sulla dashboard nera */
+  --ra-focus-color: var(--it-color-outline-focus);
+  --ra-focus-halo:  #ffffff;
+  --ra-focus-width: 2px;
+
+  /* Spazi, raggi, comandi tattili */
+  --ra-space-1: var(--it-spacing-1x);   /* 4px */
+  --ra-space-2: var(--it-spacing-2x);   /* 8px */
+  --ra-space-3: var(--it-spacing-3x);   /* 12px */
+  --ra-space-4: var(--it-spacing-4x);   /* 16px */
+  --ra-space-6: var(--it-spacing-6x);   /* 24px */
+  --ra-space-8: var(--it-spacing-8x);   /* 32px */
+  --ra-radius:  var(--it-radius-smooth); /* 4px */
+  --ra-touch-min: 44px;                 /* dimensione minima dei comandi sul touch (fase 6) */
+
+  /* Bootstrap 5.3.3 → variabili della piattaforma */
+  --bs-font-sans-serif:     var(--ra-font-sans);
+  --bs-body-font-family:    var(--ra-font-sans);
+  --bs-font-monospace:      var(--ra-font-mono);
+  --bs-body-color:          var(--ra-color-text);
+  --bs-primary:             var(--ra-color-primary);
+  --bs-primary-rgb:         0, 102, 204;
+  --bs-link-color:          var(--ra-color-link);
+  --bs-link-color-rgb:      0, 102, 204;
+  --bs-link-hover-color:    var(--ra-color-primary-hover);
+  --bs-link-hover-color-rgb: 0, 77, 153;
+  --bs-border-radius:       var(--ra-radius);
+  --bs-focus-ring-color:    rgba(0, 102, 204, .25);
+}
+
+/* Bootstrap compila i colori dei pulsanti nel CSS: vanno ricollegati qui */
+.btn-primary {
+  --bs-btn-bg: var(--ra-color-primary);
+  --bs-btn-border-color: var(--ra-color-primary);
+  --bs-btn-hover-bg: var(--ra-color-primary-hover);
+  --bs-btn-hover-border-color: var(--ra-color-primary-hover);
+  --bs-btn-active-bg: var(--ra-color-primary-active);
+  --bs-btn-active-border-color: var(--ra-color-primary-active);
+  --bs-btn-disabled-bg: var(--ra-color-primary);
+  --bs-btn-disabled-border-color: var(--ra-color-primary);
+  --bs-btn-focus-shadow-rgb: 0, 102, 204;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--ra-color-primary);
+  --bs-btn-border-color: var(--ra-color-primary);
+  --bs-btn-hover-bg: var(--ra-color-primary);
+  --bs-btn-hover-border-color: var(--ra-color-primary);
+  --bs-btn-active-bg: var(--ra-color-primary-active);
+  --bs-btn-active-border-color: var(--ra-color-primary-active);
+  --bs-btn-disabled-color: var(--ra-color-primary);
+  --bs-btn-disabled-border-color: var(--ra-color-primary);
+  --bs-btn-focus-shadow-rgb: 0, 102, 204;
+}
+
+/* Focus da tastiera (WCAG 2.4.7): Bootstrap toglie l'outline a pulsanti e campi e lascia solo un
+   alone azzurro poco visibile sulla dashboard. :focus-visible non scatta al clic del mouse. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible,
+summary:focus-visible,
+.btn:focus-visible,
+.btn-close:focus-visible,
+.dropdown-item:focus-visible,
+.nav-link:focus-visible,
+.page-link:focus-visible,
+.list-group-item-action:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+.form-check-input:focus-visible,
+.form-range:focus-visible {
+  outline: var(--ra-focus-width) solid var(--ra-focus-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 calc(var(--ra-focus-width) + 2px) var(--ra-focus-halo);
+}
+
+/* Link "Vai al contenuto" (ui/header.php): nascosto finché non riceve il focus da tastiera */
+.ra-skip-link:focus,
+.ra-skip-link:focus-visible {
+  position: fixed;
+  top: var(--ra-space-2);
+  left: var(--ra-space-2);
+  z-index: 3000;               /* sopra header, modali (1055) e menu di LiteGraph (2000) */
+  padding: var(--ra-space-2) var(--ra-space-4);
+  background: #fff;
+  color: var(--ra-color-text);
+  border-radius: var(--ra-radius);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Movimento ridotto (WCAG 2.3.3): niente animazioni e transizioni CSS se l'utente lo chiede */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+
+/* ==========================================================================
+   1) Base / layout
+   ========================================================================== */
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5; /* default: landing pages (chiaro) */
+}
+
+/* Dashboard: sfondo nero, testo bianco */
+body.page-dashboard {
+  background-color: #000;
+  color: #fff;
+}
+
+
+/* ==========================================================================
+   2) Header
+   ========================================================================== */
+
+header {
+  background: #222;
+  color: #fff;
+}
+
+/* App header: barra fissa in cima */
+.app-header {
+  height: 60px;
+  overflow: hidden;
+}
+
+
+/* ==========================================================================
+   3) Footer (app-footer)
+   ========================================================================== */
+
+footer {
+  border-top: 1px solid #333;
+}
+
+footer.app-footer {
+  margin-top: auto;   /* spinge il footer in fondo in qualsiasi flex column */
+  height: 30px;
+  background: #222;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.app-footer-left {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.app-footer-home {
+  color: rgba(255,255,255,0.75);
+  font-size: 1rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+.app-footer-home:hover { color: #fff; }
+
+.app-footer-center {
+  flex: 1;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.7);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.app-footer-right {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+}
+.app-footer-right a {
+  color: rgba(255,255,255,0.75);
+  text-decoration: underline;   /* link nel testo: non solo il colore (WCAG 1.4.1) */
+}
+.app-footer-right a:hover { color: #fff; }
+
+/* ─── Config dashboard caricata (footer) ───────────────────── */
+.dcfg-current {
+  color:     #93c5fd;
+  font-size: 0.75rem;
+}
+.dcfg-current i { margin-right: 2px; }
+
+/* ─── Flow Runtime Indicator ───────────────────────────────── */
+.fle-indicator {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  flex:        0 0 auto;
+  padding:     0 8px;
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+.fle-ind-dot {
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  background:    #22c55e;
+  flex-shrink:   0;
+  animation:     fle-pulse 1.5s ease-in-out infinite;
+}
+@keyframes fle-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+.fle-ind-name {
+  background:    none;
+  border:        none;
+  color:         #a3e635;
+  font-size:     0.73rem;
+  padding:       0;
+  cursor:        default;
+  max-width:     260px;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+}
+.fle-ind-stop {
+  background:    none;
+  border:        1px solid rgba(239,68,68,0.45);
+  color:         #f87171;
+  font-size:     0.65rem;
+  padding:       1px 6px;
+  border-radius: 3px;
+  cursor:        pointer;
+  line-height:   1.4;
+  white-space:   nowrap;
+}
+.fle-ind-stop:hover    { background: rgba(239,68,68,0.18); border-color: #ef4444; }
+.fle-ind-stop:disabled { opacity: 0.4; cursor: default; }
+
+
+/* ==========================================================================
+   4) Landing pages (researches, workpackages)
+   ========================================================================== */
+
+/* Stage: spazio fisso fra header e footer, centra il form */
+.landing-stage {
+  position: fixed;
+  top: 60px;    /* altezza .app-header */
+  bottom: 30px; /* altezza footer */
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Form: dimensioni calcolate da JS, sfondo trasparente */
+.landing-wrapper {
+  box-sizing: border-box;
+}
+
+/* Metà superiore: thumb + dots */
+.upper-half {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Riga thumb (3/4 dell'upper-half) */
+.thumb-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+/* Ogni thumb: lato = --thumb-size, garantito quadrato */
+.thumb-item {
+  padding: 0;
+  background: transparent;
+  width: var(--thumb-size, 200px);
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+.thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Placeholder "nessuna immagine" (researches.php + workpackages.php,
+   stesso markup .thumb-item/.detail-wrapper) — 2026-10-13: logo ReseArch
+   grigio in alto a sinistra, alto un terzo dell'immagine, su fondo grigio
+   chiaro. L'<img> ha come src un pixel trasparente: il logo è lo sfondo. */
+.thumb-item img.img-placeholder,
+.detail-wrapper img.img-placeholder {
+  object-fit: fill;
+  background: #e9ecef url("../img/Logo_Research_BN.svg") no-repeat left 0.75rem top 0.75rem;
+  background-size: auto 33.333%;
+}
+
+/* Immagine di dettaglio mancante (classe .detail-missing sul .detail-wrapper):
+   - chi può modificare: il tasto di modifica lampeggia, 1 s colore normale e 1 s rosso Sapienza;
+   - gli altri (.can-edit-img assente): scritta "immagine / da definire" al posto del tasto. */
+@keyframes ra-blink-sapienza {
+  0%   { background: rgba(0,0,0,0.5); }
+  50%  { background: #822433; }
+  100% { background: #822433; }
+}
+.detail-wrapper.detail-missing .detail-actions-top .action-btn {
+  animation: ra-blink-sapienza 2s steps(1, end) infinite;
+}
+.detail-wrapper.detail-missing .detail-actions-top .action-btn:hover,
+.detail-wrapper.detail-missing .detail-actions-top .action-btn:focus-visible {
+  animation: none;
+  background: #822433;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Niente lampeggio: il tasto resta rosso Sapienza */
+  .detail-wrapper.detail-missing .detail-actions-top .action-btn { animation: none; background: #822433; }
+}
+.detail-missing-note {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 0.75rem;          /* come .thumb-title */
+  line-height: 1.25;
+  text-align: right;
+  color: rgba(0,0,0,0.6);      /* grigio del tasto (0.5), un po' più scuro per il contrasto AA sul fondo chiaro */
+}
+.detail-wrapper.detail-missing:not(.can-edit-img) .detail-missing-note { display: block; }
+
+/* Titolo overlay: visibile solo se thumb ≥ 256px (controllato da JS) */
+.thumb-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px 6px;
+  background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+  color: #fff;
+  font-size: 0.75rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thumb-item.selected {
+  border-color: var(--ra-color-primary);
+  box-shadow: 0 0 0 2px rgba(0,102,204,0.5);
+}
+
+/* Riga dots (1/4 dell'upper-half) */
+.dots-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Area touch 28px; punto visivo 15px via ::before */
+.dot {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 100%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dot::before {
+  content: '';
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: var(--ra-color-text-muted);
+  transition: background-color 0.2s;
+}
+
+.dot.active::before {
+  background-color: var(--ra-color-primary);
+  box-shadow: 0 0 0 3px rgba(0,102,204,0.35);
+}
+
+/* Metà inferiore: immagine di dettaglio */
+.detail-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #ddd;
+  border-radius: 0;
+}
+
+.detail-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-overlay {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 15px 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0.05));
+  color: #fff;
+}
+
+.detail-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.detail-subtitle { font-size: 1rem; }
+
+.detail-resp,
+.detail-other {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Collaboratori (C): fino a 5 nomi per esteso, oltre un link-pulsante che apre ui/modal_collaborators.php */
+.detail-collab {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+.detail-collab-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #fff;
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.detail-collab-btn:hover { opacity: 1; }
+.detail-collab-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.detail-actions-top {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 20;
+}
+
+.detail-actions-bottom {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 20;
+}
+
+/* Telefono (< 768px): researches.php / workpackages.php mettono body.landing-phone.
+   La pagina scorre; l'immagine di dettaglio resta 3:1 e il testo va sotto, su fondo scuro;
+   il pulsante "apri" segue il testo invece di coprirlo. */
+body.landing-phone .landing-stage {
+  overflow-y: auto;
+  align-items: flex-start;
+  padding: 16px 0;
+}
+body.landing-phone .detail-wrapper {
+  overflow: visible;
+  background: #1f2937;
+}
+body.landing-phone .detail-wrapper img {
+  height: var(--detail-img-h, auto);
+}
+body.landing-phone .detail-overlay {
+  position: static;
+  background: #1f2937;
+}
+body.landing-phone .detail-actions-bottom {
+  position: static;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 12px;
+}
+
+.action-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+}
+
+.action-btn:hover {
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+}
+
+.action-btn i { font-size: 1.2rem; }
+
+
+/* ==========================================================================
+   5) Dashboard layout
+   ========================================================================== */
+
+/* Main occupa lo spazio tra header e footer */
+main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.dashboard-main {
+  flex: 1 1 auto;
+  width: 100%;
+  padding: 0;
+}
+
+.panel-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+#panelRoot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+
+/* ==========================================================================
+   6) Panel: struttura e griglia
+   ========================================================================== */
+
+/* Gruppo pannelli: griglia 2×2 */
+.panel-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+/* Su schermi stretti: solo il gruppo ROOT diventa 1 col × 4 righe */
+@media (max-width: 768px) {
+  .panel-group-root {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+  }
+}
+
+/* Pannello singolo (foglia) */
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #333;
+  border-radius: 0;
+  background-color: #444;
+  color: #fff;
+  overflow: hidden;
+  height: 100%;
+}
+
+
+/* ==========================================================================
+   7) Panel: header e footer
+   ========================================================================== */
+
+.panel-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  pointer-events: auto;
+  background-color: rgba(0,0,0,0.15);
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #333;
+  font-size: 0.85rem;
+  transition: background-color 1s ease;
+  transition-delay: 1s;
+}
+
+.panel-header:hover {
+  background-color: rgba(0,0,0,0.7);
+  transition-delay: 0s;
+}
+
+.panel-body {
+  position: relative;
+  background-color: #444;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  overflow: hidden;
+  width: 100%;
+  height: 190%;
+}
+
+.panel-hamburger {
+  border: none;
+  background: transparent;
+  padding: 0.1rem 0.25rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #fff;
+}
+
+.panel-title {
+  cursor: pointer;
+  color: #fff;
+  text-decoration: none;
+}
+
+.panel-title.btn-link {
+  text-decoration: none;
+}
+
+.panel-split {
+  border: none;
+  background: transparent;
+  padding: 0.1rem 0.25rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #fff;
+}
+
+/* Footer overlay: invisibile di default */
+.panel-footer {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  min-height: 32px;
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0,0,0,0.70);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  font-size: 0.80rem;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.panel-footer.is-visible {
+  display: flex;
+}
+
+.panel-footer-left, .panel-footer-center, .panel-footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.panel-footer-left  { flex: 1 1 0; }
+.panel-footer-center { flex: 0 0 auto; justify-content: center; opacity: 0.9; }
+.panel-footer-right { flex: 1 1 0; justify-content: flex-end; }
+
+.panel-footer .pf-controls {
+  pointer-events: auto;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+
+/* ==========================================================================
+   8) Panel: toolbar
+   ========================================================================== */
+
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  height: 100%;
+}
+
+.panel-toolbar .btn {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: rgba(255,255,255,0.75);
+  border-radius: 4px;
+  transition: all 0.15s ease-in-out;
+}
+
+.panel-toolbar .btn i,
+.panel-toolbar .btn svg {
+  font-size: 1rem;
+}
+
+.panel-toolbar .btn:hover {
+  color: #fff;
+  background-color: rgba(255,255,255,0.12);
+}
+
+.panel-toolbar .btn:active,
+.panel-toolbar .btn.active {
+  background-color: rgba(255,255,255,0.2);
+}
+
+.panel-toolbar .btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.panel-toolbar .btn.icon-only {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.75);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 1.2rem;
+  background-color: rgba(255,255,255,0.25);
+  margin: 0 0.4rem;
+}
+
+.toolbar-spacer {
+  display: inline-block;
+}
+
+/* Nasconde la freccia dei dropdown nella toolbar */
+.no-caret::after {
+  display: none !important;
+}
+
+.panel-toolbar .dropdown-menu {
+  background-color: #1c1c24;
+  border: 1px solid #333;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  min-width: 160px;
+}
+
+.panel-toolbar .dropdown-item {
+  color: rgba(255,255,255,0.8);
+  padding: 0.35rem 0.75rem;
+}
+
+.panel-toolbar .dropdown-item:hover {
+  background-color: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.panel-toolbar .dropdown-divider {
+  border-top: 1px solid #333;
+}
+
+
+/* ==========================================================================
+   9) Panel: maximized mode
+   ========================================================================== */
+
+#panelRoot.maximized .panel {
+  visibility: hidden;
+}
+
+#panelRoot.maximized .panel.maximized-panel {
+  visibility: visible;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+}
+
+
+/* ==========================================================================
+   10) Model viewer
+   ========================================================================== */
+
+.model-viewer {
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+
+/* ==========================================================================
+   11) Objects modal tree (struttura DIV)
+   --------------------------------------------------------------------------
+   Markup atteso:
+     <div id="objectsTree" class="tree"></div>
+   Il JS costruisce:
+     .tree-row (con data-level="0..3")
+     .tree-toggle button
+     .tree-label
+     .tree-children (+ .is-collapsed opzionale)
+   ========================================================================== */
+
+#objectsTree,
+.tree {
+  font-size: 0.92rem;
+  line-height: 1.25rem;
+}
+
+#objectsTree .tree-row,
+.tree .tree-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  user-select: none;
+  cursor: default;
+}
+
+#objectsTree .tree-row[data-level="0"],
+.tree .tree-row[data-level="0"] { padding-left: 6px; }
+
+#objectsTree .tree-row[data-level="1"],
+.tree .tree-row[data-level="1"] { padding-left: 18px; }
+
+#objectsTree .tree-row[data-level="2"],
+.tree .tree-row[data-level="2"] { padding-left: 34px; }
+
+#objectsTree .tree-row[data-level="3"],
+.tree .tree-row[data-level="3"] { padding-left: 52px; }
+
+#objectsTree .tree-row:hover,
+.tree .tree-row:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+#objectsTree .tree-toggle,
+.tree .tree-toggle {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0.85;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  box-shadow: none;
+}
+
+#objectsTree .tree-toggle:hover,
+.tree .tree-toggle:hover { opacity: 1; }
+
+#objectsTree .tree-toggle:focus,
+.tree .tree-toggle:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+#objectsTree .tree-row.leaf,
+.tree .tree-row.leaf {
+  cursor: pointer;
+}
+
+#objectsTree .tree-row.typeA .tree-label,
+.tree .tree-row.typeA .tree-label {
+  font-weight: 700;
+}
+
+#objectsTree .tree-row.typeB .tree-label,
+.tree .tree-row.typeB .tree-label {
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+#objectsTree .tree-children,
+.tree .tree-children {
+  margin: 0;
+  padding: 0;
+}
+
+#objectsTree .tree-children.is-collapsed,
+.tree .tree-children.is-collapsed {
+  display: none;
+}
+
+#objectsTree .tree-loading,
+.tree .tree-loading {
+  padding: 8px;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+
+/* ==========================================================================
+   12) Transform utilities
+   ========================================================================== */
+
+.rotate-90 {
+  display: inline-block;
+  transform: rotate(90deg);
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.rotate-270 {
+  transform: rotate(270deg);
+}
+
+
+/* ==========================================================================
+   13) BSP Tiling Window Manager  (ui/dashboard_windows.mjs)
+   ========================================================================== */
+
+/* I pannelli sono posizionati in assoluto dal motore WM */
+.wm-panel {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Body: unico figlio in-flow → occupa tutta l'altezza del pannello */
+.wm-panel .panel-body {
+  flex:       1 1 0;
+  min-height: 0;
+  height:     0;
+  width:      100%;
+  padding:    0;
+  overflow:   hidden;
+}
+
+/* Header: 30 px compatto, auto-hide via opacity */
+.wm-panel .panel-header {
+  height:         30px;
+  min-height:     30px;
+  padding:        0 4px;
+  opacity:        0;
+  pointer-events: none;
+  transition:     opacity 0.4s ease, background-color 0.3s ease;
+}
+
+.wm-panel.wm-hf-visible .panel-header {
+  opacity:        1;
+  pointer-events: auto;
+}
+
+/* Toolbar si espande tra dropdown e controlli WM */
+.wm-panel .panel-toolbar {
+  flex:       1;
+  max-width:  2000px;          /* valore ampio: consente transizione da 2000→0 */
+  overflow:   visible;         /* visible: i dropdown-menu non vengono clippati */
+  transition: max-width 0.15s ease, opacity 0.12s ease;
+}
+
+/* Footer: fade con opacity */
+.wm-panel .panel-footer {
+  opacity:    0;
+  transition: opacity 0.4s ease;
+}
+
+.wm-panel.wm-hf-visible .panel-footer.is-visible {
+  opacity: 1;
+}
+
+/* Transizioni layout animate (split / close) */
+.wm-anim {
+  transition: left 0.18s ease, top 0.18s ease,
+              width 0.18s ease, height 0.18s ease;
+}
+
+/* btn-link nell'header WM: bianco invece di blu Bootstrap */
+.wm-panel .panel-header .btn-link {
+  color: rgba(255,255,255,0.75);
+  text-decoration: none;
+}
+
+.wm-panel .panel-header .btn-link:hover,
+.wm-panel .panel-header .btn-link:focus {
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Hot zones: aree invisibili da 10 px per trigger header/footer */
+.wm-hot-top,
+.wm-hot-bottom {
+  position:       absolute;
+  left:           0;
+  right:          0;
+  height:         10px;
+  z-index:        0;
+  pointer-events: auto;
+}
+
+.wm-hot-top    { top:    0; }
+.wm-hot-bottom { bottom: 0; }
+
+/* Barre di split */
+.wm-bar {
+  position:     absolute;
+  z-index:      10;
+  background:   transparent;
+  transition:   background 0.15s ease;
+  touch-action: none;
+}
+
+.wm-bar-v { cursor: col-resize; }
+.wm-bar-h { cursor: row-resize; }
+
+.wm-bar:hover,
+.wm-bar.active {
+  background: rgba(255,255,255,0.18);
+}
+
+/* Pulsanti WM disabilitati */
+.wm-btn:disabled {
+  opacity:        0.25;
+  cursor:         default;
+  pointer-events: none;
+}
+
+/* Controlli WM (lato destro dell'header) */
+.wm-controls {
+  display:     flex;
+  align-items: center;
+  gap:         0;
+  flex-shrink: 0;
+}
+
+.wm-btn {
+  padding:     0 5px;
+  font-size:   0.8rem;
+  line-height: 30px;
+  height:      30px;
+  color:       rgba(255,255,255,0.7);
+  border:      none;
+  background:  transparent;
+  cursor:      pointer;
+  transition:  color 0.15s, background 0.15s;
+}
+
+.wm-btn:hover {
+  color:       #fff;
+  background:  rgba(255,255,255,0.12);
+}
+
+/* Pulsante "Flow embedded" — solo per ruoli con permesso di scrittura sul WP
+   (stesso gate di Dashboard Flow / modalTreeObj write ops, vedi $showUOML in
+   ui/header.php e dashboard.php). Nascosto di default, mostrato solo se il
+   <body> ha la classe show-uoml. */
+.panel-flow-embedded { display: none; }
+body.show-uoml .panel-flow-embedded { display: inline-block; }
+
+/* Separatore tra icone viewer e icone WM */
+.wm-hdr-sep {
+  display:    inline-block;
+  width:      1px;
+  height:     16px;
+  background: rgba(255,255,255,0.25);
+  margin:     0 3px;
+}
+
+/* Pannello massimizzato */
+.wm-panel.wm-max {
+  left:       0    !important;
+  top:        0    !important;
+  width:      100% !important;
+  height:     100% !important;
+  z-index:    100;
+}
+
+/* ==========================================================================
+   WM – Header compatto  (_setupHeaderCompact in ui/dashboard_windows.mjs)
+   Fasi, la toolbar centrale per ultima:
+     .hdr-cl      blocco di sinistra (☰ + nome) → ⋮
+     .hdr-cr      controlli di destra → ⋮
+     .hdr-scroll  la toolbar non sta: scorre (barra di scorrimento nascosta)
+   .hdr-peek-left / .hdr-peek-right: blocco aperto dal suo ⋮, il resto si
+   compatta (l'altro blocco → ⋮, la toolbar → icona attrezzi).
+   ========================================================================== */
+
+.wm-left {
+  display:     flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width:   0;
+}
+.wm-left [data-menu="left"] > .dropdown-toggle {
+  display:     inline-flex;
+  align-items: center;
+  gap:         0.35rem;
+  max-width:   100%;
+  min-width:   0;
+}
+.wm-title {
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+  min-width:     0;
+}
+.wm-ctrls-group {
+  display:     flex;
+  align-items: center;
+}
+
+/* ⋮ dei blocchi laterali e icona attrezzi della toolbar: nascosti di default */
+.wm-stub { display: none; flex-shrink: 0; }
+.panel-toolbar-stub {
+  display:     none;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* ── 1. sinistra compatta ── */
+.wm-panel .panel-header.hdr-cl .wm-left-stub        { display: inline-block; }
+.wm-panel .panel-header.hdr-cl .wm-left > .dropdown { display: none; }
+
+/* ── 2. destra compatta ── */
+.wm-panel .panel-header.hdr-cr .wm-ctrls-stub  { display: inline-block; }
+.wm-panel .panel-header.hdr-cr .wm-ctrls-group { display: none; }
+
+/* ── 3. toolbar che scorre (posizione del mouse, rotella, dito) ── */
+.wm-panel .panel-header.hdr-scroll .panel-toolbar {
+  min-width:       0;
+  justify-content: flex-start;
+  overflow-x:      auto;
+  overflow-y:      hidden;
+  white-space:     nowrap;
+  scrollbar-width: none;
+}
+.wm-panel .panel-header.hdr-scroll .panel-toolbar::-webkit-scrollbar { display: none; }
+.wm-panel .panel-header.hdr-scroll .panel-toolbar > * { flex-shrink: 0; }
+
+/* ── Blocco di sinistra aperto ── */
+.wm-panel .panel-header.hdr-peek-left .wm-left-stub        { display: none; }
+.wm-panel .panel-header.hdr-peek-left .wm-left > .dropdown { display: block; min-width: 0; }
+.wm-panel .panel-header.hdr-peek-left .wm-left             { flex-shrink: 1; }
+.wm-panel .panel-header.hdr-peek-left .wm-ctrls-stub       { display: inline-block; }
+.wm-panel .panel-header.hdr-peek-left .wm-ctrls-group      { display: none; }
+
+/* ── Blocco di destra aperto ── */
+.wm-panel .panel-header.hdr-peek-right .wm-ctrls-stub        { display: none; }
+.wm-panel .panel-header.hdr-peek-right .wm-ctrls-group       { display: flex; }
+.wm-panel .panel-header.hdr-peek-right .wm-left-stub         { display: inline-block; }
+.wm-panel .panel-header.hdr-peek-right .wm-left > .dropdown  { display: none; }
+
+/* ── In entrambi i casi la toolbar si chiude nell'icona attrezzi ── */
+.wm-panel .panel-header.hdr-peek-left .panel-toolbar,
+.wm-panel .panel-header.hdr-peek-right .panel-toolbar {
+  max-width:      0;
+  padding:        0;
+  overflow:       hidden;
+  opacity:        0;
+  pointer-events: none;
+}
+.wm-panel .panel-header.hdr-peek-left .panel-toolbar-stub,
+.wm-panel .panel-header.hdr-peek-right .panel-toolbar-stub { display: inline-flex; }
+
+
+/* --------------------------------------------------------------------------
+   13b) Pannelli a schede sotto i 992px (ui/dashboard_windows.mjs, _afterLayout)
+   Un pannello alla volta; la barra elenca i pannelli. Niente massimizza (inutile).
+   -------------------------------------------------------------------------- */
+.wm-tabbar {
+  position:   absolute;
+  top: 0; left: 0; right: 0;
+  height:     36px;
+  display:    flex;
+  gap:        2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #111827;
+  border-bottom: 1px solid #374151;
+  z-index:    30;
+  scrollbar-width: thin;
+}
+.wm-tab {
+  flex:        0 0 auto;
+  max-width:   220px;
+  padding:     0 12px;
+  border:      0;
+  border-bottom: 3px solid transparent;
+  background:  transparent;
+  color:       #e5e7eb;          /* 14:1 su #111827 */
+  font-size:   0.85rem;
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+.wm-tab[aria-selected="true"] {
+  color:        #fff;
+  border-bottom-color: #4da3ff;  /* indicatore 6.9:1 su #111827 */
+  background:   #1f2937;
+}
+.wm-tab:focus-visible {
+  outline:        2px solid #4da3ff;
+  outline-offset: -2px;
+}
+#panelRoot.wm-tabs [data-wm="maximize"] { display: none; }
+
+@media (pointer: coarse) {
+  .wm-tabbar { height: 44px; }
+}
+
+
+/* ==========================================================================
+   14) Touch-friendly overrides  (tablet + phone, pointer: coarse)
+   ========================================================================== */
+
+@media (pointer: coarse) {
+
+  .wm-panel .panel-header {
+    height:     44px;
+    min-height: 44px;
+  }
+
+  .wm-btn {
+    height:      44px;
+    line-height: 44px;
+    padding:     0 10px;
+  }
+
+  .wm-hot-top,
+  .wm-hot-bottom {
+    height: 30px;
+  }
+
+  /* Area di grab estesa per le barre di split */
+  .wm-bar::before {
+    content:  '';
+    position: absolute;
+    inset:    -12px;
+  }
+}
+
+
+/* ==========================================================================
+   15) LiteGraph.js overrides
+   (usata da model_FLE.mjs tramite dashboard.php)
+   ========================================================================== */
+
+/* Z-index: sopra Bootstrap modal (1055) e backdrop (1050) e sopra il pannello massimizzato del
+   window manager (.wm-panel.wm-max, z-index 100). Il menu del tasto destro è
+   ".litegraph.litecontextmenu" (aggiunto il 2026-10-06: prima ".litemenu" non lo comprendeva e a
+   pannello massimizzato il menu si apriva DIETRO il pannello). Elenco dei livelli: _doc/arch-css.md */
+.litegraph.litesearchbox,
+.litegraph.litecontextmenu,
+.litegraph.dialog,
+.graphdialog,
+.litemenu,
+.litemenu-entry .litemenu {
+  z-index: 2000 !important;
+}
+
+/* Search box (doppio click sul canvas vuoto per aggiungere nodi) */
+.litegraph.litesearchbox {
+  transform: scale(0.75);
+  transform-origin: top left;
+}
+
+.litegraph.litesearchbox input {
+  font-size: 0.85rem !important;
+}
+
+.litegraph.litesearchbox .name {
+  font-size: 0.8rem !important;
+}
+
+
+/* ==========================================================================
+   16)  TJS Viewer — Right-panel system
+        Pannelli sovrapposti al viewport 3D: Scene Tree, Light Manager,
+        Camera Manager, Environment Manager.
+        Tutti montati nel .tjs-rpanel (flex-column, lato destro di .panel-body).
+   ========================================================================== */
+
+/* ── Contenitore colonna destra ─────────────────────────────────────────── */
+
+.tjs-rpanel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;   /* passthrough sulle aree senza pannelli */
+  z-index: 4;             /* sotto footer panel (z:5), sopra header (z:1) */
+  /* nessun bordo di default — compare solo quando un pannello è visibile */
+}
+
+.tjs-rpanel.is-active {
+  border-left: 1px solid #2a2a3e;
+}
+
+/* ── Singolo pannello (figlio del contenitore) ──────────────────────────── */
+
+.tjs-rpanel-item {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
+  overflow: hidden;
+  width: 100%;
+  background: rgba(14, 14, 22, 0.95);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: #dde;
+}
+
+/* Separatore tra pannelli impilati */
+.tjs-rpanel-item + .tjs-rpanel-item {
+  border-top: 1px solid #2a2a3e;
+}
+
+/* ── Header del pannello ───────────────────────────────────────────────── */
+
+.tjs-rpanel-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-bottom: 1px solid #2a2a3e;
+  background: rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+.tjs-rpanel-hdr-title {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.tjs-rpanel-hdr-btns {
+  display: flex;
+  gap: 2px;
+}
+
+/* ── Barra aggiunta (toolbar sotto header) ──────────────────────────────── */
+
+.tjs-rpanel-addbar {
+  padding: 5px 8px;
+  border-bottom: 1px solid #2a2a3e;
+  flex-shrink: 0;
+}
+
+.tjs-rpanel-addbar-lbl {
+  font-size: 10px;
+  color: #667;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.tjs-rpanel-addbar-btns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.tjs-rpanel-addbar-btn {
+  background: #1e1e32;
+  border: 1px solid #2e2e4a;
+  border-radius: 3px;
+  color: #aaa;
+  cursor: pointer;
+  padding: 3px 6px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.tjs-rpanel-addbar-btn:hover { background: #282840; }
+.tjs-rpanel-addbar-btn span  { font-size: 10px; margin-left: 3px; color: #99a; }
+
+/* ── Riga scala handle ──────────────────────────────────────────────────── */
+
+.tjs-rpanel-scale-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.tjs-rpanel-scale-lbl {
+  color: #667;
+  flex-shrink: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.tjs-rpanel-scale-val {
+  min-width: 28px;
+  text-align: right;
+  color: #99a;
+  font-size: 11px;
+}
+
+/* ── Lista oggetti ─────────────────────────────────────────────────────── */
+
+.tjs-rpanel-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 0;
+}
+
+.tjs-rpanel-section {
+  padding: 5px 8px 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #445;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid #1a1a2a;
+  margin-bottom: 2px;
+}
+
+.tjs-rpanel-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  gap: 3px;
+  cursor: default;
+  user-select: none;
+  min-height: 24px;
+}
+.tjs-rpanel-row:hover { background: rgba(255, 255, 255, 0.04); }
+
+.tjs-rpanel-type-ico {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.tjs-rpanel-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tjs-rpanel-name--ro {
+  color: #889;
+  font-size: 11px;
+}
+
+.tjs-rpanel-name-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #2a2a44;
+  color: #dde;
+  font-size: 12px;
+  padding: 1px 2px;
+  outline: none;
+  min-width: 0;
+}
+.tjs-rpanel-name-input:focus { border-bottom-color: #44f; }
+
+.tjs-rpanel-lock {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: #445;
+}
+
+.tjs-rpanel-badge {
+  background: #1e2840;
+  border: 1px solid #2a3860;
+  border-radius: 3px;
+  color: #7af;
+  cursor: pointer;
+  padding: 1px 5px;
+  font-size: 10px;
+  flex-shrink: 0;
+  max-width: 75px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Pulsanti controllo riga ────────────────────────────────────────────── */
+
+.tjs-rpanel-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 1px 3px;
+  font-size: 12px;
+  color: inherit;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tjs-rpanel-hdr-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 13px;
+}
+.tjs-rpanel-hdr-btn:hover { color: #ccc; }
+
+.tjs-rpanel-color-swatch {
+  width: 13px;
+  height: 13px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  /* background-color impostato inline (dati dinamici) */
+}
+
+/* ── Sezione dettagli (espandibile) ─────────────────────────────────────── */
+
+.tjs-rpanel-details {
+  padding: 6px 8px 8px 30px;
+  background: rgba(0, 0, 0, 0.22);
+  border-bottom: 1px solid #1a1a2a;
+}
+
+.tjs-rpanel-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+
+.tjs-rpanel-detail-lbl {
+  min-width: 82px;
+  color: #667;
+  flex-shrink: 0;
+}
+
+.tjs-rpanel-num-input {
+  width: 68px;
+  background: #111;
+  color: #dde;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+.tjs-rpanel-color-input {
+  width: 38px;
+  height: 20px;
+  border: 1px solid #444;
+  padding: 1px;
+  background: #111;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.tjs-rpanel-checkbox {
+  cursor: pointer;
+  accent-color: #4af;
+}
+
+/* ── Stato lista vuota ──────────────────────────────────────────────────── */
+
+.tjs-rpanel-empty {
+  padding: 16px 8px;
+  text-align: center;
+  color: #445;
+  font-size: 11px;
+}
+
+/* ── Strumenti a punti (Collima punti, Misura distanza) ─────────────────── */
+
+.tjs-rpanel-tool-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px 8px;
+  font: 12px/1.5 monospace;
+  color: #d1d5db;
+}
+
+.tjs-rpanel-tool-list {
+  flex: 1;
+  min-height: 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Trasforma (Sposta / Ruota / Scala) ─────────────────────────────────── */
+
+.tjs-rpanel-tool-btn {
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1e32;
+  border: 1px solid #2e2e4a;
+  border-radius: 3px;
+  color: #aab;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.tjs-rpanel-tool-btn:hover    { background: #282840; }
+.tjs-rpanel-tool-btn.active   { background: #1a3a6a; border-color: #2f5fa0; color: #cfe3ff; }
+.tjs-rpanel-tool-btn:disabled { opacity: .4; cursor: default; }
+
+.tjs-rpanel-xf-sel {
+  max-height: 120px;
+  overflow-y: auto;
+}
+.tjs-rpanel-xf-selrow          { cursor: pointer; }
+.tjs-rpanel-xf-selrow.is-active { background: rgba(68, 170, 255, 0.12); color: #fff; }
+.tjs-rpanel-xf-selrow:focus-visible { outline: 2px solid #4af; outline-offset: -2px; }
+
+.tjs-rpanel-xyz {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px 8px;
+}
+.tjs-rpanel-xyz-cell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0;
+  min-width: 0;
+}
+.tjs-rpanel-xyz-cell .tjs-rpanel-num-input { width: 100%; min-width: 0; }
+.tjs-rpanel-xyz-ax    { font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.tjs-rpanel-xyz-ax--x { color: #f87171; }
+.tjs-rpanel-xyz-ax--y { color: #4ade80; }
+.tjs-rpanel-xyz-ax--z { color: #60a5fa; }
+
+.tjs-rpanel-xf-note {
+  padding: 2px 8px 6px;
+  font-size: 10px;
+  color: #99a;
+}
+
+/* ── Legend (scene tree) ────────────────────────────────────────────────── */
+
+.tjs-rpanel-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 3px 8px;
+  border-bottom: 1px solid #1a1a2a;
+  font-size: 10px;
+  color: #556;
+  flex-shrink: 0;
+}
+
+/* ── Sezioni specifiche Env ─────────────────────────────────────────────── */
+
+.tjs-rpanel-group {
+  padding: 6px 8px;
+  border-bottom: 1px solid #2a2a3e;
+  flex-shrink: 0;
+}
+
+.tjs-rpanel-group-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #556;
+  margin-bottom: 6px;
+}
+
+.tjs-rpanel-field-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+
+.tjs-rpanel-field-lbl {
+  min-width: 76px;
+  color: #889;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.tjs-rpanel-range {
+  flex: 1;
+  cursor: pointer;
+  accent-color: #4af;
+}
+
+.tjs-rpanel-select {
+  flex: 1;
+  background: #111;
+  color: #dde;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ── Dialoghi floating (condivisi) ──────────────────────────────────────── */
+
+.tjs-dlg {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1a2e;
+  border: 1px solid #3a3a5e;
+  border-radius: 8px;
+  padding: 14px;
+  z-index: 9999;
+  min-width: 230px;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: #dde;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .8);
+}
+
+.tjs-dlg-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.tjs-dlg-lbl {
+  font-size: 11px;
+  color: #889;
+  margin-bottom: 6px;
+}
+
+.tjs-dlg-select {
+  width: 100%;
+  background: #111;
+  color: #dde;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.tjs-dlg-footer {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.tjs-dlg-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 4px 14px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.tjs-dlg-btn--primary { background: #2244aa; color: #fff; }
+.tjs-dlg-btn--cancel  { background: #333;    color: #bbb; }
+
+
+/* ==========================================================================
+   17)  PDF Viewer
+        Visualizzatore PDF multi-documento con zoom, pan, navigazione pagine
+        e pannello viste salvate. Montato in model_PDF.mjs.
+   ========================================================================== */
+
+/* ── Root: flex column che riempie l'intero bodyEl ─────────────────────── */
+
+.pdf-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+  background: #13131e;
+}
+
+/* ── Tab bar (visibile solo con >1 documento) ───────────────────────────── */
+
+.pdf-tabs {
+  flex-shrink: 0;
+  display: flex;
+  overflow-x: auto;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a4e;
+  scrollbar-width: thin;
+}
+
+.pdf-tab {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border: none;
+  border-right: 1px solid #2a2a4e;
+  background: transparent;
+  color: #889;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pdf-tab:hover  { background: #22223a; color: #bbd; }
+.pdf-tab.active { background: #1e2248; color: #ddf; border-bottom: 2px solid #4477ff; }
+
+/* ── Viewport wrap: area che contiene il canvas scrollabile + views panel ─ */
+
+.pdf-viewport-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;       /* clip il views-panel assoluto */
+  min-height: 0;          /* necessario in flex per non espandersi oltre */
+}
+
+/* ── Viewport scrollabile ───────────────────────────────────────────────── */
+
+.pdf-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: #1e1e2e;
+  cursor: grab;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a5e #1e1e2e;
+}
+
+.pdf-viewport::-webkit-scrollbar       { width: 8px; height: 8px; }
+.pdf-viewport::-webkit-scrollbar-track { background: #1e1e2e; }
+.pdf-viewport::-webkit-scrollbar-thumb { background: #3a3a5e; border-radius: 4px; }
+
+.pdf-viewport.is-dragging { cursor: grabbing; user-select: none; }
+
+/* ── Contenitore pagine (flex column centrato) ──────────────────────────── */
+
+.pdf-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+  min-height: 100%;
+  min-width: max-content;   /* evita che align-items:center blocchi lo scroll verso sinistra */
+  box-sizing: border-box;
+}
+
+/* ── Singola pagina PDF ─────────────────────────────────────────────────── */
+
+.pdf-page {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.pdf-page canvas {
+  display: block;
+}
+
+/* Placeholder mentre la pagina non è ancora renderizzata */
+.pdf-page.pdf-page--loading {
+  background: #22223a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-page.pdf-page--loading::after {
+  content: '';
+  width: 28px;
+  height: 28px;
+  border: 3px solid #3a3a5e;
+  border-top-color: #4477ff;
+  border-radius: 50%;
+  animation: pdf-spin 0.8s linear infinite;
+}
+
+@keyframes pdf-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Navbar (barra navigazione + zoom, fissa in fondo) ──────────────────── */
+
+.pdf-navbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 8px;
+  background: #1a1a2e;
+  border-top: 1px solid #2a2a4e;
+  font-size: 12px;
+  color: #aab;
+  user-select: none;
+}
+
+.pdf-nb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #99a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s;
+}
+
+.pdf-nb-btn:hover    { background: #2a2a44; color: #ccf; }
+.pdf-nb-btn:disabled { opacity: 0.35; cursor: default; }
+.pdf-nb-btn.active   { background: #223; color: #4af; }
+
+.pdf-nb-page {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+}
+
+.pdf-nb-page-input {
+  width: 38px;
+  text-align: center;
+  background: #111;
+  color: #dde;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-size: 12px;
+}
+
+.pdf-nb-page-input:focus { outline: none; border-color: #4477ff; }
+
+/* spin buttons hidden */
+.pdf-nb-page-input::-webkit-inner-spin-button,
+.pdf-nb-page-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.pdf-nb-page-input { -moz-appearance: textfield; }
+
+.pdf-nb-page-sep   { color: #445; }
+.pdf-nb-page-total { color: #667; }
+
+.pdf-nb-sep {
+  width: 1px;
+  height: 18px;
+  background: #2a2a4e;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.pdf-nb-spacer { flex: 1; }
+
+.pdf-nb-zoom-display {
+  min-width: 42px;
+  text-align: center;
+  font-size: 11px;
+  color: #889;
+  padding: 0 2px;
+}
+
+/* ── Views panel (assoluto, lato destro del viewport-wrap) ─────────────── */
+
+.pdf-views-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(14, 14, 22, 0.97);
+  border-left: 1px solid #2a2a4e;
+  z-index: 10;
+  font-size: 12px;
+  color: #ccd;
+}
+
+.pdf-vp-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid #2a2a4e;
+  background: #1a1a2e;
+  flex-shrink: 0;
+}
+
+.pdf-vp-hdr-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #99b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pdf-vp-close {
+  border: none;
+  background: transparent;
+  color: #667;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.pdf-vp-close:hover { background: #2a2a4e; color: #aab; }
+
+.pdf-vp-addbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #2a2a4e;
+  flex-shrink: 0;
+}
+
+.pdf-vp-name-input {
+  flex: 1;
+  background: #111;
+  color: #dde;
+  border: 1px solid #2a2a4e;
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+.pdf-vp-name-input:focus { outline: none; border-color: #4477ff; }
+.pdf-vp-name-input::placeholder { color: #445; }
+
+.pdf-vp-save-btn {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  background: #1e2248;
+  color: #88c;
+  border: 1px solid #2a2a5e;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.pdf-vp-save-btn:hover { background: #253060; color: #aaf; }
+
+.pdf-vp-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.pdf-vp-empty {
+  padding: 20px 12px;
+  color: #445;
+  font-size: 11px;
+  text-align: center;
+  font-style: italic;
+}
+
+.pdf-vp-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #1a1a2e;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.pdf-vp-row:hover { background: rgba(255,255,255,0.04); }
+
+.pdf-vp-row-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pdf-vp-row-label {
+  display: block;
+  font-size: 12px;
+  color: #bbd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdf-vp-row-meta {
+  display: block;
+  font-size: 10px;
+  color: #557;
+  margin-top: 1px;
+}
+
+.pdf-vp-row-btns {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.pdf-vp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: #556;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.12s, color 0.12s;
+}
+.pdf-vp-btn:hover         { background: #2a2a44; color: #99c; }
+.pdf-vp-btn.pdf-vp-btn--del:hover { color: #c55; }
+
+/* ── Footer nav (navigazione pagine in pf-controls del panel footer) ────── */
+
+.pdf-fn-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #aab;
+}
+
+.pdf-fn-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: #99a;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.pdf-fn-btn:hover    { background: rgba(255,255,255,0.1); color: #ccf; }
+.pdf-fn-btn:disabled { opacity: 0.35; cursor: default; }
+
+.pdf-fn-page-input {
+  width: 40px;
+  text-align: center;
+  background: transparent;
+  color: #dde;
+  border: 1px solid #3a3a5e;
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-size: 12px;
+}
+
+.pdf-fn-page-input:focus          { outline: none; border-color: #4477ff; }
+.pdf-fn-page-input::-webkit-inner-spin-button,
+.pdf-fn-page-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.pdf-fn-page-input                { -moz-appearance: textfield; }
+
+.pdf-fn-sep   { color: #445; padding: 0 2px; user-select: none; }
+.pdf-fn-total { color: #667; min-width: 20px; text-align: left; }
+
+/* ── Toolbar: zoom dropdown (mostra livello corrente + apre preset) ──────── */
+
+/* Il dropdown wrapper nel toolbar non ha freccia */
+.pdf-zoom-dd .dropdown-toggle::after { display: none; }
+
+/* Il bottone zoom appare come label numerica, non come tasto */
+.pdf-zoom-dd .dropdown-toggle {
+  min-width: 44px;
+  text-align: center;
+  font-size: 11px;
+  color: #99a;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.pdf-zoom-dd .dropdown-toggle:hover {
+  border-color: #3a3a5e;
+  color: #ccf;
+}
+
+/* ── Spread: wrapper due pagine affiancate ──────────────────────────────── */
+
+.pdf-spread {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+/* ── Text Layer PDF.js (selezione testo sopra il canvas) ────────────────── */
+
+.pdf-page .textLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  line-height: 1;
+  user-select: text;
+}
+
+.pdf-page .textLayer span,
+.pdf-page .textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  pointer-events: all;
+}
+
+.pdf-page .textLayer ::selection {
+  background: rgba(0, 120, 255, 0.25);
+}
+
+/* ── Highlight Layer (rects + marker su ogni pagina) ────────────────────── */
+
+.pdf-hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pdf-hl-rect {
+  position: absolute;
+  border-radius: 2px;
+  mix-blend-mode: multiply;
+  transition: filter 0.2s;
+}
+
+.pdf-hl-rect.pdf-hl-flash {
+  filter: brightness(1.6) saturate(1.8);
+  outline: 2px solid rgba(255,255,255,0.7);
+}
+
+.pdf-hl-marker {
+  position: absolute;
+  font-size: 22px;
+  transform: translate(-50%, -100%);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+  transition: filter 0.2s;
+}
+
+.pdf-hl-marker.pdf-hl-flash {
+  filter: brightness(1.8) drop-shadow(0 0 6px rgba(255,255,255,0.8));
+}
+
+/* ── Highlight Popup (popover salvataggio) ──────────────────────────────── */
+
+.pdf-hl-popup {
+  position: absolute;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  background: #181828;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+  font-size: 12px;
+  color: #bbc;
+}
+
+.pdf-hl-popup-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid #222240;
+}
+
+.pdf-hl-popup-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #99b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pdf-hl-popup-close {
+  border: none;
+  background: transparent;
+  color: #556;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+.pdf-hl-popup-close:hover { color: #aab; background: #2a2a4e; }
+
+.pdf-hl-popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+
+.pdf-hl-popup-type {
+  background: #111;
+  color: #bbd;
+  border: 1px solid #3a3a5e;
+  border-left-width: 4px;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pdf-hl-popup-type:focus { outline: none; border-color: #4477ff; }
+
+.pdf-hl-popup-label,
+.pdf-hl-popup-note {
+  background: #111;
+  color: #bbd;
+  border: 1px solid #3a3a5e;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+  resize: vertical;
+}
+.pdf-hl-popup-label:focus,
+.pdf-hl-popup-note:focus   { outline: none; border-color: #4477ff; }
+.pdf-hl-popup-label::placeholder,
+.pdf-hl-popup-note::placeholder { color: #445; }
+
+.pdf-hl-popup-info {
+  font-size: 11px;
+  color: #556;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-hl-popup-footer {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  border-top: 1px solid #222240;
+}
+
+.pdf-hl-popup-save {
+  flex: 1;
+  padding: 5px;
+  background: #1a3070;
+  color: #99c;
+  border: 1px solid #2a4090;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.12s;
+}
+.pdf-hl-popup-save:hover    { background: #253090; }
+.pdf-hl-popup-save:disabled { opacity: 0.5; cursor: wait; }
+
+.pdf-hl-popup-cancel {
+  padding: 5px 12px;
+  background: transparent;
+  color: #556;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.pdf-hl-popup-cancel:hover { background: #1e1e34; color: #99a; }
+
+/* Sezione posizionamento marker vista */
+.pdf-hl-popup-placement {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.pdf-hl-popup-place-btn {
+  flex: 1;
+  padding: 5px 8px;
+  background: #1e1e36;
+  border: 1px solid #334;
+  border-radius: 4px;
+  color: #aac;
+  font-size: 11px;
+  cursor: crosshair;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.pdf-hl-popup-place-btn:hover { background: #2a2a4e; border-color: #4477ff; color: #cce; }
+.pdf-hl-popup-place-coords {
+  font-size: 11px;
+  color: #99a;
+  min-width: 56px;
+  text-align: right;
+}
+
+/* ── Highlight Panel (sidebar annotazioni) ──────────────────────────────── */
+
+.pdf-hl-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  background: #181828;
+  border-left: 1px solid #2a2a4a;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  font-size: 12px;
+  color: #bbc;
+}
+
+.pdf-hl-panel-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid #222240;
+  flex-shrink: 0;
+}
+
+.pdf-hl-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #99b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pdf-hl-panel-close {
+  border: none;
+  background: transparent;
+  color: #556;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+.pdf-hl-panel-close:hover { color: #aab; background: #2a2a4e; }
+
+.pdf-hl-panel-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid #222240;
+  flex-shrink: 0;
+}
+
+.pdf-hl-panel-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pdf-hl-pill {
+  padding: 2px 8px;
+  border: 1px solid #3a3a5e;
+  border-radius: 10px;
+  background: transparent;
+  color: #99a;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.12s, color 0.12s;
+}
+.pdf-hl-pill:hover  { background: #2a2a44; color: #ccf; }
+.pdf-hl-pill.active { color: #dde; }
+
+.pdf-hl-panel-search {
+  width: 100%;
+  background: #111;
+  color: #bbd;
+  border: 1px solid #3a3a5e;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  box-sizing: border-box;
+}
+.pdf-hl-panel-search:focus { outline: none; border-color: #4477ff; }
+.pdf-hl-panel-search::placeholder { color: #445; }
+
+.pdf-hl-panel-actions {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #222240;
+  flex-shrink: 0;
+}
+
+.pdf-hl-panel-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: #1a1a30;
+  color: #99a;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background 0.12s, color 0.12s;
+}
+.pdf-hl-panel-btn:hover { background: #252545; color: #ccf; }
+
+.pdf-hl-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.pdf-hl-panel-empty {
+  padding: 16px 12px;
+  color: #445;
+  font-style: italic;
+  font-size: 11px;
+  text-align: center;
+}
+
+.pdf-hl-panel-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid #1a1a2e;
+}
+.pdf-hl-panel-row:hover { background: rgba(255,255,255,0.04); }
+
+.pdf-hl-panel-stripe {
+  width: 3px;
+  min-height: 30px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.pdf-hl-panel-ico {
+  font-size: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.pdf-hl-panel-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pdf-hl-panel-label {
+  font-size: 12px;
+  color: #bbd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.pdf-hl-panel-preview {
+  font-size: 11px;
+  color: #667;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+}
+
+.pdf-hl-panel-meta {
+  font-size: 10px;
+  color: #445;
+}
+
+.pdf-hl-panel-row-btns {
+  flex-shrink: 0;
+}
+
+.pdf-hl-panel-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: #445;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 12px;
+  transition: background 0.12s, color 0.12s;
+}
+.pdf-hl-panel-icon-btn:hover { background: #2a2a44; color: #99c; }
+.pdf-hl-panel-btn--del:hover  { color: #c55 !important; }
+.pdf-hl-panel-btn--edit:hover { color: #7af !important; }
+
+/* ── Hover card annotazione ─────────────────────────────────────────────── */
+
+.pdf-hl-hover-card {
+  position: fixed;
+  z-index: 9999;
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  background: #141424;
+  border: 1px solid #2a2a48;
+  border-radius: 6px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.65);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #bbc;
+  pointer-events: auto;
+}
+.pdf-hl-hc-hdr {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+.pdf-hl-hc-badge {
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+.pdf-hl-hc-label {
+  font-weight: 600;
+  color: #dde;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pdf-hl-hc-text {
+  margin: 0 0 5px 0;
+  padding: 5px 8px;
+  border-left: 2px solid #3a3a6e;
+  background: #1a1a30;
+  border-radius: 0 4px 4px 0;
+  font-style: italic;
+  color: #99a;
+  font-size: 11px;
+  word-break: break-word;
+  max-height: 120px;
+  overflow: hidden;
+}
+.pdf-hl-hc-note {
+  margin: 0 0 5px 0;
+  color: #aac;
+  word-break: break-word;
+  max-height: 80px;
+  overflow: hidden;
+}
+.pdf-hl-hc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  border-top: 1px solid #1e1e38;
+  padding-top: 6px;
+  margin-top: 4px;
+  color: #99a;
+  font-size: 11px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   model_MYS — visualizzatore/editor tabellare MySQL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mys-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────── */
+
+.mys-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border-color, #2a2a3a);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.mys-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid var(--border-color, #3a3a5a);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mys-tb-btn:hover { background: rgba(255,255,255,.07); }
+
+/* ── Barra di ricerca ─────────────────────────────────────────────────────── */
+
+.mys-search {
+  flex: 1;
+  min-width: 120px;
+  max-width: 280px;
+  height: 26px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-color, #3a3a5a);
+  border-radius: 4px;
+  background: var(--input-bg, #1a1a2a);
+  color: inherit;
+  outline: none;
+}
+.mys-search:focus { border-color: #5577cc; }
+
+/* ── Visibilità colonne ───────────────────────────────────────────────────── */
+
+.mys-col-vis {
+  position: relative;
+}
+
+.mys-col-vis-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  min-width: 170px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 6px 0;
+  background: var(--panel-bg, #1e1e2e);
+  border: 1px solid var(--border-color, #3a3a5a);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+
+.mys-col-vis-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mys-col-vis-item:hover { background: rgba(255,255,255,.06); }
+.mys-col-vis-item input[type=checkbox] { cursor: pointer; }
+
+/* ── Status ───────────────────────────────────────────────────────────────── */
+
+.mys-status {
+  font-size: 11px;
+  opacity: .7;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ── Grid ─────────────────────────────────────────────────────────────────── */
+
+.mys-grid {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Riga selezionata (highlight App Bus) ─────────────────────────────────── */
+
+.tabulator .tabulator-row.mys-row-selected {
+  background: rgba(80, 120, 220, .22) !important;
+  outline: 1px solid rgba(80, 120, 220, .5);
+}
+
+/* ── Nuova riga in attesa di salvataggio ──────────────────────────────────── */
+
+.tabulator .tabulator-row[data-mys-new="true"],
+.tabulator .tabulator-row.mys-row-new {
+  background: rgba(60, 160, 80, .10) !important;
+  font-style: italic;
+}
+
+/* ── Pulsanti azione nella cella _act ────────────────────────────────────── */
+
+.mys-btn-save,
+.mys-btn-discard,
+.mys-btn-delete {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 1px 3px;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: background .15s;
+}
+.mys-btn-save:hover    { background: rgba( 60,200, 80,.25); color: #4d4; }
+.mys-btn-discard:hover { background: rgba(200,200, 60,.25); color: #cc4; }
+.mys-btn-delete:hover  { background: rgba(220, 60, 60,.25); color: #f66; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   model_GSH — visualizzatore Google Sheets (sola lettura)
+   Condivide lo stesso stile di model_MYS; solo i prefissi cambiano.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.gsh-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.gsh-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border-color, #2a2a3a);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.gsh-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid var(--border-color, #3a3a5a);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.gsh-tb-btn:hover { background: rgba(255,255,255,.07); color: inherit; }
+
+.gsh-search {
+  flex: 1;
+  min-width: 120px;
+  max-width: 280px;
+  height: 26px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-color, #3a3a5a);
+  border-radius: 4px;
+  background: var(--input-bg, #1a1a2a);
+  color: inherit;
+  outline: none;
+}
+.gsh-search:focus { border-color: #5577cc; }
+
+.gsh-col-vis { position: relative; }
+
+.gsh-col-vis-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  min-width: 170px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 6px 0;
+  background: var(--panel-bg, #1e1e2e);
+  border: 1px solid var(--border-color, #3a3a5a);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+
+.gsh-col-vis-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.gsh-col-vis-item:hover { background: rgba(255,255,255,.06); }
+.gsh-col-vis-item input[type=checkbox] { cursor: pointer; }
+
+.gsh-status {
+  font-size: 11px;
+  opacity: .7;
+  white-space: nowrap;
+}
+
+.gsh-refresh-time {
+  font-size: 10px;
+  opacity: .45;
+  margin-left: auto;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.gsh-grid {
+  flex: 1;
+  overflow: hidden;
+}
+
+.tabulator .tabulator-row.gsh-row-selected {
+  background: rgba(80, 180, 120, .22) !important;
+  outline: 1px solid rgba(80, 180, 120, .5);
+}
+
+/* ==========================================================================
+   DBJ JSON Viewer  (model_DBJ.mjs)
+   Riga selezionata (highlight App Bus)
+   ========================================================================== */
+
+.tabulator .tabulator-row.dbj-row-selected {
+  background: rgba(170, 100, 220, .22) !important;
+  outline: 1px solid rgba(170, 100, 220, .5);
+}
+
+/* ==========================================================================
+   MPS Google Maps 3D  (model_MPS.mjs)
+   <gmp-map-3d> è un custom element: senza display/size espliciti resta
+   display:inline con un box di layout degenere — il rendering WebGL può
+   comunque dipingere oltre quel box (visivamente sembra a posto) ma click e
+   hover restano vincolati al box reale. Regola di difesa in profondità,
+   ridondante rispetto allo style inline impostato in _initMap3D().
+   ========================================================================== */
+
+.mps-map3d {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Segnaposto 2D dei flow (MPS/Marker/Add): pin + etichetta a destra della testa.
+   L'etichetta è fuori dal flusso, così l'ancora del segnaposto resta la punta del pin.
+   Colori fissi: sta sopra la foto satellitare, non sul tema della pagina. */
+.mps-mrk { position: relative; }
+.mps-mrk-label {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 2px;
+  white-space: nowrap;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .92);
+  color: #1b1b1b;
+  font: 600 12px/1.3 system-ui, sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   JSX Viewer  (model_JSX.mjs)
+   Contenitore JSXGraph — riempie l'intero panel-body.
+   JSXGraph aggiunge la classe .jxgbox all'elemento boardEl.
+   ========================================================================== */
+
+/* Root: flex per permettere al board di espandersi completamente */
+.jsx-root {
+  width:    100%;
+  height:   100%;
+  overflow: hidden;
+  display:  flex;
+}
+
+/* Board: le dimensioni in px sono impostate via JS prima di initBoard;
+   successivamente aggiornate dal ResizeObserver.
+   .jxgbox viene aggiunto da JSXGraph stesso — override del border. */
+.jsx-board,
+.jsx-board.jxgbox {
+  flex:    1 1 0;
+  border:  1px solid rgba(255,255,255,0.08) !important;
+  outline: none;
+}
+
+/* ==========================================================================
+   HTM Viewer  (model_HTM.mjs)
+   Iframe sandboxed che riempie l'intero panel-body.
+   ========================================================================== */
+
+.htm-frame {
+  display:    block;
+  width:      100%;
+  height:     100%;
+  border:     none;
+  background: #fff;
+}
+.htm-inject {
+  width:      100%;
+  height:     100%;
+  overflow:   auto;
+  padding:    1rem;
+  box-sizing: border-box;
+}
+.htm-frame[hidden],
+.htm-frame-empty[hidden] { display: none; }
+.htm-frame-empty { font-size: 0.85rem; }
+
+/* HTM/DOM/Button Row: fila di pulsanti (a capo, o una riga che scorre di lato) */
+.ra-btnrow {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.15rem 0;
+}
+.ra-btnrow-wrap { flex-wrap: wrap; overflow-x: visible; }
+.ra-btnrow > .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 22rem;
+  flex: 0 0 auto;
+}
+.ra-btnrow-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Web/Wikipedia/Article → HTM/DOM/Set HTML: articolo letto dall'API, senza gli stili di Wikipedia */
+.ra-wiki { line-height: 1.55; color: var(--bs-body-color); max-width: 52rem; margin: 0 auto; }
+.ra-wiki h1 { font-size: 1.5rem; margin: 0 0 0.75rem; }
+.ra-wiki h2 { font-size: 1.2rem; margin: 1.25rem 0 0.5rem; padding-bottom: 0.2rem; border-bottom: 1px solid var(--bs-border-color); }
+.ra-wiki h3 { font-size: 1.05rem; margin: 1rem 0 0.4rem; }
+.ra-wiki p { margin: 0 0 0.6rem; }
+.ra-wiki img { max-width: 100%; height: auto; }
+.ra-wiki figure { margin: 0.5rem 0 0.75rem; }
+.ra-wiki figcaption { font-size: 0.8rem; color: var(--bs-secondary-color); }
+.ra-wiki table { border-collapse: collapse; font-size: 0.85rem; margin: 0.5rem 0; }
+.ra-wiki th, .ra-wiki td { border: 1px solid var(--bs-border-color); padding: 0.2rem 0.4rem; vertical-align: top; }
+.ra-wiki .infobox { float: right; clear: right; max-width: 22rem; margin: 0 0 0.75rem 1rem; background: var(--bs-tertiary-bg); }
+.ra-wiki .infobox th, .ra-wiki .infobox td { color: var(--bs-body-color); background: transparent; }
+.ra-wiki .reflist, .ra-wiki .references { font-size: 0.8rem; }
+.ra-wiki-link { color: var(--bs-link-color); cursor: pointer; text-decoration: underline; text-decoration-thickness: 1px; }
+.ra-wiki-link:hover { color: var(--bs-link-hover-color); }
+.ra-wiki-link:focus-visible { outline: 2px solid var(--bs-link-color); outline-offset: 1px; }
+@media (max-width: 576px) { .ra-wiki .infobox { float: none; max-width: none; margin: 0 0 0.75rem; } }
+.pdf-hl-hc-meta span { display: flex; align-items: center; gap: 4px; }
+
+/* ==========================================================================
+   IFC Viewer — finestra Proprietà (model_IFC.mjs), dentro la colonna .tjs-rpanel
+   ========================================================================== */
+.ifc-prop-row {
+  display: flex;
+  gap: 8px;
+  padding: 2px 8px;
+  min-height: 20px;
+  align-items: baseline;
+}
+.ifc-prop-row:hover { background: rgba(255, 255, 255, 0.04); }
+.ifc-prop-k {
+  flex: 0 0 42%;
+  color: #a0a0b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ifc-prop-v {
+  flex: 1;
+  color: #e6e6f0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.ifc-prop-empty { padding: 10px 8px; color: #a0a0b8; }
+.tjs-rpanel-item .ifc-prop-row + .tjs-rpanel-section,
+.tjs-rpanel-item [data-ifc="list"] .tjs-rpanel-section { color: #9aa0c0; margin-top: 4px; }
+/* IFC — Albero spaziale e Categorie */
+.ifc-tree { list-style: none; margin: 0; padding: 0; }
+.ifc-tree-row { display: flex; align-items: center; gap: 2px; min-height: 24px; padding-right: 4px; }
+.ifc-tree-row:hover { background: rgba(255, 255, 255, 0.04); }
+.ifc-tree-btn {
+  flex: 0 0 auto; width: 22px; height: 22px; padding: 0;
+  background: transparent; border: 0; border-radius: 3px; color: #a0a0b8; cursor: pointer;
+}
+.ifc-tree-btn:hover:not([disabled]) { background: #282840; color: #e6e6f0; }
+.ifc-tree-btn[disabled] { visibility: hidden; }
+.ifc-tree-btn[data-visible="0"] { color: #f87171; }
+.ifc-tree-label {
+  flex: 1; min-width: 0; display: flex; gap: 6px; align-items: baseline;
+  background: transparent; border: 0; border-radius: 3px; padding: 1px 4px;
+  color: #e6e6f0; text-align: left; cursor: pointer;
+}
+.ifc-tree-label:hover { background: #282840; }
+.ifc-tree-label.is-selected { background: rgba(251, 191, 36, 0.22); outline: 1px solid #fbbf24; }
+.ifc-tree-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ifc-tree-cat  { flex: 0 0 auto; color: #a0a0b8; font-size: 10px; }
+.ifc-tree-more { color: #a0a0b8; font-style: italic; padding: 2px 0; }
+.ifc-tree-btn:focus-visible, .ifc-tree-label:focus-visible,
+.ifc-cat-row input:focus-visible { outline: 2px solid #fbbf24; outline-offset: 1px; }
+.ifc-cats-bar { display: flex; gap: 4px; padding: 6px 8px; border-bottom: 1px solid #2a2a3e; }
+.ifc-cats { border: 0; margin: 0; padding: 2px 0; }
+.ifc-cat-row { align-items: center; }
+.ifc-cat-row input { accent-color: #34d399; cursor: pointer; flex: 0 0 auto; }
+.ifc-cat-row label { flex: 1; cursor: pointer; }
+.ifc-cat-count { flex: 0 0 auto; color: #a0a0b8; text-align: right; }
+
+/* IFC — Piante e Cerca */
+.ifc-plans { display: flex; flex-direction: column; gap: 2px; padding: 4px 6px; }
+.ifc-plan-btn { width: 100%; padding: 4px 8px; }
+.ifc-form { display: flex; flex-direction: column; gap: 3px; padding: 6px 8px; border-bottom: 1px solid #2a2a3e; }
+.ifc-form label { color: #a0a0b8; font-size: 11px; margin-top: 2px; }
+.ifc-form input[type="text"], .ifc-form select {
+  background: #1e1e32; border: 1px solid #2e2e4a; border-radius: 3px; color: #e6e6f0;
+  padding: 3px 6px; font-size: 12px; min-width: 0;
+}
+.ifc-form input[type="text"]:focus-visible, .ifc-form select:focus-visible,
+.ifc-cats-bar input[type="color"]:focus-visible { outline: 2px solid #fbbf24; outline-offset: 1px; }
+.ifc-form-row { display: flex; gap: 4px; margin-top: 2px; }
+.ifc-form-row input[type="text"] { flex: 1; }
+.ifc-cats-bar { flex-wrap: wrap; align-items: center; }
+.ifc-cats-bar input[type="color"] { width: 28px; height: 24px; padding: 0; border: 1px solid #2e2e4a; background: #1e1e32; }
+.ifc-search-results { overflow-x: hidden; }
+.ifc-search-results .ifc-tree-label { width: 100%; padding: 2px 8px; overflow: hidden; }
+
+/* IFC — Colora per valore e Viste */
+.ifc-form-hint { color: #a0a0b8; font-size: 11px; margin: 2px 0 0 0; }
+.ifc-legend { list-style: none; margin: 0; padding: 4px 6px; }
+.ifc-legend-row .ifc-tree-label { width: 100%; align-items: center; }
+.ifc-swatch { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.35); }
+.ifc-views { padding: 4px 0; }
+
+/* ==========================================================================
+   OLY — Cartografia (model_OLY.mjs, OpenLayers)
+   ========================================================================== */
+.oly-host { position: absolute; inset: 0; width: 100%; height: 100%; }
+.oly-host:focus-visible { outline: 2px solid var(--bs-primary, #0066cc); outline-offset: -2px; }
+
+/* OLY — finestra Layer */
+.oly-base-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid #2a2a3e; }
+.oly-base-row label { color: #a0a0b8; font-size: 11px; flex: 0 0 auto; }
+.oly-base-row select { flex: 1; min-width: 0; background: #1e1e32; border: 1px solid #2e2e4a; border-radius: 3px; color: #e6e6f0; padding: 2px 4px; font-size: 12px; }
+.oly-empty { padding: 10px 8px; color: #a0a0b8; }
+.oly-layers { list-style: none; margin: 0; padding: 0; }
+.oly-layer { padding: 5px 8px; border-bottom: 1px solid #1a1a2a; }
+.oly-layer-top { display: flex; align-items: center; gap: 4px; }
+.oly-layer-top input[type="checkbox"] { flex: 0 0 auto; accent-color: #38bdf8; cursor: pointer; }
+.oly-layer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e6e6f0; cursor: pointer; }
+.oly-icon-btn { flex: 0 0 auto; width: 22px; height: 22px; padding: 0; background: transparent; border: 0; border-radius: 3px; color: #a0a0b8; cursor: pointer; }
+.oly-icon-btn:hover:not([disabled]) { background: #282840; color: #e6e6f0; }
+.oly-icon-btn[disabled] { opacity: 0.35; cursor: default; }
+.oly-icon-btn:focus-visible, .oly-layer input:focus-visible, .oly-base-row select:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+.oly-layer-opacity { display: flex; align-items: center; gap: 6px; margin-top: 3px; color: #a0a0b8; }
+.oly-layer-opacity input[type="range"] { flex: 1; accent-color: #38bdf8; }
+.oly-layer-op-val { flex: 0 0 34px; text-align: right; font-size: 11px; }
+.oly-legend { display: flex; align-items: center; gap: 6px; margin-top: 3px; color: #a0a0b8; font-size: 11px; }
+.oly-swatch { width: 16px; height: 12px; border: 2px solid; border-radius: 2px; flex: 0 0 auto; }
+.oly-legend-img { display: block; margin-top: 4px; max-width: 100%; background: #fff; border-radius: 2px; }
+.oly-layer-note, .oly-layer-err { margin-top: 3px; font-size: 11px; color: #a0a0b8; }
+.oly-layer-err, .oly-warn { color: #fbbf24; }
+
+/* OLY — finestre e strumenti (F2) */
+.oly-prop-row { display: flex; gap: 8px; padding: 2px 8px; align-items: baseline; }
+.oly-prop-k { flex: 0 0 40%; color: #a0a0b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oly-prop-v { flex: 1; color: #e6e6f0; overflow-wrap: anywhere; user-select: text; }
+.oly-form { display: flex; flex-direction: column; gap: 3px; padding: 6px 8px; border-bottom: 1px solid #2a2a3e; }
+.oly-form label { color: #a0a0b8; font-size: 11px; margin-top: 2px; }
+.oly-form input[type="text"], .oly-form select { background: #1e1e32; border: 1px solid #2e2e4a; border-radius: 3px; color: #e6e6f0; padding: 3px 6px; font-size: 12px; min-width: 0; }
+.oly-form input:focus-visible, .oly-form select:focus-visible, .oly-result:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+.oly-form-row { display: flex; gap: 4px; margin-top: 2px; }
+.oly-form-row input[type="text"] { flex: 1; }
+.oly-actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; align-items: center; }
+.oly-hint { color: #a0a0b8; font-size: 11px; margin: 0; }
+.oly-results, .oly-legend-list { list-style: none; margin: 0; padding: 2px 4px; overflow-x: hidden; }
+.oly-result { width: 100%; display: flex; gap: 6px; align-items: center; background: transparent; border: 0; border-radius: 3px; padding: 3px 6px; color: #e6e6f0; text-align: left; cursor: pointer; overflow: hidden; }
+.oly-result:hover { background: #282840; }
+.oly-result.is-selected { background: rgba(251, 191, 36, 0.22); outline: 1px solid #fbbf24; }
+.oly-result-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oly-result-layer { flex: 0 0 auto; color: #a0a0b8; font-size: 10px; }
+.oly-swatch-dot { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.35); }
+.oly-view-row { display: flex; align-items: center; gap: 2px; }
+.oly-icon-btn.active { background: #b8860b; color: #111827; }
+.oly-measure-label { background: rgba(17, 24, 39, 0.85); color: #fff; border-radius: 4px; padding: 2px 6px; font: 12px system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
+.oly-measure-live { background: rgba(249, 115, 22, 0.92); }
+.oly-swipe { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.oly-swipe-line { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: #fbbf24; box-shadow: 0 0 4px rgba(0, 0, 0, 0.6); }
+.oly-prop-sub { color: #fbbf24; font-size: 11px; padding: 4px 8px 0; }
+/* OLY — disegno (F4) */
+.oly-draw-tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 6px 8px 2px; }
+.oly-draw-tool { display: flex; flex-direction: column; align-items: center; gap: 1px; background: #1e1e32; border: 1px solid #2e2e4a; border-radius: 4px; color: #e6e6f0; padding: 4px 2px; font-size: 10px; cursor: pointer; }
+.oly-draw-tool i { font-size: 15px; }
+.oly-draw-tool:hover { background: #282840; }
+.oly-draw-tool.active { background: #0f766e; border-color: #2dd4bf; }
+.oly-draw-tool:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+.oly-draw-hint { padding: 2px 8px 6px; }
+.oly-attr-k { flex: 0 0 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; align-self: center; }
+.oly-actions input[type="text"] { flex: 1 1 120px; min-width: 0; background: #1e1e32; border: 1px solid #2e2e4a; border-radius: 3px; color: #e6e6f0; padding: 3px 6px; font-size: 12px; }
+.oly-swipe-range { position: absolute; left: 0; right: 0; bottom: 34px; width: 100%; margin: 0; pointer-events: auto; accent-color: #fbbf24; }
+.oly-swipe-range:focus-visible { outline: 2px solid #fbbf24; }
+
+/* ==========================================================================
+   Pagina di accesso — sfondo generativo (index.php, js/login-bg/)
+   Canvas a tutta pagina dietro la scheda di accesso; piede come quello delle altre pagine
+   (footer.app-footer: fascia di 30 px su #222); due icone piccole a destra dentro la fascia
+   (scarica il modello, articolo). Se lo sfondo non parte, raLoginTexture() toglie la classe
+   ra-login-bg e torna alla texture classica.
+   ========================================================================== */
+body.ra-login-bg { background-color: #444; }
+.ra-login-bg-layer { position: fixed; inset: 0; z-index: 0; }
+.ra-login-bg-layer canvas { display: block; width: 100%; height: 100%; }
+body.ra-login-bg main,
+body.ra-login-bg footer { position: relative; z-index: 1; }
+body.ra-login-bg footer {
+  height: 30px; padding: 0 76px 0 12px !important; flex-shrink: 0;   /* a destra lo spazio delle due icone */
+  display: flex; align-items: center; justify-content: center; gap: 0.4em; /* gap: in flex gli spazi attorno a "·" spariscono */
+  background: #222; color: #fff; border-top: 1px solid #333;
+}
+body.ra-login-bg footer a { color: #fff; }
+.ra-bg-tools { position: fixed; right: 12px; bottom: 3px; z-index: 2; display: flex; gap: 4px; }
+body.ra-login-bg footer .ra-bg-tools { position: absolute; bottom: auto; top: 50%; transform: translateY(-50%); } /* spostate nel piede da login-bg.mjs */
+.ra-bg-tools[hidden] { display: none; }
+/* 24 px: la misura minima dei bersagli (WCAG 2.2, 2.5.8) */
+.ra-bg-tool {
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  border-radius: 4px; border: 0; background: transparent; color: #fff; cursor: pointer;
+}
+.ra-bg-tool:hover { background: #822433; color: #fff; }
+.ra-bg-tool:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+.ra-bg-tool svg { width: 15px; height: 15px; }

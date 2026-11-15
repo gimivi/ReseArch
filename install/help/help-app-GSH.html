@@ -1,0 +1,173 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App GSH (foglio Google Sheets in sola lettura, Tabulator).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Fogli Google (GSH)" }
+  Fonti: app/model_GSH.mjs, api/gsh_data.php (legge spreadsheetId, gid, hasHeaders, limit dal mod_spec lato server),
+  template "Google Sheet". Nessuno script. Agganci: #rh-help, #rh-sec-share, #rh-tpl-gsh, #rh-sec-bus, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> Fogli Google (GSH)</h2>
+  <p class="rh-lead">
+    GSH mostra un foglio di <strong>Google Sheets</strong> come tabella con ricerca. I dati si modificano in Google,
+    da chiunque abbia accesso al foglio; la piattaforma li legge e può aggiornarli da sola a intervalli regolari.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-share"><i class="bi bi-share" aria-hidden="true"></i>Condividere il foglio</a></li>
+      <li><a href="#rh-tpl-gsh"><i class="bi bi-braces" aria-hidden="true"></i>Il template</a></li>
+      <li><a href="#rh-sec-bus"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-share" aria-labelledby="rh-sec-share-t">
+    <h3 id="rh-sec-share-t"><i class="bi bi-share" aria-hidden="true"></i>Condividere il foglio</h3>
+    <ol>
+      <li>In Google Sheets: <span class="rh-ui">Condividi</span> → Accesso generale →
+          <strong>Chiunque abbia il link</strong> → <strong>Visualizzatore</strong>.</li>
+      <li>Copia dall'indirizzo del foglio l'<strong>ID</strong>, la parte tra <code>/d/</code> e <code>/edit</code>:<br>
+          <code>https://docs.google.com/spreadsheets/d/<strong>1BxiMVs0XRA5nFMd…upms</strong>/edit#gid=<strong>0</strong></code></li>
+      <li>Se ti serve una scheda diversa dalla prima, aprila e copia il numero dopo <code>gid=</code>.</li>
+    </ol>
+    <p class="rh-note">Chiunque abbia il link può leggere il foglio: non metterci dati personali o riservati.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-gsh" aria-labelledby="rh-tpl-gsh-t">
+    <h3 id="rh-tpl-gsh-t"><i class="bi bi-braces" aria-hidden="true"></i>Il template "Google Sheet" <span class="rh-badge">base</span></h3>
+    <p>Modello <span class="rh-ui">Nessun file (dati dal flow)</span>; il foglio si indica nella spec.</p>
+    <pre class="rh-json">{
+  "spreadsheetId": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
+  "gid": "0",
+  "hasHeaders": true,
+  "limit": 1000,
+  "pageSize": 25,
+  "autoRefresh": 0,
+  "searchFields": ["Nome", "Città"],
+  "columns": [
+    { "field": "Nome", "title": "Nome teatro", "width": 200 },
+    { "field": "Data", "title": "Data", "formatter": "date" },
+    { "field": "Foto", "title": "Foto", "formatter": "image" }
+  ],
+  "busKey": "id",
+  "sheetName": "Teatri"
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi della spec GSH</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Predefinito</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>spreadsheetId</code></td><td>—</td><td><strong>Obbligatorio.</strong> L'ID copiato dall'indirizzo, senza altro.</td></tr>
+          <tr><td><code>gid</code></td><td><code>"0"</code></td><td>La scheda del foglio; 0 = la prima.</td></tr>
+          <tr><td><code>hasHeaders</code></td><td>true</td><td>La prima riga contiene i nomi delle colonne. Con false le colonne si chiamano col_1, col_2…</td></tr>
+          <tr><td><code>limit</code></td><td>1000</td><td>Righe massime lette (al massimo 10000).</td></tr>
+          <tr><td><code>pageSize</code></td><td>25</td><td>Righe per pagina.</td></tr>
+          <tr><td><code>autoRefresh</code></td><td>0</td><td>Ogni quanti <strong>secondi</strong> rileggere il foglio; 0 = mai. Per un foglio aggiornato durante un incontro, 60 basta.</td></tr>
+          <tr><td><code>searchFields</code></td><td>tutte</td><td>Colonne in cui cerca la casella di ricerca.</td></tr>
+          <tr><td><code>columns</code></td><td>tutte</td><td>Colonne da mostrare: <code>field</code> (nome dell'intestazione), <code>title</code>, <code>width</code>, <code>formatter</code>.</td></tr>
+          <tr><td><code>busKey</code></td><td>—</td><td>Campo scambiato con gli altri pannelli.</td></tr>
+          <tr><td><code>sheetName</code></td><td>nome del modello</td><td>Etichetta nel menu a sinistra quando l'oggetto ha più fogli.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h4>Formati di colonna (<code>formatter</code>)</h4>
+    <ul>
+      <li><code>"date"</code>, <code>"datetime"</code>, <code>"money"</code>, <code>"boolean"</code>, <code>"badge"</code> (con <code>"colors"</code>): come in MYS.</li>
+      <li><code>"link"</code>: la cella diventa un collegamento che si apre in una nuova scheda.</li>
+      <li><code>"image"</code>: la cella contiene l'indirizzo di un'immagine, che viene mostrata.</li>
+    </ul>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-bus" aria-labelledby="rh-sec-bus-t">
+    <h3 id="rh-sec-bus-t"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</h3>
+    <p>Con <code>busKey</code> il clic su una riga viene annunciato agli altri pannelli, e una riga si evidenzia quando un altro
+       pannello sceglie lo stesso elemento. Un flow può anche chiedere di rileggere il foglio.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Errore 403 / accesso negato.</strong> Il foglio non è condiviso con "Chiunque abbia il link".</li>
+      <li><strong>ID non valido.</strong> Hai copiato anche <code>/edit</code> o altri pezzi dell'indirizzo: serve solo l'ID.</li>
+      <li><strong>Vedo la scheda sbagliata.</strong> Controlla <code>gid</code>.</li>
+      <li><strong>Le modifiche in Google non compaiono.</strong> Premi Ricarica nel pannello o imposta <code>autoRefresh</code>.</li>
+      <li><strong>Non posso scrivere dalla tabella.</strong> È normale: GSH è in sola lettura.</li>
+    </ul>
+  </section>
+</div>

@@ -1,0 +1,178 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App HYS (HySpace, museo virtuale delle esercitazioni in prima persona).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: HySpace (HYS)" }
+  Fonti: template "Stanza con pannelli espositivi" di mod_spec_templates, _doc/module-hys-hyspace.md (sistema a 7 stanze,
+  menu destro, evento hys:room:enter, flow dell'oggetto). Modulo non ancora collaudato a fondo nel browser.
+  Nessuno script. Agganci: #rh-help, #rh-sec-how, #rh-sec-move, #rh-tpl-room, #rh-sec-more, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-bank" aria-hidden="true"></i> HySpace (HYS) <span class="rh-badge">avanzato</span></h2>
+  <p class="rh-lead">
+    HySpace è un <strong>museo virtuale in prima persona</strong> delle esercitazioni degli allievi: ogni stanza espone un'esercitazione
+    con le sue immagini alle pareti, e le porte portano alle esercitazioni collegate. È l'erede del museo VRML 2005–2013.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-how"><i class="bi bi-diagram-3" aria-hidden="true"></i>Come è fatto</a></li>
+      <li><a href="#rh-sec-move"><i class="bi bi-controller" aria-hidden="true"></i>Muoversi</a></li>
+      <li><a href="#rh-tpl-room"><i class="bi bi-braces" aria-hidden="true"></i>Il template della stanza</a></li>
+      <li><a href="#rh-sec-more"><i class="bi bi-window-split" aria-hidden="true"></i>Pannelli collegati</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-how" aria-labelledby="rh-sec-how-t">
+    <h3 id="rh-sec-how-t"><i class="bi bi-diagram-3" aria-hidden="true"></i>Come è fatto</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Forma e contenuto in HySpace</caption>
+        <thead><tr><th scope="col"></th><th scope="col">Da dove viene</th><th scope="col">Cosa decide</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Forma delle stanze</th><td>I modelli 3D collegati all'oggetto HYS (Room_01 … Room_06)</td><td>Pareti, pavimenti, scale e dove appendere i pannelli</td></tr>
+          <tr><th scope="row">Contenuto</th><td>L'archivio delle esercitazioni di HySpace</td><td>Quale esercitazione è esposta e dove portano le porte</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Attorno alla stanza in cui sei ci sono sei stanze vicine: davanti, dietro, a sinistra e a destra le esercitazioni collegate;
+       sopra e sotto l'esercitazione successiva e precedente dello stesso allievo. Dove non c'è un'esercitazione, la porta resta chiusa.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-move" aria-labelledby="rh-sec-move-t">
+    <h3 id="rh-sec-move-t"><i class="bi bi-controller" aria-hidden="true"></i>Muoversi</h3>
+    <ul>
+      <li>Menu del pannello → <span class="rh-ui">Entra in navigazione</span>: il mouse guida lo sguardo, <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> per camminare.</li>
+      <li><kbd>Esc</kbd> restituisce il mouse.</li>
+      <li>Su tablet e telefono: menu → <span class="rh-ui">Touch: levetta ↔ tocca per andare</span> sceglie fra una levetta a schermo e il tocco sul punto da raggiungere.</li>
+      <li>Con un visore: <span class="rh-ui">Entra in VR (visore)</span>. C'è anche <span class="rh-ui">Schermo intero</span>.</li>
+      <li>Dal menu: <span class="rh-ui">Torna all'ingresso</span>, salita e discesa, musica, ombre, <span class="rh-ui">Ricarica contenuti</span>.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-room" aria-labelledby="rh-tpl-room-t">
+    <h3 id="rh-tpl-room-t"><i class="bi bi-braces" aria-hidden="true"></i>Template "Stanza con pannelli espositivi" <span class="rh-badge">avanzato</span></h3>
+    <p>È la spec di <strong>ciascun modello-stanza</strong> (un file glTF/OBJ): dice dove appendere le immagini sulle sue pareti.</p>
+    <pre class="rh-json">{
+  "expo": {
+    "zones": [
+      { "x": 4, "z": 0, "rotDeg": 270, "width": 3 },
+      { "x": 4, "z": 2, "rotDeg": 270, "width": 3 },
+      … in tutto 8 zone …
+    ],
+    "panelsY": 1.65,
+    "panelHeight": 3.0,
+    "panelMargin": 0.20
+  },
+  "hys": { "start": true, "door": { "width": 3, "height": 3, "distance": 5 } }
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi della spec di una stanza</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>expo.zones</code></td><td><strong>8 zone</strong> di parete. <code>x</code>, <code>z</code> = posizione nella stanza (metri, come nel file 3D);
+              <code>rotDeg</code> = orientamento in gradi attorno alla verticale; <code>width</code> = larghezza disponibile. Una zona vuota viene saltata.</td></tr>
+          <tr><td><code>expo.panelsY</code></td><td>Altezza da terra del centro dei pannelli (predefinito 1,65 m).</td></tr>
+          <tr><td><code>expo.panelHeight</code></td><td>Altezza dei pannelli (predefinito 3 m).</td></tr>
+          <tr><td><code>expo.panelMargin</code></td><td>Cornice attorno a ogni immagine (predefinito 0,20 m).</td></tr>
+          <tr><td><code>hys.start</code></td><td>Questa è la stanza d'ingresso. Senza, vale quella chiamata Room_01.</td></tr>
+          <tr><td><code>hys.door</code></td><td>Misure della porta chiusa (larghezza, altezza, distanza dal centro).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note">I valori del template sono un esempio (un quadrato ideale): vanno ricavati dalla <strong>geometria vera</strong> della stanza,
+       misurando dove sono le pareti nel file 3D. <code>transform</code> qui non ha effetto: le stanze le dispone HySpace.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-more" aria-labelledby="rh-sec-more-t">
+    <h3 id="rh-sec-more-t"><i class="bi bi-window-split" aria-hidden="true"></i>Pannelli collegati</h3>
+    <p>A ogni ingresso in una stanza HySpace annuncia agli altri pannelli quale esercitazione si sta guardando. Con l'App HTM ci sono tre template pronti:</p>
+    <ul>
+      <li><strong>Scheda esercitazione</strong>: titolo, autore, testi e immagini della stanza corrente, accanto al museo.</li>
+      <li><strong>Ricerca e musei</strong>: cerca le esercitazioni, porta il museo su una di esse o genera un museo tematico.</li>
+      <li><strong>Archivio esercitazioni</strong>: elenco per anno, con scheda e modello 3D.</li>
+    </ul>
+    <p>I flow dell'oggetto HYS possono anche impostare la musica di sottofondo (file <code>.mp3</code> nelle cartelle del WP).</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Porte tutte chiuse.</strong> L'archivio non ha risposto: menu → <span class="rh-ui">Ricarica contenuti</span>.</li>
+      <li><strong>Immagini fuori dalle pareti o storte.</strong> Le zone di <code>expo</code> non corrispondono alla geometria della stanza.</li>
+      <li><strong>Ogni volta si riparte dall'ingresso.</strong> È normale: la posizione non viene salvata.</li>
+    </ul>
+  </section>
+</div>

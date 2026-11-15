@@ -1,0 +1,182 @@
+<meta charset="utf-8">
+<!--
+  Guida del pannello OLY (cartografia): mouse, barra, finestre, disegno.
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Cartografia, il pannello" }
+  Fonti: app/model_OLY.mjs (getToolbar), app/OLY_sub_modules/OLY-tools.mjs, OLY-draw.mjs, lang/it.json (app.oly.*).
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-map" aria-hidden="true"></i> Cartografia (OLY): usare il pannello</h2>
+  <p class="rh-lead">
+    Come si esplora una mappa, si misura, si confrontano i layer e si disegna. La spec del modello ha una guida a parte:
+    la trovi in fondo, in <a href="#rh-sec-guides">Guide rapide</a>.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-move"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi sulla mappa</a></li>
+      <li><a href="#rh-sec-bar"><i class="bi bi-tools" aria-hidden="true"></i>La barra</a></li>
+      <li><a href="#rh-sec-win"><i class="bi bi-layout-sidebar-reverse" aria-hidden="true"></i>Le finestre</a></li>
+      <li><a href="#rh-sec-draw"><i class="bi bi-pencil-square" aria-hidden="true"></i>Disegnare</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-move" aria-labelledby="rh-sec-move-t">
+    <h3 id="rh-sec-move-t"><i class="bi bi-mouse" aria-hidden="true"></i>Muoversi sulla mappa</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Comandi della mappa</caption>
+        <thead><tr><th scope="col">Gesto</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>Trascina</td><td>Sposta la mappa</td></tr>
+          <tr><td>Rotella · doppio clic · touch con due dita · <kbd>+</kbd> <kbd>−</kbd></td><td>Avvicina e allontana</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>Maiusc</kbd> e trascina</td><td>Ruota la mappa</td></tr>
+          <tr><td>Frecce (con la mappa attiva)</td><td>Spostano la mappa</td></tr>
+          <tr><td>Clic su un elemento</td><td>Lo seleziona (giallo) e apre le Proprietà; clic nel vuoto toglie la selezione</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Il footer mostra le coordinate del puntatore nel sistema scelto con <span class="rh-ui"><i class="bi bi-geo-alt" aria-hidden="true"></i> ▾</span>; in basso a sinistra c'è la scala.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-bar" aria-labelledby="rh-sec-bar-t">
+    <h3 id="rh-sec-bar-t"><i class="bi bi-tools" aria-hidden="true"></i>La barra</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Pulsanti della barra del pannello Cartografia</caption>
+        <thead><tr><th scope="col">Pulsante</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i> Inquadra tutti i layer · <i class="bi bi-house" aria-hidden="true"></i> Vista iniziale</td><td>Mostra tutti i layer accesi · torna alla vista della spec</td></tr>
+          <tr><td><i class="bi bi-stack" aria-hidden="true"></i> <i class="bi bi-info-square" aria-hidden="true"></i> <i class="bi bi-search" aria-hidden="true"></i> <i class="bi bi-palette2" aria-hidden="true"></i> <i class="bi bi-bookmark-star" aria-hidden="true"></i> <i class="bi bi-pencil-square" aria-hidden="true"></i></td><td>Aprono e chiudono le finestre a destra: Layer, Proprietà, Cerca, Colora per valore, Viste, Disegno</td></tr>
+          <tr><td><i class="bi bi-rulers" aria-hidden="true"></i> Misure ▾</td><td><strong>Distanza</strong> (clic sui punti, doppio clic per finire), <strong>Area</strong> (clic sui vertici, doppio clic per chiudere), <strong>Togli tutte le misure</strong>. Sceglierlo di nuovo spegne lo strumento; <kbd>Esc</kbd> annulla la misura in corso</td></tr>
+          <tr><td><i class="bi bi-image" aria-hidden="true"></i> Esporta PNG</td><td>Scarica l'immagine della mappa con le attribuzioni</td></tr>
+          <tr><td><i class="bi bi-geo-alt" aria-hidden="true"></i> ▾</td><td>Sistema delle coordinate del footer (WGS84, Gauss-Boaga, UTM…)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-win" aria-labelledby="rh-sec-win-t">
+    <h3 id="rh-sec-win-t"><i class="bi bi-layout-sidebar-reverse" aria-hidden="true"></i>Le finestre</h3>
+    <ul>
+      <li><span class="rh-ui"><i class="bi bi-stack" aria-hidden="true"></i> Layer</span>: fondo; per ogni layer accendi/spegni, inquadra, porta su o giù, opacità, <i class="bi bi-layout-split" aria-hidden="true"></i> confronto a tendina (trascina la linea per vedere sotto); legenda.</li>
+      <li><span class="rh-ui"><i class="bi bi-info-square" aria-hidden="true"></i> Proprietà</span>: attributi dell'elemento selezionato, coordinate, lunghezza o area; con il Catasto acceso, un clic fuori dagli elementi mostra foglio e particella.</li>
+      <li><span class="rh-ui"><i class="bi bi-search" aria-hidden="true"></i> Cerca</span>: layer, attributo e valore (uguale o contiene); clic su un risultato per selezionarlo; <span class="rh-ui">Mostra solo questi</span>.</li>
+      <li><span class="rh-ui"><i class="bi bi-palette2" aria-hidden="true"></i> Colora per valore</span>: un colore per ogni valore di un attributo, con legenda.</li>
+      <li><span class="rh-ui"><i class="bi bi-bookmark-star" aria-hidden="true"></i> Viste</span>: vista attuale con nome (centro, zoom, fondo, layer accesi); <span class="rh-ui">Salva nel modello</span> per gli autori.</li>
+    </ul>
+    <p class="rh-where">Il menu a sinistra e il menu <span class="rh-ui">☰</span> a destra mostrano i comandi aggiunti dal flow dell'oggetto.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-draw" aria-labelledby="rh-sec-draw-t">
+    <h3 id="rh-sec-draw-t"><i class="bi bi-pencil-square" aria-hidden="true"></i>Disegnare</h3>
+    <ol>
+      <li>Apri <span class="rh-ui"><i class="bi bi-pencil-square" aria-hidden="true"></i> Disegno</span> e scegli <strong>Disegna su</strong>: <span class="rh-ui">Nuovo disegno</span> oppure un layer GeoJSON dell'oggetto.</li>
+      <li>Scegli lo strumento: <span class="rh-ui"><i class="bi bi-geo-alt" aria-hidden="true"></i> Punto</span>, <span class="rh-ui"><i class="bi bi-bezier2" aria-hidden="true"></i> Linea</span> o <span class="rh-ui"><i class="bi bi-pentagon" aria-hidden="true"></i> Area</span> (doppio clic per finire),
+          <span class="rh-ui"><i class="bi bi-vector-pen" aria-hidden="true"></i> Modifica</span> (trascina i vertici, <kbd>Alt</kbd>+clic ne toglie uno), <span class="rh-ui"><i class="bi bi-trash3" aria-hidden="true"></i> Elimina</span> (clic sull'elemento).</li>
+      <li>Con Modifica, clic su un elemento per scriverne gli <strong>attributi</strong> (per esempio <code>name</code>, usato per le etichette).</li>
+      <li><span class="rh-ui"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Salva come GeoJSON</span> crea un nuovo file nella cartella del primo modello;
+          su un layer dell'oggetto <span class="rh-ui">Salva il file</span> riscrive il suo file. Serve il livello autore.</li>
+    </ol>
+    <div class="rh-note">Un nuovo file non diventa da solo un layer: per vederlo ogni volta crea un modello con il template <strong>Cartografia — Layer vettoriale</strong>.</div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Il clic non seleziona</strong>: è acceso uno strumento di misura o di disegno; spegnilo.</li>
+      <li><strong>Riga gialla nella finestra Layer</strong>: il file o il servizio non si è caricato; il testo dice perché.</li>
+      <li><strong>Esporta PNG si ferma</strong>: un servizio acceso non lo permette (nessuno di quelli del catalogo attuale); spegnilo dalla finestra Layer.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-OLY">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-nodes" data-help="help-nodes-OLY">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i> I nodi dei flow
+      </button>
+    </div>
+  </section>
+</div>

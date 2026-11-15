@@ -1,0 +1,205 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida SINTETICA dei nodi MPS/* dei flow: famiglie e una riga per nodo, per dare una prima idea.
+  Porte, formati e proprietà NON vanno qui: stanno nell'editor dei flow (pannello "Help nodo selezionato",
+  desc e portHelp dei nodi). Fonte dell'elenco: registerNodeType/reg('MPS/…') in app/ (controllare dopo ogni nodo nuovo).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Mappe, i nodi" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-ui, #rh-go-spec
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-diagram-3" aria-hidden="true"></i> Mappe (MPS): i nodi dei flow</h2>
+  <p class="rh-lead">
+    Una prima idea di cosa si può fare con i nodi di questa App: un elenco per famiglie, con una riga per nodo.
+    Ingressi, uscite e formato dei dati sono nell'editor dei flow: seleziona il nodo e premi
+    <span class="rh-ui"><i class="bi bi-question-circle" aria-hidden="true"></i> Help nodo selezionato</span> nella barra dell'editor.
+  </p>
+  <p class="rh-where">Nel menu dell'editor i nodi stanno sotto <span class="rh-ui">MPS</span>, poi la famiglia. Lavorano nel flow di un oggetto mappa, o con il pulsante <span class="rh-ui">Testa su panel</span> dell'editor, su un pannello aperto.</p>
+
+  <nav aria-label="Famiglie di nodi">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-camera"><i class="bi bi-camera-video" aria-hidden="true"></i>Vista</a></li>
+      <li><a href="#rh-sec-markers"><i class="bi bi-geo-alt" aria-hidden="true"></i>Segnaposto</a></li>
+      <li><a href="#rh-sec-geo"><i class="bi bi-triangle" aria-hidden="true"></i>Quota</a></li>
+      <li><a href="#rh-sec-events"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-camera" aria-labelledby="rh-sec-camera-t">
+    <h3 id="rh-sec-camera-t"><i class="bi bi-camera-video" aria-hidden="true"></i>Vista</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Vista</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Camera/FlyTo</code></td><td>Inquadra un luogo. Sulla mappa 3D la camera guarda il punto da una certa distanza
+              (<code>range</code>, 300 m se non indicata). I menu del nodo scelgono la direzione di arrivo (<code>north</code> verso nord,
+              <code>keep</code> come la camera attuale, <code>input</code> da un valore: utile per guardare un edificio dal lato preferito),
+              l'inclinazione, la distanza, la quota del punto guardato e il movimento: <code>fly</code> ad arco, <code>glide</code> scivolata calma,
+              <code>jump</code> immediato.</td></tr>
+          <tr><td><code>Camera/GetPosition</code></td><td>Legge la vista attuale.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note"><strong>La quota è sul livello del mare</strong>, non sopra il terreno. Per inquadrare bene un edificio serve la quota
+       del terreno in quel punto: una colonna dei dati (per esempio <code>alt</code> nel foglio della timeline) oppure il nodo
+       <code>Geo/Elevation</code> prima di FlyTo. Senza quota FlyTo usa quella del punto guardato in quel momento: va bene per spostarsi
+       nella stessa zona pianeggiante, non per un luogo su un colle o lontano.</p>
+  </section>
+  <section class="rh-sec" id="rh-sec-markers" aria-labelledby="rh-sec-markers-t">
+    <h3 id="rh-sec-markers-t"><i class="bi bi-geo-alt" aria-hidden="true"></i>Segnaposto</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Segnaposto</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Marker/Style</code></td><td>Prepara l'aspetto dei segnaposto: colori del pin, lettera, simbolo o icona dentro il pin,
+              dimensione, etichetta, altezza sopra edifici o terreno (3D), visibilità dietro gli edifici, cosa fare quando si sovrappongono.</td></tr>
+          <tr><td><code>Marker/Add</code></td><td>Mette un segnaposto sulla mappa, in 2D e in 3D, da un dato con <code>lat</code> e <code>lng</code>
+              (per esempio un evento della timeline). Lo stesso id sostituisce il segnaposto di prima.</td></tr>
+          <tr><td><code>Marker/AddList</code></td><td>Mette tanti segnaposto da un elenco; può prima togliere quelli del gruppo e alla fine inquadrarli tutti.</td></tr>
+          <tr><td><code>Marker/Update</code></td><td>Cambia aspetto o dati di un segnaposto creato dal flow, per esempio per evidenziare quello cliccato.</td></tr>
+          <tr><td><code>Marker/Remove</code></td><td>Toglie un segnaposto, un gruppo o tutti quelli creati dal flow.</td></tr>
+          <tr><td><code>Marker/Fit</code></td><td>Inquadra i segnaposto creati dal flow, di un gruppo o tutti.</td></tr>
+          <tr><td><code>Marker/List</code></td><td>Elenca i segnaposto del modello (<code>source</code> = config) o quelli creati dal flow (<code>flow</code>).</td></tr>
+          <tr><td><code>Marker/GoTo</code></td><td>Fa come un clic su un segnaposto del modello: lo seleziona e avvisa gli altri pannelli.</td></tr>
+          <tr><td><code>Marker/ViewTo</code></td><td>Gira la vista verso un segnaposto del modello senza spostarsi (solo 3D).</td></tr>
+          <tr><td><code>Style/SetStyle</code></td><td>Cambia il colore di un segnaposto: del modello (solo 3D) o creato dal flow.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">I segnaposto del modello stanno nella spec (<code>coordinates</code>) e si vedono solo in 3D. Quelli creati dai nodi
+       <code>Marker/Add</code> e <code>Marker/AddList</code> funzionano anche in 2D e si raggruppano per nome (<code>group</code>), per toglierli
+       o inquadrarli insieme. Il clic su un segnaposto creato dal flow fa scattare <code>Events/OnMarkerClick</code>.</p>
+    <details>
+      <summary>Esempio: i teatri della timeline sulla mappa</summary>
+      <ol>
+        <li>Nel flow della timeline: <code>Events/OnSelect</code> → <code>Item/ToRecord</code> → <code>App Bus Emitter</code> con il record.</li>
+        <li>Nel flow della mappa: <code>App Bus Receiver</code> → <code>Geo/Elevation</code> (passa a Google solo i dati senza quota) →
+            <code>Marker/Add</code> con un <code>Marker/Style</code>; dal suo <code>done</code> → <code>Camera/FlyTo</code>.</li>
+        <li>Per evidenziare il segnaposto cliccato: <code>Events/OnMarkerClick</code> → <code>Marker/Update</code> con uno stile più grande.</li>
+      </ol>
+    </details>
+  </section>
+  <section class="rh-sec" id="rh-sec-geo" aria-labelledby="rh-sec-geo-t">
+    <h3 id="rh-sec-geo-t"><i class="bi bi-triangle" aria-hidden="true"></i>Quota del terreno</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Quota del terreno</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Geo/Elevation</code></td><td>Aggiunge a un punto la quota del terreno sul livello del mare, chiesta a Google.</td></tr>
+          <tr><td><code>Geo/ElevationList</code></td><td>Lo stesso per un elenco di punti, fino a 512 per richiesta.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note"><strong>Costa a parte.</strong> La quota viene dalla Elevation API di Google, un servizio pagato separatamente dalle mappe.
+       Per questo è un nodo a sé, di colore ambra, con il conto delle richieste scritto sotto. Di norma chiede solo per i punti che non hanno
+       già la quota, e lo stesso punto una volta sola per sessione. Se la quota la conosci già, mettila nei dati: non costa nulla.</p>
+  </section>
+  <section class="rh-sec" id="rh-sec-events" aria-labelledby="rh-sec-events-t">
+    <h3 id="rh-sec-events-t"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi</h3>
+    <p>Fanno partire il flow quando chi guarda fa qualcosa.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Eventi</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Events/OnMarkerClick</code></td><td>Scatta al clic su un segnaposto: del modello (solo 3D) o creato dal flow (2D e 3D).</td></tr>
+          <tr><td><code>Events/OnViewSettled</code></td><td>Scatta quando la mappa si ferma dopo uno spostamento o uno zoom.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">Nei flow si usano anche i nodi comuni a tutte le App: menu e footer del pannello (<code>ReseArch/Menu</code>, <code>ReseArch/Panel</code>), App Bus per parlare con gli altri pannelli, e i nodi di logica e dati.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui" data-help="help-ui-MPS">
+        <i class="bi bi-geo-alt" aria-hidden="true"></i> Usare il pannello mappe
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-MPS">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,188 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App OSD (immagini gigapixel, OpenSeadragon + disegno Paper.js).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Immagini gigapixel (OSD)" }
+
+  Fonti: app/model_OSD.mjs (legge solo il primo modello, file ImageProperties.xml Zoomify; mod_spec non letto),
+  _doc/module-osd-gigapixel.md. Template "Immagine gigapixel (Zoomify)" da sql/migration_mod_spec_templates_2026-10-13.sql.
+  Nessuno script. Agganci per un flow: #rh-help, #rh-sec-file, #rh-sec-spec, #rh-sec-draw, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-image" aria-hidden="true"></i> Immagini gigapixel (OSD)</h2>
+  <p class="rh-lead">
+    OSD mostra immagini molto grandi (rilievi fotografici, tavole, mosaici) caricando solo i pezzi che servono
+    allo zoom corrente. Sopra l'immagine c'è un livello di <strong>disegno vettoriale</strong> per annotare,
+    misurare e ridisegnare, e un pannello di <strong>filtri</strong> per leggere meglio i dettagli.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-file"><i class="bi bi-grid-3x3" aria-hidden="true"></i>Preparare l'immagine</a></li>
+      <li><a href="#rh-sec-spec"><i class="bi bi-braces" aria-hidden="true"></i>Modello e spec</a></li>
+      <li><a href="#rh-sec-draw"><i class="bi bi-pencil" aria-hidden="true"></i>Disegni e filtri</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-file" aria-labelledby="rh-sec-file-t">
+    <h3 id="rh-sec-file-t"><i class="bi bi-grid-3x3" aria-hidden="true"></i>Preparare l'immagine</h3>
+    <p>OSD non legge un <code>.jpg</code> o un <code>.tif</code> direttamente: l'immagine va prima tagliata in
+       <strong>tasselli</strong> nel formato <strong>Zoomify</strong>. Il risultato è una cartella così:</p>
+    <pre class="rh-json">Facciata_nord/
+  ImageProperties.xml     ← il file da scegliere nel modello
+  TileGroup0/
+    0-0-0.jpg
+    1-0-0.jpg  …
+  TileGroup1/  …</pre>
+    <h4>Come ottenerla</h4>
+    <ul>
+      <li><strong>libvips</strong> (gratuito, riga di comando):
+          <code>vips dzsave immagine.tif Facciata_nord --layout zoomify</code></li>
+      <li>Photoshop: <span class="rh-ui">File → Esporta → Zoomify</span>.</li>
+      <li>Qualsiasi altro programma che esporti in formato Zoomify.</li>
+    </ul>
+    <h4>Caricarla</h4>
+    <ol>
+      <li>In <strong>Caricamenti</strong> scegli la sottocartella del WP.</li>
+      <li><strong>Trascina l'intera cartella</strong> (non i singoli file): la struttura con i <code>TileGroup</code> deve restare uguale.</li>
+    </ol>
+    <p class="rh-note">I file <code>.xml</code> si caricano solo se l'amministratore ha protetto la cartella dei dati (come per le pagine HTML).</p>
+    <p class="rh-note">Un'immagine gigapixel produce migliaia di tasselli: il caricamento può durare a lungo. Non chiudere la finestra finché non è finito.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalUpload">
+        <i class="bi bi-upload" aria-hidden="true"></i> Apri Caricamenti
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-spec" aria-labelledby="rh-sec-spec-t">
+    <h3 id="rh-sec-spec-t"><i class="bi bi-braces" aria-hidden="true"></i>Modello e spec</h3>
+    <ol>
+      <li>In <strong>Modelli</strong> crea il modello e con <span class="rh-ui">Seleziona file…</span> entra nella cartella
+          dell'immagine e scegli <code>ImageProperties.xml</code>.</li>
+      <li>Per la spec scegli il template <strong>Immagine gigapixel (Zoomify)</strong>: OSD <strong>non legge la spec</strong>, quindi resta</li>
+    </ol>
+    <pre class="rh-json">{ }</pre>
+    <ul>
+      <li>Crea un oggetto con App <strong>OSD</strong> e collega il modello.</li>
+      <li><strong>Un'immagine per oggetto.</strong> Se colleghi più modelli, OSD mostra solo il primo.</li>
+      <li>Il modello senza file (<span class="rh-ui">Nessun file (dati dal flow)</span>) non va bene per OSD: serve sempre l'immagine.</li>
+    </ul>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-draw" aria-labelledby="rh-sec-draw-t">
+    <h3 id="rh-sec-draw-t"><i class="bi bi-pencil" aria-hidden="true"></i>Disegni e filtri</h3>
+    <p>Disegni e filtri <strong>non stanno nella spec</strong>: si salvano come <strong>disegni</strong> legati al modello,
+       dalla barra del pannello.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Strumenti del pannello OSD</caption>
+        <thead><tr><th scope="col">Gruppo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td>Apri / Salva</td><td>Apre un disegno salvato o salva quello corrente (con nome e versioni). Un disegno contiene livelli, forme, testi e filtri.</td></tr>
+          <tr><td>Linee, Poligoni, Quadriche</td><td>Punti, linee, polilinee, curve, rettangoli, poligoni, archi, cerchi, ellissi.</td></tr>
+          <tr><td>Annotazioni</td><td>Testi su più righe con stili, simboli SVG, collegamenti e immagini.</td></tr>
+          <tr><td>Trasformazioni</td><td>Seleziona, sposta, copia, ruota, scala, elimina, proprietà.</td></tr>
+          <tr><td>Annulla / Ripeti</td><td>Fino a 30 passi.</td></tr>
+          <tr><td>Livelli, Impostazioni</td><td>Livelli con colore e tipo di linea; aggancio ai punti e tolleranze di selezione.</td></tr>
+          <tr><td>Filtri immagine</td><td>Luminosità, contrasto, gamma, nitidezza, rilevamento bordi, scala di grigi, mappe di colore, soglia, shader personalizzati.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note"><strong>Prima di disegnare apri o crea un disegno:</strong> <span class="rh-ui">File → Lista disegni… → Nuovo</span>
+       (o Apri). Senza un disegno aperto, con almeno un livello attivo e visibile, gli strumenti non partono.</p>
+    <p>Navigazione: rotella = zoom, <kbd>Spazio</kbd> + trascinamento = spostamento. Il <strong>tasto destro</strong> chiude lo strumento
+       in corso e torna alla navigazione; un altro clic destro ripete l'ultimo strumento.</p>
+    <p>Le coordinate dei disegni sono in <strong>pixel dell'immagine originale</strong>: una misura fatta allo zoom massimo
+       o minimo dà lo stesso risultato.</p>
+    <p class="rh-note">I filtri si salvano <strong>insieme al disegno</strong>. Se non salvi un disegno, alla riapertura l'immagine torna senza filtri.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>"OpenSeadragon richiede un'immagine".</strong> Il primo modello collegato non ha un file: scegli <code>ImageProperties.xml</code>.</li>
+      <li><strong>Errore "IMAGE_PROPERTIES non trovato".</strong> Il file scelto non è un <code>ImageProperties.xml</code> Zoomify (per esempio è un'immagine o un file Deep Zoom <code>.dzi</code>).</li>
+      <li><strong>Immagine sfocata o a quadretti grigi.</strong> Mancano dei tasselli: la cartella è stata caricata solo in parte o i <code>TileGroup</code> non sono accanto al file XML.</li>
+      <li><strong>"Nessun disegno aperto".</strong> Apri o crea un disegno da <span class="rh-ui">File → Lista disegni…</span>.</li>
+      <li><strong>"Layer attivo spento".</strong> Il livello su cui disegni è nascosto: riaccendilo in Livelli o scegline un altro.</li>
+      <li><strong>Non riesco a spostare l'immagine.</strong> È attivo uno strumento di disegno: premi il tasto destro per tornare alla navigazione.</li>
+    </ul>
+  </section>
+</div>

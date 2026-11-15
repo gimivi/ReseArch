@@ -1,0 +1,87 @@
+# =============================================================================
+# ReseArch - configurazione Apache (equivalente di Web.config per IIS)
+# Richiede "AllowOverride All" (o almeno FileInfo Indexes Options AuthConfig)
+# sulla cartella dell'applicazione, altrimenti Apache ignora questo file.
+# =============================================================================
+
+DirectoryIndex index.php index.html
+
+# Niente elenco dei file nelle cartelle senza index (IIS lo ha spento di default)
+Options -Indexes
+
+# -----------------------------------------------------------------------------
+# Cartelle/file che non devono MAI essere serviti al browser
+# (cfg ha anche il suo .htaccess: qui è una seconda barriera)
+#   - .git, .claude, .vscode ... : cartelle/file nascosti (sorgenti + storia git)
+#   - cfg                        : credenziali DB/SMTP
+#   - sql, install               : schema, script e file di installazione
+#   - _doc, _dev, _cestino       : documentazione, strumenti di lavoro, codice dismesso
+# 404 invece di 403 per non confermare che esistono.
+# -----------------------------------------------------------------------------
+RedirectMatch 404 "(?i)/\.(?!well-known/)"
+RedirectMatch 404 "(?i)/(cfg|sql|install|_doc|_dev|_cestino)(/|$)"
+RedirectMatch 404 "(?i)\.(bak|old|orig|swp|sql|log|md)$|~$"
+
+# -----------------------------------------------------------------------------
+# MIME types per file statici (modelli / decoder / moduli)
+# -----------------------------------------------------------------------------
+<IfModule mod_mime.c>
+    # ES Modules
+    AddType text/javascript             .mjs
+    # JSON
+    AddType application/json            .json
+    # Draco decoder locali
+    AddType application/wasm            .wasm
+    AddType application/octet-stream    .data
+    # Modelli
+    AddType text/plain                  .obj .mtl
+    AddType model/gltf-binary           .glb
+    AddType model/gltf+json             .gltf
+    # Draco point cloud
+    AddType model/vnd.drc               .drc
+    # SVG (usato da SVGLoader)
+    AddType image/svg+xml               .svg
+    # VRML (.wrz = gzip decompresso da loadVRML nel browser, NON Content-Encoding)
+    AddType model/vrml                  .wrl .vrml .wrz
+    # Rhino 3DM
+    AddType application/x-rhino         .3dm
+    # IFC
+    AddType application/octet-stream    .ifc
+    # Caratteri locali (Titillium Web, lib/fonts)
+    AddType font/woff2                  .woff2
+    # Audio / video (HySpace) - espliciti per via di nosniff
+    AddType audio/mpeg                  .mp3
+    AddType video/mp4                   .mp4
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# Limite dimensione richieste: 100 MB (come maxAllowedContentLength su IIS).
+# NB: servono anche upload_max_filesize / post_max_size nel php.ini.
+# -----------------------------------------------------------------------------
+LimitRequestBody 104857600
+
+# -----------------------------------------------------------------------------
+# Header di sicurezza
+# -----------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+    # Content-Security-Policy in modalità REPORT-ONLY (2026-09-28, step 4 di
+    # _doc/arch-abilitazioni.md): NON blocca nulla, segnala soltanto le violazioni
+    # a api/csp_report.php (tabella csp_reports, scheda "CSP" della modale admin
+    # Abilitazioni). Quando le segnalazioni mostrano solo domini legittimi, si
+    # aggiungono quelli mancanti e si rinomina l'header in Content-Security-Policy.
+    # TENERE IDENTICA al valore in Web.config.
+    Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://maps.googleapis.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://upload.wikimedia.org; connect-src 'self' data: blob: https://cdn.jsdelivr.net https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.wikipedia.org; media-src 'self' data: blob: https://ice1.somafm.com; worker-src 'self' blob:; frame-src 'self' https:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri api/csp_report.php"
+
+    # Codice della piattaforma (app/, ui/, css/) e librerie modificate tenute nel
+    # progetto (lib/, es. lib/litegraph — 2026-10-04): "no-cache" = il browser tiene i
+    # file ma a ogni caricamento chiede al server se sono cambiati (304 se no).
+    # Evita che vengano eseguite versioni vecchie dei moduli .mjs (2026-09-26).
+    <If "%{REQUEST_URI} =~ m#/(app|ui|css|lib)/#">
+        Header set Cache-Control "no-cache"
+    </If>
+</IfModule>

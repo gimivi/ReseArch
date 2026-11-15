@@ -1,0 +1,162 @@
+<meta charset="utf-8">
+<!--
+  Guida dell'App CSV (tabella da file CSV, Tabulator).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Tabelle da file CSV" }
+  Fonti: app/model_CSV.mjs (legge solo view.columns), template "CSV Tabulator" di mod_spec_templates.
+  Nessuno script. Agganci per un flow: #rh-help, #rh-sec-file, #rh-tpl-csv, #rh-sec-compare, #rh-sec-tips
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-filetype-csv" aria-hidden="true"></i> Tabelle da file CSV</h2>
+  <p class="rh-lead">
+    L'App CSV mostra un file <code>.csv</code> come tabella ordinabile. È il modo più semplice per pubblicare
+    dati esportati da Excel o da un altro programma: carichi il file e lo colleghi, senza scrivere nulla.
+  </p>
+
+  <nav aria-label="Sezioni della guida">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-file"><i class="bi bi-file-earmark" aria-hidden="true"></i>Il file</a></li>
+      <li><a href="#rh-tpl-csv"><i class="bi bi-braces" aria-hidden="true"></i>Il template</a></li>
+      <li><a href="#rh-sec-compare"><i class="bi bi-table" aria-hidden="true"></i>Quale tabella scegliere</a></li>
+      <li><a href="#rh-sec-tips"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-file" aria-labelledby="rh-sec-file-t">
+    <h3 id="rh-sec-file-t"><i class="bi bi-file-earmark" aria-hidden="true"></i>Il file</h3>
+    <ul>
+      <li>La <strong>prima riga</strong> contiene i nomi delle colonne.</li>
+      <li>Il separatore può essere <code>;</code> (Excel in italiano) o <code>,</code>: viene riconosciuto da solo.</li>
+      <li>I testi con separatori o a capo vanno tra virgolette doppie, come fa Excel.</li>
+      <li>Salva in <strong>UTF-8</strong> (in Excel: <span class="rh-ui">CSV UTF-8 (delimitato da virgole)</span>), altrimenti le lettere accentate si rovinano.</li>
+    </ul>
+  </section>
+
+  <section class="rh-sec" id="rh-tpl-csv" aria-labelledby="rh-tpl-csv-t">
+    <h3 id="rh-tpl-csv-t"><i class="bi bi-braces" aria-hidden="true"></i>Il template "CSV Tabulator" <span class="rh-badge">base</span></h3>
+    <p>La spec è <strong>facoltativa</strong>. Con <code>{ }</code> la tabella mostra tutte le colonne del file, con i loro nomi.
+       La usi solo per scegliere quali colonne mostrare, in che ordine e con che titolo.</p>
+    <pre class="rh-json">{
+  "view": {
+    "columns": [
+      { "field": "nome",   "caption": "Nome",   "width": 200, "mode": "r" },
+      { "field": "valore", "caption": "Valore" }
+    ]
+  }
+}</pre>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Campi di una colonna</caption>
+        <thead><tr><th scope="col">Campo</th><th scope="col">Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>field</code></td><td>Nome della colonna <strong>come scritto nella prima riga</strong> del file (maiuscole comprese).</td></tr>
+          <tr><td><code>caption</code></td><td>Titolo da mostrare al posto del nome originale.</td></tr>
+          <tr><td><code>width</code></td><td>Larghezza in pixel.</td></tr>
+          <tr><td><code>mode</code></td><td><code>"r"</code> sola lettura. <code>"rw"</code> (predefinito) permette di scrivere nella cella, ma <strong>non salva nulla</strong>: alla riapertura torna il file.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-note">Consiglio: metti <code>"mode": "r"</code> su tutte le colonne, così nessuno crede di aver modificato i dati.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModels">
+        <i class="bi bi-files" aria-hidden="true"></i> Apri Modelli
+      </button>
+    </div>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-compare" aria-labelledby="rh-sec-compare-t">
+    <h3 id="rh-sec-compare-t"><i class="bi bi-table" aria-hidden="true"></i>Quale tabella scegliere</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Confronto fra le App tabellari</caption>
+        <thead><tr><th scope="col">App</th><th scope="col">Dove stanno i dati</th><th scope="col">Si salva?</th><th scope="col">Parla con altri pannelli</th></tr></thead>
+        <tbody>
+          <tr><td><strong>CSV</strong></td><td>File <code>.csv</code> caricato</td><td>No</td><td>No</td></tr>
+          <tr><td>DBJ</td><td>Dentro la spec del modello</td><td>No</td><td>Sì</td></tr>
+          <tr><td>GSH</td><td>Foglio Google pubblico</td><td>No (si modifica in Google)</td><td>Sì</td></tr>
+          <tr><td>MYS</td><td>Tabella del database</td><td>Sì, se abilitata</td><td>Sì</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Se i dati cambiano spesso o li modificano più persone, è meglio GSH (foglio Google) o MYS (database).</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-tips" aria-labelledby="rh-sec-tips-t">
+    <h3 id="rh-sec-tips-t"><i class="bi bi-life-preserver" aria-hidden="true"></i>Problemi comuni</h3>
+    <ul>
+      <li><strong>Tutto in una colonna sola.</strong> Il separatore non è né <code>;</code> né <code>,</code> (per esempio è una tabulazione): riesporta il file.</li>
+      <li><strong>Colonna vuota.</strong> Il <code>field</code> non corrisponde esattamente all'intestazione del file.</li>
+      <li><strong>Lettere accentate sbagliate.</strong> Il file non è in UTF-8: riesportalo come "CSV UTF-8".</li>
+    </ul>
+  </section>
+</div>

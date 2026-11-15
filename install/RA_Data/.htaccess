@@ -1,0 +1,70 @@
+# =============================================================================
+# RA_Data/.htaccess — protezione della cartella dei dati di ReseArch (Apache)
+# =============================================================================
+# Marcatore: ReseArch-RA_Data-sandbox
+#   ui/modal_uploads_tools.php accetta upload .html/.htm solo se trova questo
+#   marcatore in RA_Data/.htaccess o RA_Data/web.config.
+#
+# Copiare in <radice del sito>/RA_Data/.htaccess.
+# RA_Data sta ACCANTO alla cartella dell'app: il .htaccess dell'app non vale qui.
+#
+# Perché: i file di RA_Data sono serviti dalla stessa origine della piattaforma.
+# Un .html o un .svg aperto come documento (link diretto, iframe) potrebbe eseguire
+# script con la sessione di chi lo apre. Con "Content-Security-Policy: sandbox" il
+# documento gira in un'origine isolata: i suoi script funzionano ma non raggiungono
+# né la sessione né le API della piattaforma.
+# NON tocca le letture fatte dai moduli (fetch/XHR: TJS SVGLoader, HTM in modalità
+# flow, TML, PDF.js…) né gli <img>: l'intestazione vale solo per i documenti.
+#
+# Dopo la copia, verificare: aprire un .svg di RA_Data nel browser → strumenti di
+# sviluppo → Rete → intestazioni della risposta: deve esserci Content-Security-Policy.
+# =============================================================================
+
+# Nessuno script lato server nella cartella dei dati
+<FilesMatch "\.(php[0-9]?|phtml|phar|pl|py|cgi|sh|asp|aspx)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_mime.c>
+    AddType image/svg+xml   .svg
+    AddType text/css        .css
+    AddType font/woff2      .woff2
+    # (2026-10-13) formati 3D e audio dei moduli (TJS, IFC, HYS), allineati a web.config
+    AddType model/vnd.drc            .drc
+    AddType model/gltf-binary        .glb
+    AddType model/gltf+json          .gltf
+    AddType text/plain               .obj .mtl
+    AddType application/octet-stream .ply .ifc
+    AddType model/vrml               .wrl .vrml .wrz
+    AddType application/x-rhino      .3dm
+    AddType audio/mpeg               .mp3
+    # (2026-10-13) nuove estensioni dei Caricamenti (cfg/cfg_Upload.php)
+    AddType video/mp4               .mp4
+    AddType video/webm              .webm
+    AddType application/octet-stream .frag
+    AddType application/rdf+xml     .owl .rdf
+    AddType text/turtle             .ttl
+    AddType application/n-triples   .nt
+    AddType text/n3                 .n3
+    AddType application/trig        .trig
+    AddType application/ld+json     .jsonld
+    # (2026-11-04) OLY: KML e GPX (XML) come octet-stream, così non si aprono mai come documento
+    AddType application/geo+json    .geojson
+    AddType application/octet-stream .kml .gpx
+    AddType image/tiff              .tif .tiff
+    AddType image/webp              .webp
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    <FilesMatch "\.(svgz?|html?|xhtml|xht|xml|owl|rdf)$">
+        Header always set Content-Security-Policy "sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+    </FilesMatch>
+</IfModule>
+
+# Senza mod_headers la sandbox non si può applicare: le pagine HTML non si servono
+<IfModule !mod_headers.c>
+    <FilesMatch "\.(html?|xhtml|xht)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>

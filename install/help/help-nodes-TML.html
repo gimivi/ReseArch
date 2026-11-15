@@ -1,0 +1,221 @@
+<meta charset="utf-8">
+<!--
+  Pulsanti con data-help="<chiave>" (2026-10-17): la chiave è il nome del file della guida da aprire, senza
+  estensione né suffisso di lingua. Un solo flow per tutte le pagine, niente obj_id da scrivere:
+  flow-help-caller.clipboard.json (OnStart → Object Index; Query #rh-help → On Event click con attr = data-help →
+  Object Index find → App Bus Emitter "Help" con l'obj_id). Nel pannello Help di dettaglio: flow-help-guide.clipboard.json.
+  Una chiave senza guida installata apre un messaggio. Togliere la sezione dei pulsanti se non si collega il flow.
+  Guida SINTETICA dei nodi TML/* dei flow: famiglie e una riga per nodo, per dare una prima idea.
+  Porte, formati e proprietà NON vanno qui: stanno nell'editor dei flow (pannello "Help nodo selezionato",
+  desc e portHelp dei nodi). Fonte dell'elenco: registerNodeType/reg('TML/…') in app/ (controllare dopo ogni nodo nuovo).
+  Modello HTM: carica questo file e scrivi nel mod_spec  { "mode": "flow", "title": "Guida: Timeline, i nodi" }
+
+  Nessuno script. Agganci: #rh-help, #rh-sec-…, #rh-go-ui, #rh-go-spec
+-->
+<style>
+  .rh-help {
+    --rh-accent: var(--bs-primary, #0066cc);
+    --rh-muted: var(--bs-secondary-color, #5c6f82);
+    --rh-border: var(--bs-border-color, #d1d9e0);
+    --rh-soft: var(--bs-tertiary-bg, #f5f7fa);
+    font-size: 0.95rem; line-height: 1.55; color: var(--bs-body-color);
+    /* sfondo su tutto il pannello: copre anche il padding di 1rem di .htm-inject */
+    background: var(--bs-body-bg, #fff);
+    margin: -1rem; padding: 0 1.25rem 2rem 1.25rem;
+    /* testo centrato e largo al massimo 52rem: il margine laterale cresce coi pannelli larghi */
+    padding-inline: max(1.25rem, calc((100% - 52rem) / 2));
+    min-height: calc(100% + 2rem); box-sizing: border-box;
+  }
+  /* spazio di rispetto: l'header del pannello è sovrapposto al contenuto */
+  .rh-help .rh-headspace { height: 36px; }
+
+  .rh-help h2 { font-size: 1.35rem; margin: 0 0 0.25rem 0; }
+  .rh-help h3 { font-size: 1.1rem; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .rh-help h4 { font-size: 0.98rem; margin: 0.9rem 0 0.3rem 0; }
+  .rh-help .rh-lead { color: var(--rh-muted); margin: 0 0 1rem 0; }
+
+  .rh-help .rh-index { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; margin: 0 0 1.25rem 0; list-style: none; }
+  .rh-help .rh-index a {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rh-border); border-radius: 999px; text-decoration: none; color: inherit; font-size: 0.85rem;
+  }
+  .rh-help .rh-index a:hover, .rh-help .rh-index a:focus-visible { border-color: var(--rh-accent); color: var(--rh-accent); }
+
+  .rh-help .rh-sec {
+    border: 1px solid var(--rh-border); border-left: 4px solid var(--rh-accent); border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.9rem; scroll-margin-top: 44px;
+  }
+  .rh-help .rh-sec.rh-current, .rh-help .rh-tpl.rh-current { background: var(--rh-soft); box-shadow: 0 0 0 2px var(--rh-accent); }
+  .rh-help .rh-tpl {
+    border: 1px solid var(--rh-border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.6rem 0;
+    scroll-margin-top: 44px;
+  }
+  .rh-help .rh-tpl h4 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .rh-help .rh-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px;
+    border: 1px solid var(--rh-accent); color: var(--rh-accent);
+  }
+  .rh-help .rh-where { color: var(--rh-muted); font-size: 0.85rem; margin: 0.25rem 0 0.5rem 0; }
+  .rh-help ul, .rh-help ol { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+  .rh-help p { margin: 0.25rem 0 0.5rem 0; }
+  .rh-help kbd, .rh-help .rh-ui {
+    font-size: 0.82rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rh-border); border-radius: 4px;
+    background: var(--bs-body-bg); color: inherit; white-space: nowrap;
+  }
+  .rh-help code { font-size: 0.82rem; }
+  .rh-help pre.rh-json {
+    margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--rh-soft);
+    border: 1px solid var(--rh-border); font-size: 0.8rem; white-space: pre; overflow-x: auto; color: inherit;
+  }
+  .rh-help .rh-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .rh-help .rh-note {
+    border-left: 3px solid var(--bs-warning, #a66300); padding: 0.35rem 0.75rem; margin: 0.5rem 0;
+    background: var(--rh-soft); font-size: 0.88rem;
+  }
+  .rh-help details { margin-top: 0.4rem; }
+  .rh-help summary { cursor: pointer; color: var(--rh-accent); font-size: 0.88rem; }
+  .rh-help summary:focus-visible { outline: 2px solid var(--rh-accent); outline-offset: 2px; }
+  .rh-help .rh-tablewrap { overflow-x: auto; }
+  .rh-help table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+  .rh-help th, .rh-help td { border: 1px solid var(--rh-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+  .rh-help th { background: var(--rh-soft); }
+</style>
+
+<div class="rh-help" id="rh-help" lang="it">
+  <div class="rh-headspace" aria-hidden="true"></div>
+
+  <h2><i class="bi bi-diagram-3" aria-hidden="true"></i> Timeline (TML): i nodi dei flow</h2>
+  <p class="rh-lead">
+    Una prima idea di cosa si può fare con i nodi di questa App: un elenco per famiglie, con una riga per nodo.
+    Ingressi, uscite e formato dei dati sono nell'editor dei flow: seleziona il nodo e premi
+    <span class="rh-ui"><i class="bi bi-question-circle" aria-hidden="true"></i> Help nodo selezionato</span> nella barra dell'editor.
+  </p>
+  <p class="rh-where">Nel menu dell'editor i nodi stanno sotto <span class="rh-ui">TML</span>, poi la famiglia. Lavorano nel flow di un oggetto timeline, o con il pulsante <span class="rh-ui">Testa su panel</span> dell'editor, su un pannello aperto. I nodi <code>Date/*</code> e <code>Item/Make</code> funzionano in qualunque flow.</p>
+
+  <nav aria-label="Famiglie di nodi">
+    <ul class="rh-index">
+      <li><a href="#rh-sec-view"><i class="bi bi-arrows-expand-vertical" aria-hidden="true"></i>Vista</a></li>
+      <li><a href="#rh-sec-cursor"><i class="bi bi-vr" aria-hidden="true"></i>Cursore</a></li>
+      <li><a href="#rh-sec-items"><i class="bi bi-card-text" aria-hidden="true"></i>Eventi della timeline</a></li>
+      <li><a href="#rh-sec-groups"><i class="bi bi-list-nested" aria-hidden="true"></i>Gruppi, livelli, filtri e temi</a></li>
+      <li><a href="#rh-sec-dates"><i class="bi bi-calendar3" aria-hidden="true"></i>Date storiche</a></li>
+      <li><a href="#rh-sec-events"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi</a></li>
+      <li><a href="#rh-sec-guides"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</a></li>
+    </ul>
+  </nav>
+
+  <section class="rh-sec" id="rh-sec-view" aria-labelledby="rh-sec-view-t">
+    <h3 id="rh-sec-view-t"><i class="bi bi-arrows-expand-vertical" aria-hidden="true"></i>Vista</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Vista</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>View/SetWindow</code> · <code>View/GetWindow</code></td><td>Mostra un intervallo di tempo · legge quello visibile.</td></tr>
+          <tr><td><code>View/Fit</code></td><td>Inquadra tutti gli eventi, o solo alcuni.</td></tr>
+          <tr><td><code>View/FocusItem</code></td><td>Centra la vista su un evento.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-cursor" aria-labelledby="rh-sec-cursor-t">
+    <h3 id="rh-sec-cursor-t"><i class="bi bi-vr" aria-hidden="true"></i>Cursore</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Cursore</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Cursor/Set</code> · <code>Cursor/Get</code></td><td>Sposta il cursore a una data · ne legge la posizione.</td></tr>
+          <tr><td><code>Cursor/Play</code></td><td>Fa scorrere il cursore da una data a un'altra in un certo tempo, come un'animazione.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-items" aria-labelledby="rh-sec-items-t">
+    <h3 id="rh-sec-items-t"><i class="bi bi-card-text" aria-hidden="true"></i>Eventi della timeline</h3>
+    <p>Le modifiche valgono nel pannello: il file del modello non cambia.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Eventi della timeline</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Item/List</code> · <code>Item/Get</code></td><td>Elenca gli eventi · ne legge uno.</td></tr>
+          <tr><td><code>Item/Make</code> · <code>Item/Add</code></td><td>Prepara un evento · lo aggiunge.</td></tr>
+          <tr><td><code>Item/Update</code> · <code>Item/Remove</code></td><td>Cambia un evento · lo toglie.</td></tr>
+          <tr><td><code>Item/Select</code></td><td>Seleziona eventi, anche come se fossero stati cliccati.</td></tr>
+          <tr><td><code>Item/SetClass</code></td><td>Cambia l'aspetto di un evento (per esempio per evidenziarlo) con le classi dei temi.</td></tr>
+          <tr><td><code>Item/ToRecord</code></td><td>Prepara l'evento selezionato per l'App Bus: id originale, nome, date, coordinate come numeri
+              (<code>lat</code>, <code>lng</code> e la quota <code>altitude</code>, vuote se mancano) e tutte le colonne del foglio. Si collega fra
+              <code>Events/OnSelect</code> e un <code>Emitter</code>; nell'altra finestra il record può guidare <code>MPS/Camera/FlyTo</code>
+              (un <code>Receiver</code> con campi <code>lat,lng,altitude</code>) o diventare un segnaposto con <code>MPS/Marker/Add</code>.
+              La quota è quella del terreno <strong>sul livello del mare</strong>, dalla colonna <code>alt</code> del foglio
+              (si cambia con <code>altField</code>): senza, la mappa non sa a che altezza guardare e può inquadrare male un edificio.
+              La colonna <code>head</code> (<code>headField</code>) dà la direzione da cui guardare il luogo in 3D, in gradi: 0 = verso nord,
+              90 = verso est; vuota = verso nord.
+              In <code>listFields</code> scrivi le colonne che contengono un elenco (per esempio <code>links</code>, separate da virgole se sono più
+              di una): nel record diventano elenchi veri, pronti per i pulsanti dei collegamenti (<code>HTM/DOM/Button Row</code>).</td></tr>
+
+
+          <tr><td><code>Data/Load</code></td><td>Sostituisce tutti i dati della timeline.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-groups" aria-labelledby="rh-sec-groups-t">
+    <h3 id="rh-sec-groups-t"><i class="bi bi-list-nested" aria-hidden="true"></i>Gruppi, livelli, filtri e temi</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Gruppi, livelli, filtri e temi</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Group/List</code> · <code>Group/SetVisible</code></td><td>Elenca le righe (gruppi) · ne mostra o nasconde una.</td></tr>
+          <tr><td><code>Layer/List</code> · <code>Layer/SetVisible</code></td><td>Elenca i livelli · ne mostra o nasconde uno.</td></tr>
+          <tr><td><code>Filter/Apply</code> · <code>Filter/Clear</code></td><td>Mostra solo gli eventi che rispondono a un criterio (o attenua gli altri) · toglie il filtro.</td></tr>
+          <tr><td><code>Theme/List</code> · <code>Theme/SetActive</code></td><td>Elenca i temi grafici (CSS) · ne accende o spegne uno.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-dates" aria-labelledby="rh-sec-dates-t">
+    <h3 id="rh-sec-dates-t"><i class="bi bi-calendar3" aria-hidden="true"></i>Date storiche</h3>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Date storiche</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Date/Parse</code> · <code>Date/Format</code></td><td>Leggono una data scritta come nei dati (anche a.C.) · la scrivono in modo leggibile.</td></tr>
+          <tr><td><code>Date/FromParts</code> · <code>Date/ToParts</code></td><td>Costruiscono una data da anno, mese e giorno · la scompongono.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="rh-sec" id="rh-sec-events" aria-labelledby="rh-sec-events-t">
+    <h3 id="rh-sec-events-t"><i class="bi bi-lightning" aria-hidden="true"></i>Eventi</h3>
+    <p>Fanno partire il flow quando chi guarda fa qualcosa.</p>
+    <div class="rh-tablewrap">
+      <table>
+        <caption class="visually-hidden">Nodi: Eventi</caption>
+        <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
+        <tbody>
+          <tr><td><code>Events/OnSelect</code></td><td>Scatta quando si sceglie un evento.</td></tr>
+          <tr><td><code>Events/OnCursorChanged</code></td><td>Scatta quando il cursore si muove.</td></tr>
+          <tr><td><code>Events/OnRangeChanged</code></td><td>Scatta alla fine di uno spostamento o di uno zoom.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rh-where">Nei flow si usano anche i nodi comuni a tutte le App: menu e footer del pannello (<code>ReseArch/Menu</code>, <code>ReseArch/Panel</code>), App Bus per parlare con gli altri pannelli, e i nodi di logica e dati.</p>
+  </section>
+
+  <section class="rh-sec" id="rh-sec-guides" aria-labelledby="rh-sec-guides-t">
+    <h3 id="rh-sec-guides-t"><i class="bi bi-book" aria-hidden="true"></i>Guide rapide</h3>
+    <p>Questi pulsanti cambiano la guida nel pannello Help di dettaglio, se aperto.</p>
+    <div class="rh-actions">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-ui" data-help="help-ui-TML">
+        <i class="bi bi-calendar-range" aria-hidden="true"></i> Usare il pannello timeline
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="rh-go-spec" data-help="help-app-TML">
+        <i class="bi bi-braces" aria-hidden="true"></i> Impostazioni del modello (spec)
+      </button>
+    </div>
+  </section>
+</div>
