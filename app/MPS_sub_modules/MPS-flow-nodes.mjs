@@ -143,6 +143,81 @@ export function registerMPSFlowNodes() {
 
 
     // ─────────────────────────────────────────────────────────────────────────
+    // MPS/Events/OnClick (2026-11-22) — clic sulla mappa, con le coordinate del punto.
+    // 2D: evento 'click' di google.maps.Map (e.latLng). 3D: 'gmp-click' di Map3DElement
+    // (ev.position = LatLngAltitude; manca se si clicca il cielo → nessun evento).
+    // Clic su un marker: in 2D lo prende il marker (OnMarkerClick), non la mappa.
+    // ─────────────────────────────────────────────────────────────────────────
+    const _num = v => (typeof v === 'function' ? v() : v);
+    function MPSEventsOnClick() {
+        this.addOutput('trigger',  LG.EVENT);
+        this.addOutput('position', 'object');
+        this.addOutput('lat',      'number');
+        this.addOutput('lng',      'number');
+        this._pending = null;
+        this._cleanup = null;
+        this.color   = EVCOLOR;
+        this.bgcolor = EVBGCOLOR;
+        this.size    = [210, 120];
+    }
+    MPSEventsOnClick.title = 'Events On Click';
+    MPSEventsOnClick.desc  = 'Fires at every click on the map (2D and 3D), with the coordinates of the clicked point. Works in the flow of an MPS object and with "Test on panel" on an MPS panel; does nothing in dashboard flows';
+    MPSEventsOnClick.portHelp = {
+        outputs: {
+            trigger:  'event — emitted at every click on the map. Not on a marker in 2D (see Events On Marker Click) and not on the sky in 3D',
+            position: 'object { lat, lng } in degrees (WGS84), plus altitude in metres on 3D maps — same shape accepted by Marker Add and Camera FlyTo',
+            lat:      'number — latitude in degrees',
+            lng:      'number — longitude in degrees',
+        },
+    };
+    MPSEventsOnClick.prototype.onStart = function () {
+        this._cleanup?.();
+        this._cleanup = null;
+        const ctx = this.graph?._appContext;
+        const map = ctx?.map;
+        if (!map) return;
+        this._pending = null;
+        const g = this.graph, self = this;
+        const fire = (lat, lng, altitude) => {
+            lat = Number(lat); lng = Number(lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+            self._pending = altitude != null && Number.isFinite(Number(altitude))
+                ? { lat, lng, altitude: Number(altitude) } : { lat, lng };
+            try { g.runStep(1); } catch {}
+        };
+        if (ctx.mod_spec?.type === '2D') {
+            const handle = google.maps.event.addListener(map, 'click', e => {
+                if (e?.latLng) fire(e.latLng.lat(), e.latLng.lng());
+            });
+            this._cleanup = () => { try { google.maps.event.removeListener(handle); } catch {} };
+        } else {
+            const onClick = ev => {
+                const p = ev?.position;
+                if (p) fire(_num(p.lat), _num(p.lng), _num(p.altitude));
+            };
+            map.addEventListener('gmp-click', onClick);
+            this._cleanup = () => { try { map.removeEventListener('gmp-click', onClick); } catch {} };
+        }
+        ctx.signal?.addEventListener('abort', () => this._cleanup?.(), { once: true });
+    };
+    MPSEventsOnClick.prototype.onStop = function () {
+        this._cleanup?.();
+        this._cleanup = null;
+    };
+    MPSEventsOnClick.prototype.onExecute = function () {
+        if (this._pending == null) return;
+        const p = this._pending;
+        this._pending = null;
+        const out = (name, v) => { const i = this.findOutputSlot(name); if (i !== -1) this.setOutputData(i, v); };
+        out('position', p);
+        out('lat', p.lat);
+        out('lng', p.lng);
+        this.triggerSlot(this.findOutputSlot('trigger'));
+    };
+    LG.registerNodeType('MPS/Events/OnClick', MPSEventsOnClick);
+
+
+    // ─────────────────────────────────────────────────────────────────────────
     // MPS/Camera/GetPosition
     // ─────────────────────────────────────────────────────────────────────────
     function MPSCameraGetPosition() {

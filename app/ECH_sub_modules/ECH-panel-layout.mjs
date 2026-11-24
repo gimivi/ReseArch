@@ -331,7 +331,8 @@ function collectForm(modSpec) {
     return {
         ...modSpec,
         template:       tpl,
-        templateConfig: { ...base, ...extra },
+        // le opzioni che il modale non mostra (es. step, arrowEvery, polar) restano
+        templateConfig: { ...(modSpec?.templateConfig ?? {}), ...base, ...extra },
     };
 }
 

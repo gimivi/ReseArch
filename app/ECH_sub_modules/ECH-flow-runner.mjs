@@ -10,6 +10,7 @@ import { registerAppBusFlowNodes } from "../AppBus-flow-nodes.mjs";
 import { fleListForObject, extractGraphData, filterSelectedFlows } from "../FLE_sub_modules/FLE-api.mjs";
 import { repairKnownMigrations } from "../FLE_sub_modules/FLE-node-repair.mjs";
 import { attachFlowGraph, stopFlowGraph } from "../shared/panel-flow.mjs";
+import { mapRows } from "./ECH-data-loader.mjs";
 
 /**
  * Costruisce la forma di _appContext per un pannello ECH — usata sia dal
@@ -32,6 +33,7 @@ export function buildECHAppContext(state, object) {
         setZoom:       (s, e)  => state.setZoom(s, e),
         setLegend:     (sel)   => state.setLegend(sel),
         getData:       ()      => state.lastDataset,
+        mapRows:       (rows)  => mapRows(rows, state.modSpec?.dataSource?.mapping ?? null),   // mapping del mod_spec (SetData, toggle "mapping")
         getSelected:   ()      => state.lastSelection,
         setData:       (rows)  => state.setData(rows),
         refresh:       ()      => state.refresh(),

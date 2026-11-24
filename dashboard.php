@@ -361,7 +361,7 @@ if ($ra_maps_key !== ''): ?>
 <!--LiteGraph.js (espone window.LiteGraph, window.LGraph, window.LGraphCanvas) -->
 <!-- ?v= = versione del fork (lib/litegraph/README.md): ad ogni nuova patch va aggiornata, così il browser
      scarica subito il file nuovo anche se la regola di cache per lib/ mancasse -->
-<script src="lib/litegraph/litegraph.js?v=0.7.18-research.7"></script>
+<script src="lib/litegraph/litegraph.js?v=0.7.18-research.16"></script>
 
 
 

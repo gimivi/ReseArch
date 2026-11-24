@@ -137,11 +137,15 @@ export function registerECHFlowNodes() {
         this.addOutput('trigger', LG.EVENT);
         this.addOutput('start',   'number');
         this.addOutput('end',     'number');
+        this.addOutput('zoom',    'object');
+        this.addOutput('source',  'string');
+        this.addProperty('only_user', true, 'boolean');
+        this.addWidget('toggle', 'only user', true, v => { this.properties.only_user = !!v; }, { property: 'only_user' });
         this._pending = null;
         this._cleanup = null;
         this.color   = EVCOLOR;
         this.bgcolor = EVBGCOLOR;
-        this.size    = [200, 80];
+        this.size    = [210, 150];
     }
     ECHEventsOnDataZoom.title = 'Events On Data Zoom';
     ECHEventsOnDataZoom.desc  = 'Fires when the zoom on the data axis changes (slider or brush)';
@@ -150,6 +154,11 @@ export function registerECHFlowNodes() {
             trigger: 'Event: emitted on every zoom change.',
             start:   'Percentage (0–100) where the visible zoom window starts.',
             end:     'Percentage (0–100) where the visible zoom window ends — same format accepted as input by Chart/SetZoom.',
+            zoom:    'object { start, end } — the same window in one value, e.g. for App Bus Emitter → Receiver → Chart/SetZoom (zoom input) of other charts',
+            source:  'string — "user" (slider, wheel, brush) or "flow" (Chart/SetZoom)',
+        },
+        properties: {
+            only_user: 'on (default) = fires only for zooms made by the user; off = also for the zooms made by Chart/SetZoom. Keep it on when several charts share the zoom through the App Bus, to avoid loops',
         },
     };
     ECHEventsOnDataZoom.prototype.onStart = function () { _wireLocalEvent(this, 'dataZoom'); };
@@ -157,8 +166,11 @@ export function registerECHFlowNodes() {
     ECHEventsOnDataZoom.prototype.onExecute = function () {
         if (this._pending == null) return;
         const p = this._pending; this._pending = null;
+        if (this.properties.only_user && p.source === 'flow') return;
         this.setOutputData(1, p.start);
         this.setOutputData(2, p.end);
+        this.setOutputData(3, { start: p.start, end: p.end });
+        this.setOutputData(4, p.source ?? 'user');
         this.triggerSlot(0);
     };
     LG.registerNodeType('ECH/Events/OnDataZoom', ECHEventsOnDataZoom);
@@ -267,9 +279,10 @@ export function registerECHFlowNodes() {
         this.addInput('trigger', LG.ACTION);
         this.addInput('start',   'number');   // 0–100, percentuale
         this.addInput('end',     'number');
+        this.addInput('zoom',    'object');   // { start, end }, se start/end non sono collegati
         this.addOutput('done',   LG.EVENT);
         this.color = COLOR; this.bgcolor = BGCOLOR;
-        this.size  = [190, 80];
+        this.size  = [190, 100];
     }
     ECHChartSetZoom.title = 'Chart Set Zoom';
     ECHChartSetZoom.desc  = 'Sets the zoom on the data axis (percentage 0–100) — same effect as the filter:apply.zoom receiver';
@@ -278,13 +291,17 @@ export function registerECHFlowNodes() {
             trigger: 'Trigger: applies the zoom when it receives an event.',
             start:   'Percentage (0–100) where the zoom window to show starts.',
             end:     'Percentage (0–100) where the zoom window to show ends.',
+            zoom:    'object { start, end } (e.g. from Events On Data Zoom of another chart, through the App Bus) — used when start and end are not connected',
         },
         outputs: { done: 'Event: emitted right after the zoom has been applied.' },
     };
     ECHChartSetZoom.prototype.onAction = function () {
         const ctx = this.graph?._appContext;
         if (!ctx?.setZoom) return;
-        ctx.setZoom(this.getInputData(1), this.getInputData(2));
+        const linked = i => this.inputs[i]?.link != null;
+        const z = this.getInputData(3);
+        const useZoom = !linked(1) && !linked(2) && z && typeof z === 'object';
+        ctx.setZoom(useZoom ? z.start : this.getInputData(1), useZoom ? z.end : this.getInputData(2));
         this.triggerSlot(0);
     };
     LG.registerNodeType('ECH/Chart/SetZoom', ECHChartSetZoom);
@@ -388,8 +405,11 @@ export function registerECHFlowNodes() {
         this.addInput('trigger', LG.ACTION);
         this.addInput('rows',    'array');   // array di record, o {rows,headers,meta} già normalizzato
         this.addOutput('done',   LG.EVENT);
+        // mapping (2026-11-22): applica alle righe il mapping del mod_spec (dataSource.mapping)
+        this.addProperty('mapping', false, 'boolean');
+        this.addWidget('toggle', 'mapping', false, v => { this.properties.mapping = !!v; }, { property: 'mapping' });
         this.color = COLOR; this.bgcolor = BGCOLOR;
-        this.size  = [200, 70];
+        this.size  = [220, 80];
     }
     ECHChartSetData.title = 'Chart Set Data';
     ECHChartSetData.desc  = 'Replaces the chart data with the data received (asynchronous) — bypasses mod_spec.dataSource, compatible with the output of DBS/*/Data/Get*';
@@ -399,10 +419,12 @@ export function registerECHFlowNodes() {
             rows:    'Array of records (key/value objects, one per row) to use as the new dataset — or an already normalized object {rows, headers, meta}. Directly compatible with the "rows" output of DBS/*/Data/Get*.',
         },
         outputs: { done: 'Event: emitted when the chart has finished redrawing with the new data (asynchronous operation — not emitted immediately in onAction).' },
+        properties: { mapping: 'on = the rows (array) pass through the mapping of the object (mod_spec dataSource.mapping) before drawing, as the data read from the source do: e.g. rows { time, variable, value } of Web/Open-Meteo/Forecast with mapping { category: "time", value: "value", series: "variable" }. Off (default) = the rows must already have the field names of the template (category, value, …)' },
     };
     ECHChartSetData.prototype.onAction = function () {
         const ctx  = this.graph?._appContext;
-        const rows = this.getInputData(1);
+        let   rows = this.getInputData(1);
+        if (this.properties.mapping && Array.isArray(rows) && ctx?.mapRows) rows = ctx.mapRows(rows);
         if (!rows || !ctx?.setData) return;
         const self = this;
         // triggerSlot propaga subito ai link collegati appena richiamato — vedi

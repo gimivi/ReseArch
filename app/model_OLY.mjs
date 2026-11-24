@@ -330,19 +330,34 @@ function makeFlowApi(st) {
     },
     async setBase(id) { await setBase(st, String(id || "none")); renderLayers(st); },
 
-    // Layer dal flow: GeoJSON in WGS84; stesso nome = sostituisce gli elementi
-    addGeoJSON(name, geojson, { color = "#2563eb", label = "" } = {}) {
+    // Layer dal flow: GeoJSON in WGS84; stesso nome = sostituisce gli elementi (e lo stile).
+    // colorField: attributo con il colore del singolo elemento (es. punti P1, P2… colorati come
+    // le serie di un grafico); radius: raggio dei punti in pixel.
+    addGeoJSON(name, geojson, { color = "#2563eb", label = "", colorField = "", radius = 5 } = {}) {
       const features = new ol.format.GeoJSON().readFeatures(geojson, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" });
+      const specFor = c => ({ stroke: c, fill: hexA(c, 0.2), width: 2, radius, label: label || null });
+      const styleOf = spec => { const s = makeStyle(ol, spec); return typeof s === "function" ? s : () => s; };
+      let style = makeStyle(ol, specFor(color));
+      if (colorField) {
+        const cache = new Map();
+        style = (feature, res) => {
+          const c = String(feature.get(colorField) || color);
+          if (!cache.has(c)) cache.set(c, styleOf(specFor(c)));
+          return cache.get(c)(feature, res);
+        };
+      }
       const existing = st.layers.find(L => L.flow && L.title === name);
       if (existing) {
         const src = existing.layer.getSource();
         src.clear();
         src.addFeatures(features);
+        existing.layer.setStyle(style);
+        existing.styleSpec = { stroke: color, fill: hexA(color, 0.2) };
         existing.count = features.length;
       } else {
-        const styleSpec = { stroke: color, fill: hexA(color, 0.2), width: 2, label: label || null };
+        const styleSpec = specFor(color);
         const source = new ol.source.Vector({ features });
-        const layer = new ol.layer.Vector({ source, style: makeStyle(ol, styleSpec) });
+        const layer = new ol.layer.Vector({ source, style });
         const L = {
           key: `f_${name.replace(/[^\w-]+/g, "_")}`, layer, kind: "vector", flow: true, title: name,
           styleSpec: { stroke: color, fill: styleSpec.fill }, count: features.length,

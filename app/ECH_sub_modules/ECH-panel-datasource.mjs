@@ -93,6 +93,28 @@ function ensureModal() {
             <textarea class="form-control font-monospace" id="${MODAL_ID}-json-inline" rows="5"
               placeholder='[{"category":"A","value":10}, {"category":"B","value":20}]'></textarea>
           </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="${MODAL_ID}-json-path">${te("app.ech.ds.json_path")}</label>
+            <input type="text" class="form-control font-monospace" id="${MODAL_ID}-json-path"
+              placeholder="${te("app.ech.ds.json_path_ph")}" aria-describedby="${MODAL_ID}-json-path-help">
+            <div class="form-text" id="${MODAL_ID}-json-path-help">${te("app.ech.ds.json_path_note")}</div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-sm-7">
+              <label class="form-label fw-semibold" for="${MODAL_ID}-json-columns">${te("app.ech.ds.json_columns")}</label>
+              <select class="form-select" id="${MODAL_ID}-json-columns" aria-describedby="${MODAL_ID}-json-columns-help">
+                <option value="">${te("app.ech.ds.json_columns_none")}</option>
+                <option value="wide">${te("app.ech.ds.json_columns_wide")}</option>
+                <option value="long">${te("app.ech.ds.json_columns_long")}</option>
+              </select>
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label fw-semibold" for="${MODAL_ID}-json-key">${te("app.ech.ds.json_key")}</label>
+              <input type="text" class="form-control font-monospace" id="${MODAL_ID}-json-key"
+                placeholder="${te("app.ech.ds.json_key_ph")}">
+            </div>
+            <div class="form-text mt-1" id="${MODAL_ID}-json-columns-help">${te("app.ech.ds.json_columns_note")}</div>
+          </div>
         </div>
 
         <!-- Sezione CSV URL -->
@@ -162,6 +184,9 @@ function populateForm(modSpec) {
     setVal(`${MODAL_ID}-sql`,         ds.sql    ?? "");
     setVal(`${MODAL_ID}-json-url`,    ds.url    ?? "");
     setVal(`${MODAL_ID}-json-inline`, ds.inline ? JSON.stringify(ds.inline, null, 2) : "");
+    setVal(`${MODAL_ID}-json-path`,   ds.path    ?? "");
+    setVal(`${MODAL_ID}-json-columns`, ds.columns ?? "");
+    setVal(`${MODAL_ID}-json-key`,    ds.key     ?? "");
     setVal(`${MODAL_ID}-csv-url`,     ds.url    ?? "");
     setVal(`${MODAL_ID}-csv-delim`,   ds.delimiter ?? ",");
 
@@ -205,6 +230,12 @@ function collectForm(modSpec) {
         } else {
             alert(t("app.ech.ds.err_url_or_inline")); return null;
         }
+        const path    = getVal(`${MODAL_ID}-json-path`).trim();
+        const columns = getVal(`${MODAL_ID}-json-columns`);
+        const key     = getVal(`${MODAL_ID}-json-key`).trim();
+        if (path)    dataSource.path    = path;
+        if (columns) dataSource.columns = columns;
+        if (columns === "long" && key) dataSource.key = key;
 
     } else if (type === "csv_url") {
         const url = getVal(`${MODAL_ID}-csv-url`).trim();

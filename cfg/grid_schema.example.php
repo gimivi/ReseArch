@@ -11,6 +11,9 @@
 // writable:   true  = INSERT / UPDATE / DELETE abilitati
 // id:         nome del campo chiave primaria (per UPDATE / DELETE)
 // maxLimit:   limite massimo righe per singola query
+// db:         (facoltativo) nome del database della tabella, quando non è 'db_data': serve
+//             alle installazioni con più database di progetto. L'utente MySQL deve avere
+//             i privilegi anche su quel database. Esempio: "db" => "altro_database",
 //
 // Il modello MYS indica la tabella in mod_spec.table.
 

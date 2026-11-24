@@ -37,6 +37,7 @@ import { registerTMLFlowNodes } from "../TML_sub_modules/TML-flow-nodes.mjs";
 import { registerIFCFlowNodes } from "../IFC_sub_modules/IFC-flow-nodes.mjs";
 import { registerOLYFlowNodes } from "../OLY_sub_modules/OLY-flow-nodes.mjs";
 import { registerLoopNodes } from "./FLE-loop-nodes.mjs";
+import { registerPoint3DSum } from "./FLE-node-Point3DSum.mjs";
 import { registerContextNodes } from "./FLE-context-nodes.mjs";
 import { registerImageNodes } from "./FLE-image-nodes.mjs";
 import { registerErrorNodes } from "./FLE-error-nodes.mjs";
@@ -461,7 +462,15 @@ export function registerFlowNodes() {
                         'basic/object_property', 'basic/object_keys', 'basic/array[]',
                         // (2026-11-04) costanti: nei pannelli senza ciclo del grafo (tutti tranne TJS/OSD)
                         // non scrivevano mai l'uscita → un valore scritto in una costante arrivava vuoto
-                        'basic/const', 'basic/boolean', 'basic/string', 'basic/data', 'basic/object', 'basic/array']) {
+                        'basic/const', 'basic/boolean', 'basic/string', 'basic/data', 'basic/object', 'basic/array',
+                        // (2026-11-24) vettori, confronti, logica, Gate, lunghezza: a valle di un evento (anche dentro
+                        // un Subgraph) davano il valore del giro precedente. Con loro Array/Object Maker e Point3DSum
+                        'math3d/xy-to-vec2', 'math3d/xyz-to-vec3', 'math3d/xyzw-to-vec4',
+                        'math3d/vec2-to-xy', 'math3d/vec3-to-xyz', 'math3d/vec4-to-xyzw',
+                        'math3d/vec3-dot', 'math3d/vec3-length', 'math3d/vec3-lerp',
+                        'math3d/vec3-normalize', 'math3d/vec3-scale',
+                        'math/compare', 'math/gate', 'string/compare', 'basic/length', 'basic/not',
+                        'logic/AND', 'logic/OR', 'logic/NOT', 'logic/CompareBool']) {
         if (_builtIn[name]) _builtIn[name].pure = true;
     }
 
@@ -547,10 +556,10 @@ export function registerFlowNodes() {
             varCls.prototype.getTitle = function () {
                 return 'Var Ref: ' + (this.properties.varname || '');
             };
-            varCls.desc = "Reads or writes a variable identified by name (property 'varname'), NOT connected to this project's custom Var Set/Get/List mechanism — it is a separate, native LiteGraph store. The scope is chosen with the 'container' property: 'litegraph' (default) = shared by ALL graphs open in the page (global LiteGraph.Globals object); 'graph' = this graph only (graph.vars); 'global' = the browser window object. If the 'in' input is connected, on every execution it WRITES that value into the variable (Set behaviour); if NOT connected, it only READS it (Get behaviour) — same node, two modes depending on whether it is connected.";
+            varCls.desc = "Reads or writes a variable identified by name (property 'varname'), NOT connected to this project's custom Var Set/Get/List mechanism (except with container 'graph', see below) — by default it is a separate, native LiteGraph store. The scope is chosen with the 'container' property: 'litegraph' (default) = shared by ALL graphs open in the page (global LiteGraph.Globals object): also inside every Cluster/Subgraph, but also by the flows of the other panels of the dashboard, so use distinctive names; 'graph' = this graph only (graph.vars, the same store as Params/Variables/Set|Get; a subgraph has its own); 'global' = the browser window object. If the 'in' input is connected, on every execution it WRITES that value into the variable (Set behaviour); if NOT connected, it only READS it (Get behaviour) — same node, two modes depending on whether it is connected.";
             varCls.portHelp = {
                 inputs: { in: "If connected: the value to write into the variable on every execution (any type). If not connected: the node only reads the value already present." },
-                outputs: { out: "The current value of the variable, just read or just written." },
+                outputs: { out: "The current value of the variable, just read or just written. When the node only reads, the value is taken at the moment it is needed (also inside a loop)." },
             };
         }
 
@@ -572,9 +581,9 @@ export function registerFlowNodes() {
         }
         const arrSetCls = _builtIn['basic/set_array'];
         if (arrSetCls) {
-            arrSetCls.desc = "Writes ONE element into an EXISTING array, at the index set in the 'index' property (no dedicated input for the index: change it from the node's property panel). WARNING: it modifies the input array DIRECTLY (in-place mutation, no copy) — if the same array is used elsewhere in the graph, it changes there too.";
+            arrSetCls.desc = "Writes ONE element into an EXISTING array, at the position given by the 'index' input (if not connected, by the 'i' widget). WARNING: it modifies the input array DIRECTLY (in-place mutation, no copy) — if the same array is used elsewhere in the graph, it changes there too. To build a new array inside a loop use Flow/Loop/Collect.";
             arrSetCls.portHelp = {
-                inputs: { arr: "Array to modify (must already exist — the node does not create it).", value: "The new value to write at position 'index'." },
+                inputs: { arr: "Array to modify (must already exist — the node does not create it).", value: "The new value to write at position 'index'.", index: "Position to write (number, 0-based; decimals rounded down, negative = nothing written) — if not connected, uses the 'i' widget. Beyond the end the array grows, the skipped positions stay empty." },
                 outputs: { arr: "The same array received as input, now modified." },
             };
         }
@@ -602,10 +611,10 @@ export function registerFlowNodes() {
         }
         const objSetCls = _builtIn['basic/set_object'];
         if (objSetCls) {
-            objSetCls.desc = "Writes ONE property on an EXISTING object — the property name is set in the node's 'prop.' widget/property (text), not from a dedicated input. WARNING: it modifies the input object DIRECTLY (in-place mutation) — if the same object is used elsewhere in the graph, it changes there too.";
+            objSetCls.desc = "Writes ONE property and outputs a new COPY of the object (the input object is not modified) — the property name is set in the node's 'prop.' widget/property (text), not from a dedicated input. Exception: class instances (e.g. Three.js objects) cannot be copied this way and are modified directly.";
             objSetCls.portHelp = {
-                inputs: { obj: "Object to modify (must already exist).", value: "The value to write into the property named by the 'prop.' widget." },
-                outputs: { obj: "The same object received as input, now modified." },
+                inputs: { obj: "The starting object or array (must already exist).", value: "The value to write into the property named by the 'prop.' widget." },
+                outputs: { obj: "A copy of the input with the property written (class instances: the same object, modified)." },
             };
         }
         const objMergeCls = _builtIn['basic/merge_objects'];
@@ -613,7 +622,7 @@ export function registerFlowNodes() {
             objMergeCls.desc = "Copies all the properties of A and B (in this order — B overwrites A for equal names) into an accumulator object inside the node, which grows on every execution (properties written in the past remain even if A/B stop providing them). The 'clear' button on the node empties the accumulator.";
             objMergeCls.portHelp = {
                 inputs: { A: "First source object (optional).", B: "Second source object (optional) — its properties win over A's in case of conflict." },
-                outputs: { out: "The node's internal accumulator object, with all the properties seen so far from A and B." },
+                outputs: { out: "A new object with all the properties seen so far from A and B (copy of the node's internal accumulator)." },
             };
         }
         const objKeysCls = _builtIn['basic/object_keys'];
@@ -646,12 +655,14 @@ export function registerFlowNodes() {
                 outputs: { value: "The value at cell [row][col], or null if the row does not exist." },
             };
         }
-        // 'Params/Data/Store' (basic/data_store): NON ESISTE nella versione
-        // di litegraph.js usata da questo progetto (0.7.18) — verificato,
-        // nessuna registrazione nel sorgente reale. _builtIn['basic/data_store']
-        // è sempre undefined, il warning "built-in non trovato" nel loop
-        // REMAP sopra lo segnala già ad ogni caricamento. Nessun Help da
-        // scrivere: il nodo non compare mai nel menu.
+        const storeCls = _builtIn['basic/data_store'];
+        if (storeCls) {
+            storeCls.desc = "Keeps a value and changes it only when 'assign' arrives (or with the 'store' button on the node). The stored value stays until the next 'assign' and is saved with the flow if it is text, number, boolean, array or plain object (property 'serialize').";
+            storeCls.portHelp = {
+                inputs: { data: "The value to store (any type), read at the moment of 'assign'.", assign: "Trigger (ACTION): stores the current value of 'data'." },
+                outputs: { data: "The stored value, updated at once on every 'assign'." },
+            };
+        }
     }
 
     // ── Cluster — colori (tassonomia §10) e Help sui tre nodi nativi
@@ -667,7 +678,7 @@ export function registerFlowNodes() {
         if (subgraphCls) {
             subgraphCls.color   = '#1f2937';
             subgraphCls.bgcolor = '#374151';
-            subgraphCls.desc    = "Contains a nested graph — like a Grasshopper 'Cluster': it wraps a complex piece of flow into a single reusable node. Double click to open/edit the inner graph in the same canvas. The two '+' buttons at the bottom of the node add an input or an output to the subgraph (they automatically create, inside it, a Cluster/Input or Cluster/Output node). Inside the subgraph two native panels appear ('Graph Inputs'/'Graph Outputs', top left/right) with an 'X' button to leave and go back to the containing graph.";
+            subgraphCls.desc    = "Contains a nested graph — like a Grasshopper 'Cluster': it wraps a complex piece of flow into a single reusable node. Double click to open/edit the inner graph in the same canvas. The two '+' buttons at the bottom of the node add an input or an output to the subgraph (they automatically create, inside it, a Cluster/Input or Cluster/Output node; the '✕' next to a slot deletes that inner node and the slot; '↑'/'↓' move the slot up or down, keeping its wires). The inner Cluster/Input nodes with 'Show widget' on appear here as widgets: they set the value used when the port is not connected, separately for every copy of the node. Data and events cross the border together (an incoming event sees the current input values, whoever receives an outgoing event reads the updated outputs). Not crossing the border: Params/Variables Set/Get, the 'vars' of Script nodes and Flow/Wireless Out/In stay inside their own graph, Params/Variables/Ref (container litegraph) is shared. Inside the subgraph two native panels appear ('Graph Inputs'/'Graph Outputs', top left/right) with an 'X' button to leave and go back to the containing graph.";
             subgraphCls.portHelp = {
                 inputs: { enabled: "Optional boolean (can be added from the node menu): if connected and false, the subgraph is not executed on that tick — inputs/outputs stay at the values of the last valid execution. The other inputs/outputs visible on the node are dynamic: one for each Cluster/Input|Output node inside the subgraph, with the same name and type set on that inner node." },
                 outputs: { "*": "One for each Cluster/Output node inside the subgraph — name, type and value come from there and cannot be set from outside." },
@@ -685,9 +696,15 @@ export function registerFlowNodes() {
         if (inputCls) {
             inputCls.color   = '#1f2937';
             inputCls.bgcolor = '#374151';
-            inputCls.desc    = "Defines an input of the containing Cluster — works ONLY inside a Cluster/Subgraph node. Property 'name' = slot name seen from outside on the Subgraph node; 'type' = type (number/boolean/string/other); 'value' = default value if the Subgraph receives nothing on that slot. Used OUTSIDE a subgraph it becomes a simple typed constant: the value never arrives from outside.";
+            inputCls.desc    = "Defines an input of the containing Cluster — works ONLY inside a Cluster/Subgraph node. Property 'name' = slot name seen from outside on the Subgraph node; 'type' = type, chosen with the arrows or from the list (types used by the platform nodes and by the ports already in the flow; 'other…' = free type; * = generic, any wire; event = input that forwards the trigger). A type only decides which wires can be connected; 'value' = default value if the Subgraph receives nothing on that slot. 'Show widget' (number, string and boolean only) shows the value as a widget on the Subgraph node too, so it can be changed without opening it; for numbers also min, max and step. A name already used by another input is refused; deleting this node removes the slot from the Subgraph node. Used OUTSIDE a subgraph it becomes a simple typed constant: the value never arrives from outside.";
             inputCls.portHelp = {
                 outputs: { "": "Value of the input — name and type are set from the node properties (name/type), not here." },
+                properties: {
+                    show_widget: "true = the value appears as a widget on the Subgraph node (number, string, boolean). When the port is connected the wire wins and the widget is disabled. Every copy of the Subgraph keeps its own value.",
+                    min: "number only: smallest value accepted by the widget; empty = no limit. It does not limit the values arriving from a wire.",
+                    max: "number only: largest value accepted by the widget; empty = no limit. Ignored if smaller than min.",
+                    step: "number only: increment of every click on the widget arrows.",
+                },
             };
         }
 
@@ -695,7 +712,7 @@ export function registerFlowNodes() {
         if (outputCls) {
             outputCls.color   = '#1f2937';
             outputCls.bgcolor = '#374151';
-            outputCls.desc    = "Defines an output of the containing Cluster — works ONLY inside a Cluster/Subgraph node. Property 'name' = slot name seen from outside on the Subgraph node; 'type' = value type. Used OUTSIDE a subgraph it writes to a place nobody ever reads: no visible effect.";
+            outputCls.desc    = "Defines an output of the containing Cluster — works ONLY inside a Cluster/Subgraph node. Property 'name' = slot name seen from outside on the Subgraph node; 'type' = value type, chosen with the arrows or from the list ('other…' = free type; * = generic; event = the trigger leaves the Subgraph). A name already used by another output is refused; deleting this node removes the slot. Used OUTSIDE a subgraph it writes to a place nobody ever reads: no visible effect.";
             outputCls.portHelp = {
                 inputs: { "": "Value to expose as an output of the Cluster — name and type are set from the node properties (name/type), not here." },
             };
@@ -1189,10 +1206,10 @@ export function registerFlowNodes() {
 
         const counterCls = _builtIn['events/counter'];
         if (counterCls) {
-            counterCls.desc = "Counter incremented/decremented by triggers — 'inc' increases by 1, 'dec' decreases by 1, 'reset' sets it to zero. If the 'Count Exec.' property is on, the counter also increases by itself on every graph execution (not only on triggers). When collapsed it shows the current value instead of the title.";
+            counterCls.desc = "Counter incremented/decremented by triggers — 'inc' increases by 1, 'dec' decreases by 1, 'reset' sets it to zero (it never restarts by itself: in a loop, reset it first). If the 'Count Exec.' property is on, the counter also increases by itself on every graph execution (not only on triggers). When collapsed it shows the current value instead of the title.";
             counterCls.portHelp = {
                 inputs: { inc: "Trigger: increments by 1.", dec: "Trigger: decrements by 1.", reset: "Trigger: resets the counter to zero." },
-                outputs: { change: "EVENT emitted only when the value really changes (not on every trigger received, if the value stays the same).", num: "The current value of the counter (number)." },
+                outputs: { change: "EVENT emitted only when the value really changes (not on every trigger received, if the value stays the same).", num: "The current value of the counter (number), updated at once on every trigger." },
             };
         }
         const stepperCls = _builtIn['events/stepper'];
@@ -1200,7 +1217,7 @@ export function registerFlowNodes() {
             stepperCls.desc = "Steps through N EVENT outputs (2 fixed, others can be added with the '+' button on the node) on every 'step' trigger — 'reset' goes back to the first. The optional 'index' input allows forcing the position directly (instead of advancing one at a time with 'step').";
             stepperCls.portHelp = {
                 inputs: { index: "Forces the current index directly (optional — if connected, replaces manual stepping with 'step').", step: "Trigger: advances to the next output (wrapping around after the last).", reset: "Trigger: goes back to the first output (index 0)." },
-                outputs: { index: "The current index (number) — always updated.", "*": "The actual EVENT outputs (2 by default, others can be added) — only the one matching the current index receives the trigger." },
+                outputs: { index: "Number — while an output fires, the index of that output; afterwards, the index of the next one. Updated at once.", "*": "The actual EVENT outputs (2 by default, others can be added) — only the one matching the current index receives the trigger." },
             };
         }
         const sequenceEvCls = _builtIn['events/sequence'];
@@ -2962,6 +2979,9 @@ export function registerFlowNodes() {
     InspectMulti.prototype.onMouseUp = function () {
         this._sbDrag = false;
     };
+    InspectMulti.prototype.onConfigure = function (info) {
+        _keepSavedInputs(this, info);
+    };
     InspectMulti.prototype.getExtraMenuOptions = function (_graph, options) {
         options.push({
             content: '＋ Add slot',
@@ -3080,6 +3100,14 @@ export function registerFlowNodes() {
     // tasto destro → Rename sul singolo pin.
     // =========================================================================
 
+    // Al caricamento e alla copia LiteGraph fonde le porte salvate con quelle del costruttore
+    // (LGraphNode.configure → cloneObject): uno slot predefinito tolto dall'utente ricompariva.
+    // Da chiamare in onConfigure dei nodi con slot che si possono togliere (2026-11-24).
+    function _keepSavedInputs(node, info) {
+        const n = info?.inputs?.length;
+        if (n && node.inputs.length > n) node.inputs.length = n;
+    }
+
     function ArrayMaker() {
         this.addInput('[0]', 0);
         this.addInput('[1]', 0);
@@ -3100,7 +3128,9 @@ export function registerFlowNodes() {
         for (let i = 0; i < this.inputs.length; i++) arr.push(this.getInputData(i) ?? null);
         this.setOutputData(0, arr);
     };
-    ArrayMaker.prototype.onConfigure = function () {
+    ArrayMaker.pure = true;   // ricalcolato quando viene letto (lib/litegraph, patch 7)
+    ArrayMaker.prototype.onConfigure = function (info) {
+        _keepSavedInputs(this, info);
         this.size[1] = Math.max(60, this.inputs.length * 20 + 40);
     };
     ArrayMaker.prototype.getExtraMenuOptions = function (graph, options) {
@@ -3122,6 +3152,60 @@ export function registerFlowNodes() {
         }
     };
     LG.registerNodeType('Params/Array/Maker', ArrayMaker);
+
+
+    // =========================================================================
+    // Array/Concat (2026-11-24) — unisce N array in uno solo, uno di seguito
+    // all'altro (un livello: gli array annidati restano elementi). Puro: si
+    // ricalcola quando viene letto (lib/litegraph, patch 7), quindi funziona
+    // anche nei pannelli senza ciclo del grafo. Uscita sempre nuova: gli array
+    // in ingresso non vengono toccati. Slot: tasto destro, come Maker.
+    // =========================================================================
+    function ArrayConcat() {
+        this.addInput('array1', 'array');
+        this.addInput('array2', 'array');
+        this.addOutput('array', 'array');
+        this.color   = '#1e3a5f';   // famiglia Calcolo
+        this.bgcolor = '#1e40af';
+        this.size    = [180, 80];
+    }
+    ArrayConcat.title = 'Concat';   // etichetta menu
+    ArrayConcat.pure  = true;
+    ArrayConcat.desc  = 'Joins the input arrays into a single new one, in slot order — right click to add/remove slots';
+    ArrayConcat.portHelp = {
+        inputs: { "*": "array — the elements are appended in slot order (array1 first; 2 slots by default, add/remove with right click on the node). One level only: nested arrays stay as elements. An unconnected slot, null or a value that is not an array adds nothing." },
+        outputs: { array: "array — always a new array (the inputs are not modified; the elements are the same, not copies); null if no input has an array." },
+    };
+    ArrayConcat.prototype.onNodeCreated = function () {
+        this.title = 'Array Concat';   // titolo sul grafo: esplicito fuori dal menu
+    };
+    ArrayConcat.prototype.onExecute = function () {
+        const arrays = this.inputs.map((_, i) => this.getInputData(i)).filter(Array.isArray);
+        this.setOutputData(0, arrays.length ? [].concat(...arrays) : null);
+    };
+    ArrayConcat.prototype._fitHeight = function () {
+        this.size[1] = Math.max(60, this.inputs.length * 20 + 40);
+        this.setDirtyCanvas(true, true);
+    };
+    ArrayConcat.prototype.getExtraMenuOptions = function (graph, options) {
+        options.push({
+            content: '＋ Add slot',
+            callback: () => {
+                this.addInput(`array${this.inputs.length + 1}`, 'array');
+                this._fitHeight();
+            },
+        });
+        if (this.inputs.length > 2) {
+            options.push({
+                content: '− Remove last slot',
+                callback: () => {
+                    this.removeInput(this.inputs.length - 1);
+                    this._fitHeight();
+                },
+            });
+        }
+    };
+    LG.registerNodeType('Params/Array/Concat', ArrayConcat);
 
 
     function ObjectMaker() {
@@ -3147,7 +3231,9 @@ export function registerFlowNodes() {
         }
         this.setOutputData(0, obj);
     };
-    ObjectMaker.prototype.onConfigure = function () {
+    ObjectMaker.pure = true;   // ricalcolato quando viene letto (lib/litegraph, patch 7)
+    ObjectMaker.prototype.onConfigure = function (info) {
+        _keepSavedInputs(this, info);
         this.size[1] = Math.max(60, this.inputs.length * 20 + 40);
     };
     ObjectMaker.prototype.getExtraMenuOptions = function (graph, options) {
@@ -3253,7 +3339,7 @@ export function registerFlowNodes() {
     }
     VarSet.title = 'Set';   // etichetta menu: la cartella dice già 'Variables'
     _setCanvasTitle(VarSet, 'Var Set');   // titolo sul grafo: esplicito una volta isolato dal menu
-    VarSet.desc  = 'Writes a value into graph.vars — readable by Var Get anywhere in the graph';
+    VarSet.desc  = 'Writes a value into graph.vars — readable by Var Get, Var List and the vars of Script nodes in the same graph. Scope: only the graph that contains the node — a Cluster/Subgraph is a separate graph with its own variables, so a Set outside and a Get inside (or the other way round) do not see each other. Variables shared everywhere (also inside subgraphs): Params/Variables/Ref with container "litegraph".';
     VarSet.portHelp = {
         inputs: {
             trigger: "Trigger (ACTION): writes the value ONLY at this instant — used when the 'continuous mode' property/widget is OFF (default).",
@@ -3295,7 +3381,7 @@ export function registerFlowNodes() {
     }
     VarGet.title = 'Get';   // etichetta menu: la cartella dice già 'Variables'
     _setCanvasTitle(VarGet, 'Var Get');   // titolo sul grafo: esplicito una volta isolato dal menu
-    VarGet.desc  = 'Reads a value from graph.vars by name';
+    VarGet.desc  = 'Reads a value from graph.vars by name (written by Var Set or by the vars of Script nodes in the same graph). Scope: only the graph that contains the node — a Cluster/Subgraph is a separate graph with its own variables, so a Set outside and a Get inside (or the other way round) do not see each other. Variables shared everywhere (also inside subgraphs): Params/Variables/Ref with container "litegraph".';
     VarGet.portHelp = {
         inputs: {
             trigger: "Trigger (ACTION): reads the value ONLY at this instant — used when the 'continuous mode' property/widget is OFF (default).",
@@ -3330,7 +3416,7 @@ export function registerFlowNodes() {
     }
     VarList.title = 'List';   // etichetta menu: la cartella dice già 'Variables'
     _setCanvasTitle(VarList, 'Var List');   // titolo sul grafo: esplicito una volta isolato dal menu
-    VarList.desc  = 'Shows all the variables in graph.vars and exposes the whole dictionary as output';
+    VarList.desc  = 'Shows all the variables in graph.vars and exposes the whole dictionary as output. Scope: only the graph that contains the node — a Cluster/Subgraph is a separate graph with its own variables, so a Set outside and a Get inside (or the other way round) do not see each other. Variables shared everywhere (also inside subgraphs): Params/Variables/Ref with container "litegraph".';
     VarList.portHelp = {
         outputs: { vars: "The whole graph.vars dictionary {name: value, ...} — ALL the variables written by any Var Set in the graph, not just one. The node body also lists every key visually with its type/preview." },
     };
@@ -3556,7 +3642,7 @@ export function registerFlowNodes() {
         this.size    = [170, 70];
     }
     WirelessIn.title = '📡 Wireless In';
-    WirelessIn.desc  = 'Receives trigger/value from a Wireless Out with the same channel — no visible wire';
+    WirelessIn.desc  = 'Receives trigger/value from a Wireless Out with the same channel — no visible wire. Only within the same graph: a Wireless Out inside a Cluster/Subgraph does not reach a Wireless In outside it (or in another subgraph) — there use the Cluster/Input|Output ports.';
     WirelessIn.portHelp = {
         outputs: { trigger: "EVENT emitted when any Wireless Out with the same 'channel' receives a trigger (re-emitted synchronously, same timing as a real wire).", value: "The value sent by the matching Wireless Out, updated at the same instant as the trigger." },
     };
@@ -3578,7 +3664,7 @@ export function registerFlowNodes() {
         this.size    = [170, 80];
     }
     WirelessOut.title = '📡 Wireless Out';
-    WirelessOut.desc  = 'Forwards trigger/value to all the Wireless In nodes with the same channel — no visible wire';
+    WirelessOut.desc  = 'Forwards trigger/value to all the Wireless In nodes with the same channel — no visible wire. Only within the same graph: it does not cross the border of a Cluster/Subgraph — there use the Cluster/Input|Output ports.';
     WirelessOut.portHelp = {
         inputs: { trigger: "Trigger (ACTION) that starts forwarding to all the Wireless In nodes with the same 'channel'.", value: "The value to send together with the trigger (any type)." },
         outputs: { done: "Optional EVENT, to continue ALSO with a visible local wire, in parallel with the wireless transmission." },
@@ -3897,7 +3983,7 @@ export function registerFlowNodes() {
         this._rebuildPorts();
     }
     FlexiScript.title = 'Script';
-    FlexiScript.desc  = 'Configurable JS script: dynamic inputs/outputs, modal editor, error output';
+    FlexiScript.desc  = 'Configurable JS script: dynamic inputs/outputs, modal editor, error output. The \'vars\' object is the graph.vars of the graph that contains the node (same store as Params/Variables/Set|Get): inside a Cluster/Subgraph it is the subgraph\'s own vars, not those of the main flow.';
     FlexiScript.portHelp = {
         inputs: {
             trigger: "Trigger (ACTION) — the script runs ONLY in response to this, never automatically on every graph execution (an upstream event is needed, e.g. Time/Timer or an Events/* node).",
@@ -3997,7 +4083,7 @@ export function registerFlowNodes() {
         hint.textContent =
             'Input: ' + (ins.length ? ins.join(', ') : '(none)') +
             '  ·  return { ' + (outs.length ? outs.join(', ') : 'result') + ': … }' +
-            '  ·  vars: state shared between scripts (e.g. vars.log = (vars.log||[]).concat(x))';
+            '  ·  vars: state shared between scripts of the same graph, same store as Variables Set/Get (e.g. vars.log = (vars.log||[]).concat(x)); inside a subgraph = the subgraph\'s own vars';
 
         const oldBtn = modal.querySelector(`#${_FLEXI_MODAL_ID}_save`);
         const newBtn = oldBtn.cloneNode(true);
@@ -4270,6 +4356,7 @@ export function registerFlowNodes() {
     registerIFCFlowNodes();   // IFC/* BIM (2026-11-04), vedi _doc/module-ifc-bim.md §2.5
     registerOLYFlowNodes();   // OLY/* cartografia (2026-11-04), vedi _doc/module-oly-openlayers.md §10
     registerLoopNodes(LG);    // Flow/Loop/* + Params/Array/Series (2026-10-03), vedi FLE-loop-nodes.mjs
+    registerPoint3DSum(LG);   // Vector/Math/Point3DSum (2026-11-24): prima solo con l'editor aperto, mancava nei flow dei pannelli
     registerContextNodes(LG); // ReseArch/Context/Library (2026-10-04), vedi FLE-context-nodes.mjs
     registerImageNodes(LG);   // Media/Image/Load, Media/Image/Info (2026-10-04), vedi FLE-image-nodes.mjs
     registerErrorNodes(LG);   // Flow/Error Info (2026-10-04), vedi FLE-error-nodes.mjs
@@ -4280,7 +4367,7 @@ export function registerFlowNodes() {
     registerDeviceNodes(LG);  // ReseArch/Context/Device, IoT/* (2026-10-12), vedi FLE-device-nodes.mjs
     registerSignalNodes(LG);  // IoT/Smooth|Map Range|Throttle|Calibrate (2026-10-12), vedi FLE-signal-nodes.mjs
     registerTextNodes(LG);    // Debug/Text View (2026-10-04), vedi FLE-text-nodes.mjs
-    registerWebNodes(LG);     // String/Split List, Flow/Switch, Web/URL/*, Web/Open Window, Web/Wikipedia/Article (2026-10-21), vedi FLE-web-nodes.mjs
+    registerWebNodes(LG);     // String/Split List, Flow/Switch, Web/URL/*, Web/Open Window, Web/Wikipedia/Article (2026-10-21), Params/Data/Columns To Rows, Web/Open-Meteo/Forecast (2026-11-22), vedi FLE-web-nodes.mjs
 
     // =========================================================================
     // Patch ordine categorie + separatori visivi nel menu contestuale.
@@ -4486,7 +4573,7 @@ export function registerFlowNodes() {
         }
     }
     _reorderNodeTypes('Params/Variables', ['List', 'Get', 'Set', 'Ref']);
-    _reorderNodeTypes('Params/Array',     ['Empty', 'Maker', 'Get [i]', 'Set [i]', 'Length']);
+    _reorderNodeTypes('Params/Array',     ['Empty', 'Maker', 'Concat', 'Get [i]', 'Set [i]', 'Length']);
     _reorderNodeTypes('Params/Object',    ['Empty', 'Maker', 'ObjectVec3', 'Get Property', 'Set Property', 'Merge', 'Keys']);
     // Ordine alfabetico su richiesta esplicita (2026-09-20): 'Debug' mescola
     // nativi (REMAP, sopra) e custom (Note/Inspect, registrati altrove in

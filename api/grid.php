@@ -14,6 +14,8 @@
 //   - Verifica che mod_id appartenga al workpackage corrente (main DB)
 //   - La tabella viene letta SOLO dal mod_spec del DB, mai dal client
 //   - Colonne e campi validati contro cfg/grid_schema.php (whitelist server-side)
+//   - Il database della tabella è 'db_data' di cfg_MYSQL.php, oppure la chiave "db" della
+//     sua voce in cfg/grid_schema.php
 //   - INSERT/UPDATE/DELETE richiedono writable:true nello schema
 //   - PDO prepared statements su tutti i parametri variabili
 
@@ -125,6 +127,16 @@ $allowedSort   = $tblCfg['sortable']   ?? ['*'];
 $pkField       = (string)($tblCfg['id']       ?? 'id');
 $writable      = (bool)($tblCfg['writable']   ?? false);
 
+// Database della tabella (facoltativo): la voce può indicare "db" => "nome" quando la
+// tabella non sta in 'db_data' di cfg_MYSQL.php. Il nome viene solo dalla configurazione
+// del server, mai dal client; l'utente MySQL deve avere i privilegi anche su quel database.
+$tblDb = (string)($tblCfg['db'] ?? '');
+if ($tblDb !== '' && !preg_match('/^[A-Za-z0-9_]{1,64}$/', $tblDb)) {
+    error_log("[grid.php] nome di database non valido per la tabella '$table' in cfg/grid_schema.php");
+    fail('Configurazione della tabella non valida.', 500);
+}
+$tableSql = $tblDb !== '' ? "`$tblDb`.`$table`" : "`$table`";
+
 // ── Connessione al DB esterno (dati) ──────────────────────────────────────────
 
 $pdoMain = $pdo;
@@ -156,7 +168,7 @@ try {
             $selectSql = implode(', ', $clean);
         }
 
-        $sql    = "SELECT $selectSql FROM `$table`";
+        $sql    = "SELECT $selectSql FROM $tableSql";
         $params = [];
 
         // WHERE: unisce clausole fisse (mod_spec) + opzionali (client)
@@ -232,7 +244,7 @@ try {
 
         $colsSql  = implode(', ', array_map(fn($c) => "`$c`", $cols));
         $phSql    = implode(', ', array_fill(0, count($cols), '?'));
-        $stmt     = $pdoData->prepare("INSERT INTO `$table` ($colsSql) VALUES ($phSql)");
+        $stmt     = $pdoData->prepare("INSERT INTO $tableSql ($colsSql) VALUES ($phSql)");
         $stmt->execute($vals);
 
         $insertId = (int)$pdoData->lastInsertId();
@@ -254,7 +266,7 @@ try {
 
         $setSql   = implode(', ', array_map(fn($c) => "`$c` = ?", $cols));
         $vals[]   = $pk;    // parametro finale per WHERE
-        $stmt     = $pdoData->prepare("UPDATE `$table` SET $setSql WHERE `$pkField` = ?");
+        $stmt     = $pdoData->prepare("UPDATE $tableSql SET $setSql WHERE `$pkField` = ?");
         $stmt->execute($vals);
 
         log_activity('grid:update', 'model', $mod_id, $table, ['pk' => $pk]);
@@ -268,7 +280,7 @@ try {
         $pk = $req['pk'] ?? null;
         if ($pk === null) fail('pk mancante.', 400);
 
-        $stmt = $pdoData->prepare("DELETE FROM `$table` WHERE `$pkField` = ?");
+        $stmt = $pdoData->prepare("DELETE FROM $tableSql WHERE `$pkField` = ?");
         $stmt->execute([$pk]);
 
         log_activity('grid:delete', 'model', $mod_id, $table, ['pk' => $pk]);

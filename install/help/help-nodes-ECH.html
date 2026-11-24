@@ -108,11 +108,11 @@
         <caption class="visually-hidden">Nodi: Grafico</caption>
         <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
         <tbody>
-          <tr><td><code>Chart/SetData</code></td><td>Disegna il grafico con dati arrivati dal flow (per esempio da una tabella), al posto della fonte del modello.</td></tr>
+          <tr><td><code>Chart/SetData</code></td><td>Disegna il grafico con dati arrivati dal flow (per esempio da una tabella), al posto della fonte del modello. Con <code>mapping</code> acceso le righe passano prima dal <code>mapping</code> del modello (per esempio le righe di <code>Web/Open-Meteo/Forecast</code>).</td></tr>
           <tr><td><code>Chart/Refresh</code> · <code>Chart/GetData</code></td><td>Rilegge i dati dalla fonte · dà i dati mostrati.</td></tr>
           <tr><td><code>Chart/Highlight</code> · <code>Chart/Downplay</code></td><td>Mette in risalto un punto o una categoria · toglie il risalto.</td></tr>
           <tr><td><code>Chart/GetSelected</code></td><td>L'ultimo elemento cliccato.</td></tr>
-          <tr><td><code>Chart/SetLegend</code> · <code>Chart/SetZoom</code></td><td>Mostra o nasconde serie · imposta lo zoom sui dati.</td></tr>
+          <tr><td><code>Chart/SetLegend</code> · <code>Chart/SetZoom</code></td><td>Mostra o nasconde serie · imposta lo zoom sui dati (da <code>start</code> e <code>end</code>, oppure dall'ingresso <code>zoom</code> {start, end} arrivato da un altro grafico).</td></tr>
           <tr><td><code>Chart/ToggleTheme</code> · <code>Chart/ExportPNG</code></td><td>Tema scuro o chiaro · scarica l'immagine del grafico.</td></tr>
         </tbody>
       </table>
@@ -139,7 +139,7 @@
         <thead><tr><th scope="col">Nodo</th><th scope="col">Cosa fa</th></tr></thead>
         <tbody>
           <tr><td><code>Events/OnClick</code></td><td>Scatta al clic su un elemento del grafico.</td></tr>
-          <tr><td><code>Events/OnLegendChange</code> · <code>Events/OnDataZoom</code></td><td>Scatta quando si accende o spegne una serie · quando cambia lo zoom sui dati.</td></tr>
+          <tr><td><code>Events/OnLegendChange</code> · <code>Events/OnDataZoom</code></td><td>Scatta quando si accende o spegne una serie · quando cambia lo zoom sui dati. OnDataZoom dà anche <code>zoom</code> {start, end} e <code>source</code> (user o flow); con <em>only user</em> acceso (predefinito) ignora gli zoom fatti dal flow: così più grafici possono condividere lo zoom via App Bus (Emitter → Receiver → Chart/SetZoom) senza rimandarselo all'infinito.</td></tr>
           <tr><td><code>Events/OnDataLoaded</code></td><td>Scatta quando il grafico ha finito di disegnare dati nuovi.</td></tr>
         </tbody>
       </table>

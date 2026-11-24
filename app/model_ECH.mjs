@@ -107,20 +107,25 @@ function _attachChartBusEvents(chart, object, state) {
         state.localEvents?.dispatchEvent(new CustomEvent('click', { detail: { ...selection, data: params.data ?? null } }));
     });
 
-    // Cambio visibilità serie in legenda → filter:apply
+    // Legenda e zoom: solo ai nodi del flow (ECH/Events/*). Niente filter:apply diretto sul bus
+    // (tolto 2026-11-22): con più grafici ECH nella stessa dashboard ognuno riapplicava lo zoom
+    // dell'altro e lo rimandava → rimbalzo infinito, pagina bloccata. Per sincronizzare i grafici:
+    // OnDataZoom → App Bus Emitter → Receiver → Chart/SetZoom (anti-rimbalzo con only_user).
     chart.on('legendselectchanged', params => {
         const selected = params.selected ?? {};
-        appBusEmit('filter:apply', { objId, filters: { legend: selected } });
         state.localEvents?.dispatchEvent(new CustomEvent('legendChange', { detail: { selected } }));
     });
 
-    // DataZoom (slider o brush) → filter:apply
     chart.on('datazoom', params => {
         // params può portare start/end direttamente oppure in batch[0]
         const z    = params.batch?.[0] ?? params;
         const zoom = { start: z.start ?? 0, end: z.end ?? 100 };
-        appBusEmit('filter:apply', { objId, filters: { zoom } });
-        state.localEvents?.dispatchEvent(new CustomEvent('dataZoom', { detail: zoom }));
+        // source: 'flow' se è l'eco di uno zoom chiesto dal flow (Chart/SetZoom), per non
+        // rimandarlo indietro quando più grafici si sincronizzano via App Bus (2026-11-22)
+        const f = state._flowZoom;
+        const fromFlow = !!f && Date.now() - f.t < 1500 && Math.abs(f.start - zoom.start) < 0.01 && Math.abs(f.end - zoom.end) < 0.01;
+        if (fromFlow) state._flowZoom = null;
+        state.localEvents?.dispatchEvent(new CustomEvent('dataZoom', { detail: { ...zoom, source: fromFlow ? 'flow' : 'user' } }));
     });
 }
 
@@ -143,9 +148,12 @@ function _applyHighlight(chart, p) {
 }
 
 /** Estratta dal vecchio receiver `filter:apply.zoom` — vedi _applyHighlight. */
-function _applyZoom(chart, start, end) {
+function _applyZoom(chart, start, end, state = null) {
     if (!chart) return;
-    chart.dispatchAction({ type: 'dataZoom', start: start ?? 0, end: end ?? 100 });
+    const s = Number.isFinite(Number(start)) ? Number(start) : 0;
+    const e = Number.isFinite(Number(end)) ? Number(end) : 100;
+    if (state) state._flowZoom = { start: s, end: e, t: Date.now() };
+    chart.dispatchAction({ type: 'dataZoom', start: s, end: e });
 }
 
 /** Estratta dal vecchio receiver `filter:apply.legend` — vedi _applyHighlight. */
@@ -356,7 +364,7 @@ export default {
             // nessuna logica duplicata, stesso principio di model_MPS.mjs/model_PDF.mjs.
             highlight:   (p)     => _applyHighlight(state.chart, p ?? {}),
             downplay:    ()      => state.chart?.dispatchAction({ type: 'downplay' }),
-            setZoom:     (s, e)  => _applyZoom(state.chart, s, e),
+            setZoom:     (s, e)  => _applyZoom(state.chart, s, e, state),
             setLegend:   (sel)   => _applyLegend(state.chart, sel),
             setData:     (rows)  => _renderDataset(_normalizeExternalDataset(rows), state),
             refresh:     ()      => loadAndRender(state.modSpec, state, null),
@@ -393,15 +401,6 @@ export default {
             if (!_shouldHandleMsg(msg, object)) return;
             if (state.stopped) return;
             _applyHighlight(state.chart, msg.payload ?? {});
-        }, signal);
-
-        // filter:apply → zoom o selezione legenda
-        appBusOn('filter:apply', msg => {
-            if (!_shouldHandleMsg(msg, object)) return;
-            if (state.stopped) return;
-            const filters = msg.payload?.filters ?? {};
-            if (filters.zoom)   _applyZoom(state.chart, filters.zoom.start, filters.zoom.end);
-            if (filters.legend) _applyLegend(state.chart, filters.legend);
         }, signal);
 
         // Carica dati e disegna

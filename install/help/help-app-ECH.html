@@ -136,6 +136,34 @@
          Se ci sono entrambi, vale <code>inline</code>.</p>
     </article>
 
+    <article class="rh-tpl" id="rh-tpl-columns" aria-labelledby="rh-tpl-columns-t">
+      <h4 id="rh-tpl-columns-t">JSON a colonne</h4>
+      <p>Alcuni servizi rispondono a <strong>colonne</strong> invece che a righe, per esempio
+         <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo<span class="visually-hidden"> (si apre in una nuova finestra)</span></a>:
+         <code>{ "hourly": { "time": [ … ], "temperature_2m": [ … ] } }</code>. Due campi in più lo trasformano in righe:</p>
+      <pre class="rh-json">"dataSource": {
+  "type": "json",
+  "url": "https://api.open-meteo.com/v1/forecast?latitude=41.8902&amp;longitude=12.4922&amp;hourly=temperature_2m,precipitation&amp;timezone=Europe%2FRome&amp;forecast_days=3",
+  "path": "hourly",
+  "columns": "long",
+  "key": "time",
+  "mapping": { "category": "time", "value": "value", "series": "variable" }
+}</pre>
+      <ul>
+        <li><code>path</code>: dove stanno i dati nella risposta, con i punti fra i livelli (es. <code>data.items</code>).</li>
+        <li><code>columns: "wide"</code>: una riga per ora con tutte le colonne (<code>time</code>, <code>temperature_2m</code>, …).</li>
+        <li><code>columns: "long"</code>: una riga per ora e per variabile (<code>time</code>, <code>variable</code>, <code>value</code>):
+            con <code>series: "variable"</code> ogni variabile diventa una linea. <code>key</code> è la colonna che resta
+            (se manca, la prima).</li>
+      </ul>
+      <p>I dati si leggono a ogni apertura del pannello (o con Ricarica).</p>
+      <p>Per cambiare luogo o periodo mentre il grafico è aperto si usa un flow: il nodo <code>Web/Open-Meteo/Forecast</code>
+         (coordinate dagli ingressi <code>lat</code> e <code>lon</code>, previsione o storico dal 1940) dà le righe già pronte
+         per <code>ECH/Chart/SetData</code>; per altri servizi a colonne c'è <code>Params/Data/Columns To Rows</code>.</p>
+      <p class="rh-note">Open-Meteo è gratuito per usi non commerciali (circa 10.000 richieste al giorno) e chiede di citare la fonte:
+         scrivi "Open-Meteo.com" nel sottotitolo del grafico.</p>
+    </article>
+
     <article class="rh-tpl" id="rh-tpl-csv" aria-labelledby="rh-tpl-csv-t">
       <h4 id="rh-tpl-csv-t">CSV da un indirizzo</h4>
       <pre class="rh-json">"dataSource": {
@@ -296,7 +324,7 @@
     <h3 id="rh-sec-bus-t"><i class="bi bi-broadcast" aria-hidden="true"></i>Altri pannelli</h3>
     <ul>
       <li>Clic su una barra o una fetta → gli altri pannelli sanno quale elemento è stato scelto.</li>
-      <li>Cambiare la legenda o lo zoom → viene annunciato come filtro.</li>
+      <li>Legenda e zoom restano nel grafico: per farli arrivare ad altri pannelli si usa il flow (nodi Events On Legend Change e On Data Zoom → App Bus Emitter). Così più grafici possono condividere lo zoom.</li>
       <li>Al contrario, un elemento scelto altrove si evidenzia nel grafico, e un flow può chiedere di ricaricare i dati.</li>
     </ul>
   </section>

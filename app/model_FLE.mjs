@@ -12,7 +12,6 @@
 //
 // Prerequisito: LiteGraph.js caricato globalmente in dashboard.php
 
-import { fleRegisterCustomNodes }        from "./FLE_sub_modules/FLE-nodes-custom.mjs";
 import { registerFlowNodes }             from "./FLE_sub_modules/FLE-nodes.mjs";
 import {
     repairKnownMigrations, markUnresolvedNodes, formatMigrationReport,
@@ -924,8 +923,7 @@ export default {
         bodyEl.style.position = bodyEl.style.position || "relative";
         bodyEl.style.overflow = "hidden";
 
-        // Registra nodi: custom di progetto, compresi i nodi App Bus Emitter/Receiver
-        await fleRegisterCustomNodes();
+        // Registra tutti i nodi (gli stessi che il runtime registra all'avvio della dashboard)
         registerFlowNodes();
         installErrorNodeMenu();
         // Nodi di libreria (catalogo dal server): disponibili nel menu anche su un grafo nuovo

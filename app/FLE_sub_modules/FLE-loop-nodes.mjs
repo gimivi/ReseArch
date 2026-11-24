@@ -5,6 +5,7 @@
 //   Flow/Loop/While    — ripete finché la condizione è vera
 //   Flow/Loop/Collect  — raccoglie i valori dei giri in un array
 //   Params/Array/Series — genera una serie numerica (inizio, incremento, quanti)
+//   Params/Array/Accumulate — lista che cresce a ogni trigger, con etichette e colori (2026-11-22)
 //
 // Tutti i cicli partono da un 'trigger' e segnalano la fine con 'done', che è
 // sempre la PRIMA uscita (convenzione dei nodi FLE, 2026-10-04).
@@ -186,7 +187,11 @@ export function registerLoopNodes(LG) {
         this._running = false; this._stop = false;
     }
     Repeat.title = 'Repeat';
-    Repeat.desc  = "For loop: i goes from 'from' to 'to' (inclusive) by 'step' (negative allowed, never 0). At every iteration sets i and fires 'loop'; at the end 'done'." + COMMON_DESC;
+    Repeat.desc  = "For loop: i goes from 'from' to 'to' (inclusive) by 'step' (negative allowed, never 0). At every iteration sets i and fires 'loop'; at the end 'done'." + COMMON_DESC +
+        " To build an array: loop → Collect 'add', i → (calculations) → Collect 'value', done → Collect 'deliver'. " +
+        "Prefer values computed from i to nodes that keep a memory (Counter, Accumulate, Var Set): these do not restart at the next run. " +
+        "Example, staircase points: x = floor((i+1)/2)·stepX, y = floor(i/2)·stepY with Operation and Floor, then Object Vec3 → Collect 'value'. " +
+        "Grid: connect loop to the trigger of a second Repeat, the loop of the second one to Collect 'add' and done of the FIRST one to 'deliver'.";
     Repeat.portHelp = {
         inputs:  { ...COMMON_HELP_IN, from: "Start value (overrides the widget).", to: "End value, inclusive (overrides the widget).", step: "Increment at every iteration, negative allowed; 0 is not allowed (overrides the widget)." },
         outputs: { ...COMMON_HELP_OUT, i: "Counter value in the current iteration." },
@@ -312,7 +317,8 @@ export function registerLoopNodes(LG) {
         this._buf = [];
     }
     Collect.title = 'Collect';
-    Collect.desc  = "Collects the values of the iterations of a loop into an array. Typical pattern: loop → (body) → Collect 'add'; done of the loop → Collect 'deliver'. " +
+    Collect.desc  = "Collects the values of the iterations of a loop into an array. Typical pattern: loop → (body) → Collect 'add'; calculated value → Collect 'value'; done of the loop → Collect 'deliver'; done of Collect → trigger of the node that uses the array. " +
+        "The position in the array is the order of the 'add' events: no index needed. " +
         "On deliver it outputs the array and fires 'done', then (property clearAfterDeliver) starts again empty for the next loop.";
     Collect.portHelp = {
         inputs: {
@@ -400,4 +406,84 @@ export function registerLoopNodes(LG) {
     Series.prototype.onExecute = function () { this._compute(); };
     Series.prototype.onAction  = function () { _trigger(this, 'done', this._compute()); };
     LG.registerNodeType('Params/Array/Series', Series);
+
+    // ─── Params/Array/Accumulate (2026-11-22) ────────────────────────────────
+    // Tiene una lista che cresce a ogni 'trigger' (es. i punti cliccati su una mappa) e
+    // la riconsegna intera; 'clear' la svuota. Agli oggetti può dare un'etichetta
+    // progressiva (P1, P2…) e un colore da una tavolozza, così segnaposti e serie di un
+    // grafico si riconoscono. Niente onExecute: con use_deferred_actions trigger e clear
+    // arriverebbero al giro successivo del grafo (vedi testa del file).
+    function Accumulate() {
+        this.addInput('trigger', ACTION);
+        this.addInput('item',    0);
+        this.addInput('clear',   ACTION);
+        this.addOutput('done',  EVENT);
+        this.addOutput('items', 'array');
+        this.addOutput('count', 'number');
+        this.addOutput('last',  0);
+        this.addOutput('full',  EVENT);
+        this.addProperty('max', 0, 'number');
+        this.addProperty('label_field', '', 'string');
+        this.addProperty('label_prefix', 'P', 'string');
+        this.addProperty('colors', '', 'string');
+        this.addWidget('number', 'max', 0, v => { this.properties.max = Math.max(0, Math.round(Number(v) || 0)); }, { min: 0, max: 10000, step: 10, precision: 0, property: 'max' });
+        this.addWidget('text', 'label_field', '', v => { this.properties.label_field = String(v ?? '').trim(); }, { property: 'label_field' });
+        this.addWidget('text', 'label_prefix', 'P', v => { this.properties.label_prefix = String(v ?? ''); }, { property: 'label_prefix' });
+        this.addWidget('text', 'colors', '', v => { this.properties.colors = String(v ?? '').replace(/\s+/g, ''); }, { property: 'colors' });
+        this._items = [];
+        this.color   = '#1e3a5f';   // famiglia Calcolo
+        this.bgcolor = '#1e40af';
+        this.size    = [240, 214];
+    }
+    Accumulate.title = 'Accumulate';
+    Accumulate.desc  = "Keeps a list that grows at every 'trigger' (e.g. the points clicked on a map) and gives it back whole at every change; 'clear' empties it. " +
+        "Objects can get a progressive label (P1, P2…) and a color from a palette, so that markers and chart series match. The list lives while the flow runs (not saved).";
+    Accumulate.portHelp = {
+        inputs: {
+            trigger: "event — adds 'item' to the list",
+            item:    "any — the value to add; objects are copied (the original is not changed)",
+            clear:   "event — empties the list (and restarts the labels from 1)",
+        },
+        outputs: {
+            done:  "event — after every change: item added or list emptied",
+            items: "array — the whole list, oldest first (a new array at every change)",
+            count: "number — items in the list",
+            last:  "any — the item just added, with label and color; null after clear",
+            full:  "event — 'max' reached: the item was NOT added (clear first)",
+        },
+        properties: {
+            max:          "maximum number of items, 0 = no limit",
+            label_field:  "objects only: field that gets the label (e.g. \"label\"); empty = no label",
+            label_prefix: "text before the order number: \"P\" → P1, P2…",
+            colors:       "objects only: CSS colors separated by commas (e.g. \"#d9480f,#1c7ed6\"), given in turn in the \"color\" field; empty = no color. Use the same list for the chart colors",
+        },
+    };
+    Accumulate.prototype.onAction = function (action) {
+        if (action === 'clear') {
+            this._items = [];
+            this._emit(null);
+            return;
+        }
+        const p = this.properties;
+        const max = Math.max(0, Math.round(Number(p.max) || 0));
+        if (max && this._items.length >= max) { _trigger(this, 'full'); return; }
+        let item = _in(this, 'item');
+        if (item && typeof item === 'object' && !Array.isArray(item)) {
+            item = { ...item };
+            const n = this._items.length + 1;
+            if (p.label_field) item[p.label_field] = `${p.label_prefix ?? ''}${n}`;
+            const colors = String(p.colors ?? '').split(',').map(s => s.trim()).filter(Boolean);
+            if (colors.length) item.color = colors[(n - 1) % colors.length];
+        }
+        this._items = [...this._items, item];
+        this._emit(item);
+    };
+    Accumulate.prototype._emit = function (last) {
+        _out(this, 'items', this._items);
+        _out(this, 'count', this._items.length);
+        _out(this, 'last', last);
+        _trigger(this, 'done');
+    };
+    Accumulate.prototype.onStart = function () { this._items = []; };
+    LG.registerNodeType('Params/Array/Accumulate', Accumulate);
 }

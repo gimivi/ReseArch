@@ -368,13 +368,60 @@ export function registerOLYFlowNodes() {
         },
     });
 
+    // {lon, lat} · {lat, lng} (MPS) · {latitude, longitude} · [lon, lat] → {lon, lat} oppure null
+    const _anyLonLat = v => {
+        if (Array.isArray(v)) return _lonlat(v);
+        if (!v || typeof v !== 'object') return null;
+        const lon = Number(v.lon ?? v.lng ?? v.longitude), lat = Number(v.lat ?? v.latitude);
+        return Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { lon, lat } : null;
+    };
+    makeAction({
+        type: 'OLY/Layer/Add Points', title: 'Layer Add Points', color: C_CREATE,
+        desc: 'Draws points as a layer: one point, or a whole list (e.g. the clicked points kept by Params/Array/Accumulate). Each point can have its own label and color. A second call with the same name replaces the points; an empty list empties the layer.',
+        inputs: [['points', 0]],
+        outputs: [['count', 'number']],
+        init() {
+            addText(this, 'name', 'points');
+            addText(this, 'color', '#e11d48');
+            addText(this, 'label', 'label');
+            addNumber(this, 'radius', 7, { min: 2, max: 30, step: 10, precision: 0 });
+        },
+        size: [240, 160],
+        help: {
+            inputs: { points: 'array of points, or one point: ' + LONLAT + ', {lat, lng} (Google Maps) or [lon, lat]; the other fields (label, color, name…) become attributes of the point' },
+            done: 'event — emitted after the layer is drawn',
+            outputs: { count: 'number — points drawn (items without valid coordinates are skipped)' },
+            properties: {
+                name: 'string — layer name (also to replace or remove it with Layer Remove)',
+                color: 'string — "#rrggbb", used by the points without their own "color" field',
+                label: 'string — attribute written next to the point (e.g. "label" = P1, P2… from Accumulate); empty = none',
+                radius: 'number — size of the points in pixels',
+            },
+        },
+        run(api) {
+            const v = _in(this, 'points');
+            const list = Array.isArray(v) && !_lonlat(v) ? v : (v == null ? [] : [v]);
+            const features = [];
+            for (const item of list) {
+                const ll = _anyLonLat(item);
+                if (!ll) continue;
+                const props = item && typeof item === 'object' && !Array.isArray(item) ? { ...item } : {};
+                features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [ll.lon, ll.lat] }, properties: props });
+            }
+            const p = this.properties;
+            const count = api.addGeoJSON(String(p.name || 'points'), { type: 'FeatureCollection', features },
+                { color: p.color || '#e11d48', label: p.label, colorField: 'color', radius: Math.min(30, Math.max(2, Number(p.radius) || 7)) });
+            return { count };
+        },
+    });
+
     makeAction({
         type: 'OLY/Layer/Remove', title: 'Layer Remove', color: C_DELETE, notFound: true,
-        desc: 'Removes a layer added by the flow (Layer Add GeoJSON). The layers of the models are not removed: hide them with Layer Visible.',
+        desc: 'Removes a layer added by the flow (Layer Add GeoJSON or Layer Add Points). The layers of the models are not removed: hide them with Layer Visible.',
         inputs: [['layer', 'string']],
         init() { addText(this, 'layer', ''); },
         size: [220, 80],
-        help: { inputs: { layer: 'string — name given in Layer Add GeoJSON' }, not_found: 'event — no flow layer with that name' },
+        help: { inputs: { layer: 'string — name given in Layer Add GeoJSON or Layer Add Points' }, not_found: 'event — no flow layer with that name' },
         run(api) { return api.removeFlowLayer(_strIn(this, 'layer', 'layer')); },
     });
 

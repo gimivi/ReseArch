@@ -9,11 +9,15 @@
 //   Web/URL/Frame Check List — controlla in anticipo un elenco (riempie la cache)
 //   Web/Open Window          — apre un indirizzo in una nuova scheda del browser
 //   Web/Wikipedia/Article    — voce di Wikipedia (titolo o indirizzo) → HTML ripulito + riassunto
+//   Params/Data/Columns To Rows — dati a colonne { time:[…], t:[…] } → array di record (2026-11-22)
+//   Web/Open-Meteo/Forecast  — meteo di uno o più punti da Open-Meteo: previsione o storico, refresh (2026-11-22)
 //
-// Nodi di rete solo verso la piattaforma (api/frame_check.php) e verso *.wikipedia.org (API
-// pubblica con CORS): nessuna richiesta a indirizzi arbitrari (regole dei nodi §12).
+// Nodi di rete solo verso la piattaforma (api/frame_check.php), *.wikipedia.org e *.open-meteo.com
+// (API pubbliche con CORS): nessuna richiesta a indirizzi arbitrari (regole dei nodi §12).
 // Nessuno esegue codice scritto nel grafo: non sono nodi critici.
 // Regole dei nodi: _doc/guide-fle-regole-nodi.md · Doc: _doc/module-fle-architettura.md §6.8
+
+import { readPath, columnsToRows } from "../shared/columns-to-rows.mjs";
 
 const COL_CALC  = ['#1e3a5f', '#1e40af'];   // Calcolo
 const COL_ROUTE = ['#1f2937', '#374151'];   // Instradamento
@@ -577,6 +581,252 @@ export function registerWebNodes(LG) {
     };
     WikiArticle.prototype.onDrawForeground = drawStatus;
     LG.registerNodeType('Web/Wikipedia/Article', WikiArticle);
+
+    // ── Params/Data/Columns To Rows (2026-11-22) ─────────────────────────────
+    function ColumnsToRows() {
+        this.addInput('trigger', ACTION);
+        this.addInput('data', 'object');
+        this.addOutput('done', EVENT);
+        this.addOutput('rows', 'array');
+        this.addOutput('count', 'number');
+        this.addProperty('path', '', 'string');
+        this.addProperty('mode', 'wide', 'string');
+        this.addProperty('key', '', 'string');
+        this.addWidget('text', 'path', '', v => { this.properties.path = String(v ?? '').trim(); }, { property: 'path' });
+        this.addWidget('combo', 'mode', 'wide', v => { this.properties.mode = v; }, { values: ['wide', 'long'], property: 'mode' });
+        this.addWidget('text', 'key', '', v => { this.properties.key = String(v ?? '').trim(); }, { property: 'key' });
+        paint(this, COL_CALC);
+        this.size = [230, 150];
+    }
+    ColumnsToRows.title = 'Columns To Rows';
+    ColumnsToRows.desc  = 'Turns column data { time:[…], temperature:[…] } (e.g. an Open-Meteo or other API response) into an array of records, ready for ECH Chart SetData, tables or Params/Array nodes';
+    ColumnsToRows.error_output = true;
+    ColumnsToRows.portHelp = {
+        inputs: {
+            trigger: 'event — converts the data',
+            data:    'object — contains the columns (arrays of the same length), directly or at "path". Only array values count as columns',
+        },
+        outputs: {
+            done:  'event — rows ready',
+            rows:  'array of objects — wide: [{ time, temperature, … }], one per index · long: [{ <key>, variable, value }], one per index and column. Shorter columns give null',
+            count: 'number — rows produced',
+            error: 'event — "path" not found, or no array columns there. Port hidden by default: right click → Show error',
+        },
+        properties: {
+            path: 'where the columns are, with dots between levels (e.g. "hourly", "data.series"); empty = the data itself',
+            mode: 'wide = one row per index with all columns · long = one row per index and column (for several series in ECH: category = key, value = "value", series = "variable")',
+            key:  'long only: the column kept in every row (e.g. "time"); empty = the first column',
+        },
+    };
+    ColumnsToRows.prototype.onAction = function () {
+        this.clearError?.();
+        const p = this.properties;
+        const at = readPath(inp(this, 'data'), p.path);
+        if (!at.found) { this.triggerError?.(new Error(`path "${p.path}" not found`)); return; }
+        const r = columnsToRows(at.value, p.mode, p.key);
+        if (!r) { this.triggerError?.(new Error('no array columns' + (p.path ? ` at "${p.path}"` : ''))); return; }
+        out(this, 'rows', r.rows);
+        out(this, 'count', r.rows.length);
+        fire(this, 'done');
+    };
+    LG.registerNodeType('Params/Data/Columns To Rows', ColumnsToRows);
+
+    // ── Web/Open-Meteo/Forecast (2026-11-22) ─────────────────────────────────
+    // Nodo di rete specializzato (regole §12): solo api.open-meteo.com e archive-api.open-meteo.com.
+    const OM_HOST = { forecast: 'https://api.open-meteo.com/v1/forecast', archive: 'https://archive-api.open-meteo.com/v1/archive' };
+    const OM_VARS = { hourly: 'temperature_2m,precipitation', daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum', current: 'temperature_2m,precipitation,weather_code' };
+    const OM_DATE = /^\d{4}-\d{2}-\d{2}$/;
+    const OM_MIN_REFRESH = 15;    // minuti: rispetta il limite gratuito di Open-Meteo
+    const OM_MAX_POINTS  = 50;    // punti in una richiesta (ognuno conta come una chiamata)
+    /** Punto {lat, lon|lng} o [lon, lat] → {lat, lon}, oppure null. */
+    const omPoint = (v) => {
+        if (Array.isArray(v) && v.length >= 2) return { lat: Number(v[1]), lon: Number(v[0]) };
+        if (v && typeof v === 'object') return { lat: Number(v.lat ?? v.latitude), lon: Number(v.lon ?? v.lng ?? v.longitude) };
+        return null;
+    };
+    const omLabel = (v, i) => {
+        const l = v && typeof v === 'object' && !Array.isArray(v) ? (v.label ?? v.name) : null;
+        return l != null && String(l).trim() !== '' ? String(l) : `P${i + 1}`;
+    };
+
+    function OpenMeteo() {
+        this.addInput('trigger', ACTION);
+        this.addInput('lat', 'number');
+        this.addInput('lon', 'number');
+        this.addInput('points', 'array');
+        this.addOutput('done', EVENT);
+        this.addOutput('rows', 'array');
+        this.addOutput('response', 'object');
+        this.addProperty('lat', 41.8902, 'number');
+        this.addProperty('lon', 12.4922, 'number');
+        this.addProperty('api', 'forecast', 'string');
+        this.addProperty('step', 'hourly', 'string');
+        this.addProperty('variables', OM_VARS.hourly, 'string');
+        this.addProperty('days', 3, 'number');
+        this.addProperty('start', '', 'string');
+        this.addProperty('end', '', 'string');
+        this.addProperty('timezone', 'auto', 'string');
+        this.addProperty('rows', 'long', 'string');
+        this.addProperty('refresh', 0, 'number');
+        this.addWidget('number', 'lat', 41.8902, v => { this.properties.lat = Number(v); }, { min: -90, max: 90, step: 0.1, precision: 4, property: 'lat' });
+        this.addWidget('number', 'lon', 12.4922, v => { this.properties.lon = Number(v); }, { min: -180, max: 180, step: 0.1, precision: 4, property: 'lon' });
+        this.addWidget('combo', 'api', 'forecast', v => { this.properties.api = v; }, { values: ['forecast', 'archive'], property: 'api' });
+        this.addWidget('combo', 'step', 'hourly', v => {
+            // variabili predefinite del nuovo passo, se c'erano quelle predefinite del precedente
+            if (Object.values(OM_VARS).includes(this.properties.variables)) {
+                this.properties.variables = OM_VARS[v];
+                const w = this.widgets?.find(x => x.name === 'variables');
+                if (w) w.value = OM_VARS[v];
+            }
+            this.properties.step = v;
+        }, { values: ['hourly', 'daily', 'current'], property: 'step' });
+        this.addWidget('text', 'variables', OM_VARS.hourly, v => { this.properties.variables = String(v ?? '').replace(/\s+/g, ''); }, { property: 'variables' });
+        this.addWidget('number', 'days', 3, v => { this.properties.days = Math.round(Number(v)); }, { min: 1, max: 16, step: 10, precision: 0, property: 'days' });
+        this.addWidget('text', 'start', '', v => { this.properties.start = String(v ?? '').trim(); }, { property: 'start' });
+        this.addWidget('text', 'end', '', v => { this.properties.end = String(v ?? '').trim(); }, { property: 'end' });
+        this.addWidget('text', 'timezone', 'auto', v => { this.properties.timezone = String(v ?? '').trim() || 'auto'; }, { property: 'timezone' });
+        this.addWidget('combo', 'rows', 'long', v => { this.properties.rows = v; }, { values: ['long', 'wide'], property: 'rows' });
+        this.addWidget('number', 'refresh', 0, v => {
+            const m = Math.round(Number(v) || 0);
+            this.properties.refresh = m <= 0 ? 0 : Math.min(1440, Math.max(OM_MIN_REFRESH, m));
+        }, { min: 0, max: 1440, step: 150, precision: 0, property: 'refresh' });
+        this._token = 0; this._status = ''; this._timer = null;
+        paint(this, COL_GET);
+        this.size = [270, 380];
+    }
+    OpenMeteo.title = 'Open-Meteo Forecast';
+    OpenMeteo.desc  = 'Weather data for a point, or for several points in one request (points input), from Open-Meteo (free for non-commercial use, no key; credit "Open-Meteo.com" where the data is shown): forecast up to 16 days or historical data since 1940, hourly, daily or current values; can repeat the request by itself (refresh). Works in every flow (object, dashboard, editor): it needs no App';
+    OpenMeteo.error_output = true;
+    OpenMeteo.portHelp = {
+        inputs: {
+            trigger: 'event — requests the data',
+            lat:     'number, degrees WGS84 (−90…90) — if connected it prevails over the widget (e.g. from OLY Coord Transform or MPS click)',
+            lon:     'number, degrees WGS84 (−180…180) — if connected it prevails over the widget',
+            points:  `array — several points in one request (max ${OM_MAX_POINTS}), e.g. from Params/Array/Accumulate: { lat, lon } or { lat, lng } (OLY / MPS click) or [lon, lat]; "label" (or "name") names the point, otherwise P1, P2… If connected it prevails over lat/lon; an empty array gives empty rows (e.g. to clear a chart)`,
+        },
+        outputs: {
+            done:     'event — data ready',
+            rows:     'array of objects — long: [{ time, variable, value }] (ECH line/bar: category = "time", value = "value", series = "variable") · wide: [{ time, temperature_2m, … }]. With step = current: one value per variable. With points: every row also has "point" (the label), e.g. wide + ECH series = "point" = one line per point',
+            response: 'object — the whole Open-Meteo response: latitude, longitude, elevation (m), timezone, <step>_units (units of each variable), <step> (the columns). With points: an array of these, one per point',
+            error:    'event — invalid coordinates, variables or dates, Open-Meteo error (its reason, e.g. unknown variable) or service not reachable. Port hidden by default: right click → Show error',
+        },
+        properties: {
+            lat:       'latitude used when the lat input is not connected',
+            lon:       'longitude used when the lon input is not connected',
+            api:       'forecast = api.open-meteo.com (from today, "days" days) · archive = archive-api.open-meteo.com (historical, needs start and end; data available with a few days of delay)',
+            step:      'hourly · daily · current (forecast only: values right now)',
+            variables: 'variable names separated by commas, as listed on open-meteo.com/en/docs (e.g. hourly: temperature_2m, relative_humidity_2m, precipitation, wind_speed_10m · daily: temperature_2m_max, precipitation_sum). Changing step replaces the default list',
+            days:      'forecast only: days from today, 1–16',
+            start:     'archive only: first day, YYYY-MM-DD',
+            end:       'archive only: last day, YYYY-MM-DD',
+            timezone:  'auto = local time of the point · or an IANA name (Europe/Rome) · GMT',
+            rows:      'shape of the "rows" output: long or wide (see Params/Data/Columns To Rows)',
+            refresh:   `minutes: repeats the last request by itself and fires done again (e.g. 60 = every hour, the forecast models are updated every 1–6 hours) · 0 = only on trigger · minimum ${OM_MIN_REFRESH}`,
+        },
+    };
+    OpenMeteo.prototype.onAction = async function () {
+        this.clearError?.();
+        this._schedule();
+        const p = this.properties;
+        const fail = (msg) => { this._status = ''; this.triggerError?.(new Error(msg)); this.setDirtyCanvas?.(true, false); };
+        // punti: dall'ingresso "points" se collegato, altrimenti lat/lon (ingressi o widget)
+        const pi = this.findInputSlot('points');
+        const multi = pi !== -1 && this.inputs[pi]?.link != null;
+        let points;
+        if (multi) {
+            const list = this.getInputData(pi) ?? [];
+            if (!Array.isArray(list)) return fail('points is not an array');
+            if (list.length > OM_MAX_POINTS) return fail(`too many points (${list.length}, max ${OM_MAX_POINTS})`);
+            points = list.map((v, i) => ({ ...(omPoint(v) ?? { lat: NaN, lon: NaN }), label: omLabel(v, i) }));
+            if (!points.length) {
+                // lista vuota: righe vuote, per esempio per svuotare un grafico
+                ++this._token; this._status = '';
+                out(this, 'rows', []);
+                out(this, 'response', []);
+                fire(this, 'done');
+                this.setDirtyCanvas?.(true, false);
+                return;
+            }
+        } else {
+            const latIn = inp(this, 'lat'), lonIn = inp(this, 'lon');
+            points = [{ lat: Number(latIn ?? p.lat), lon: Number(lonIn ?? p.lon), label: null }];
+        }
+        for (const pt of points) {
+            const where = pt.label ? ` (${pt.label})` : '';
+            if (!Number.isFinite(pt.lat) || pt.lat < -90 || pt.lat > 90) return fail(`invalid latitude${where}`);
+            if (!Number.isFinite(pt.lon) || pt.lon < -180 || pt.lon > 180) return fail(`invalid longitude${where}`);
+        }
+        const step = ['hourly', 'daily', 'current'].includes(p.step) ? p.step : 'hourly';
+        const vars = String(p.variables ?? '').replace(/\s+/g, '');
+        if (!/^[a-z0-9_]+(,[a-z0-9_]+)*$/.test(vars)) return fail(`invalid variables "${p.variables}"`);
+        const tz = String(p.timezone || 'auto');
+        if (!/^[A-Za-z0-9_+\-/]+$/.test(tz)) return fail(`invalid timezone "${tz}"`);
+        const api = p.api === 'archive' ? 'archive' : 'forecast';
+        const q = new URLSearchParams({
+            latitude:  points.map(pt => pt.lat.toFixed(4)).join(','),
+            longitude: points.map(pt => pt.lon.toFixed(4)).join(','),
+            [step]: vars, timezone: tz,
+        });
+        if (api === 'archive') {
+            if (step === 'current') return fail('step "current" is not available with api = archive');
+            if (!OM_DATE.test(p.start) || !OM_DATE.test(p.end)) return fail('archive needs start and end as YYYY-MM-DD');
+            if (p.start > p.end) return fail('start is after end');
+            q.set('start_date', p.start); q.set('end_date', p.end);
+        } else if (step !== 'current') {
+            q.set('forecast_days', String(Math.min(16, Math.max(1, Math.round(Number(p.days) || 1)))));
+        }
+        const token = ++this._token;
+        this._status = 'loading…';
+        this.setDirtyCanvas?.(true, false);
+        try {
+            const resp = await fetch(`${OM_HOST[api]}?${q}`);
+            const json = await resp.json().catch(() => null);
+            if (token !== this._token) return;
+            if (!resp.ok || !json || json.error) {
+                const reason = String(json?.reason || 'HTTP ' + resp.status);
+                const unknown = /invalid String value (\S+)/.exec(reason);   // es. "Cannot initialize …Variable… from invalid String value xyz"
+                throw new Error(`Open-Meteo: ${unknown ? `unknown variable "${unknown[1]}" for step "${step}"` : reason}`);
+            }
+            // più punti: la risposta è un array, uno per punto (nello stesso ordine)
+            const answers = Array.isArray(json) ? json : [json];
+            if (answers.length !== points.length) throw new Error(`Open-Meteo: ${answers.length} answers for ${points.length} points`);
+            const rows = [];
+            answers.forEach((ans, i) => {
+                let cols = ans?.[step];
+                if (step === 'current' && cols && typeof cols === 'object') {
+                    // valori singoli → colonne di un elemento (interval = durata del passo, non una variabile)
+                    cols = Object.fromEntries(Object.entries(cols).filter(([k]) => k !== 'interval').map(([k, v]) => [k, [v]]));
+                }
+                const r = columnsToRows(cols, p.rows === 'wide' ? 'wide' : 'long', 'time');
+                if (!r) throw new Error(`Open-Meteo: no "${step}" data in the response`);
+                if (multi) for (const row of r.rows) rows.push({ point: points[i].label, ...row });
+                else rows.push(...r.rows);
+            });
+            this._status = '';
+            out(this, 'rows', rows);
+            out(this, 'response', multi ? answers : json);
+            fire(this, 'done');
+        } catch (err) {
+            if (token !== this._token) return;
+            this._status = '';
+            this.triggerError?.(err);
+        }
+        this.setDirtyCanvas?.(true, false);
+    };
+    // refresh: un timer per nodo, riarmato a ogni richiesta (anche da trigger), fermato con il flow
+    OpenMeteo.prototype._schedule = function () {
+        if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+        const m = Math.round(Number(this.properties.refresh) || 0);
+        if (m <= 0 || !this.graph) return;
+        const signal = this.graph._appContext?.signal;
+        if (signal?.aborted) return;
+        this._timer = setTimeout(() => { this._timer = null; if (this.graph && !signal?.aborted) this.onAction(); },
+            Math.max(OM_MIN_REFRESH, m) * 60000);
+    };
+    OpenMeteo.prototype.onStop    = function () { if (this._timer) { clearTimeout(this._timer); this._timer = null; } };
+    OpenMeteo.prototype.onRemoved = OpenMeteo.prototype.onStop;
+    OpenMeteo.prototype.onDrawForeground = drawStatus;
+    LG.registerNodeType('Web/Open-Meteo/Forecast', OpenMeteo);
 }
 
 /**

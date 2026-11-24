@@ -3,7 +3,9 @@
 //
 // Sorgenti supportate:
 //   "mysql"   → POST a api/ech_data.php con la SQL da mod_spec (richiede admin)
-//   "json"    → fetch di un URL esterno oppure dati inline in mod_spec
+//   "json"    → fetch di un URL esterno oppure dati inline in mod_spec;
+//               facoltativi `path` (dove stanno i dati, a punti) e `columns` ("wide" | "long",
+//               per dati a colonne come Open-Meteo) con `key` (colonna chiave per "long")
 //   "csv_url" → fetch di un URL che produce CSV (es. Google Sheets export)
 //
 // Output normalizzato (sempre uguale, indipendente dalla sorgente):
@@ -13,6 +15,7 @@
 // che il template si aspetta (category, value, series, …).
 
 import { t } from "../shared/i18n.mjs";
+import { readPath, columnsToRows } from "../shared/columns-to-rows.mjs";
 
 const ECH_DATA_API = "api/ech_data.php";
 
@@ -96,6 +99,16 @@ async function loadJSON(ds, signal) {
         throw new Error("[ECH-data-loader] json: " + t("app.ech.error.ds_json_missing"));
     }
 
+    // path (facoltativo): dove stanno i dati nella risposta, a punti — es. "hourly", "data.items"
+    if (ds.path) data = readJsonPath(data, ds.path);
+
+    // columns (facoltativo): dati a colonne { time:[…], temperature_2m:[…] } (es. Open-Meteo)
+    //   "wide" → [{ time, temperature_2m, … }]           una riga per indice
+    //   "long" → [{ <key>, variable, value }]             una riga per indice e colonna (serie multiple)
+    if (ds.columns === "wide" || ds.columns === "long") {
+        return jsonColumnsToRows(data, ds.columns, ds.key);
+    }
+
     // Se è già un array di oggetti, usalo come rawRows.
     // Altrimenti lo passiamo al template "così com'è" tramite rawRows[0].
     const isArray = Array.isArray(data);
@@ -105,6 +118,18 @@ async function loadJSON(ds, signal) {
         : [];
 
     return { rawRows, headers, isNamedFields: true };
+}
+
+function readJsonPath(data, path) {
+    const r = readPath(data, path);
+    if (!r.found) throw new Error("[ECH-data-loader] json: " + t("app.ech.error.ds_json_path", { path }));
+    return r.value;
+}
+
+function jsonColumnsToRows(data, mode, key) {
+    const r = columnsToRows(data, mode, key);
+    if (!r) throw new Error("[ECH-data-loader] json: " + t("app.ech.error.ds_json_columns"));
+    return { rawRows: r.rows, headers: r.fields, isNamedFields: true };
 }
 
 // ============================================================
@@ -197,6 +222,16 @@ function parseCSV(text, delimiter = ",") {
  *
  * Se mapping è null/undefined, i rawRows vengono usati così come sono.
  */
+/**
+ * Applica un mapping a un array di record già pronti (es. righe ricevute da ECH/Chart/SetData
+ * con il toggle "mapping"). Senza mapping restituisce le righe come sono.
+ */
+export function mapRows(rows, mapping) {
+    if (!Array.isArray(rows)) return rows;
+    const headers = rows.length && typeof rows[0] === "object" ? Object.keys(rows[0]) : [];
+    return applyMapping({ rawRows: rows, headers, isNamedFields: true }, mapping).rows;
+}
+
 function applyMapping(rawResult, mapping) {
     const { rawRows, headers, isNamedFields } = rawResult;
 
